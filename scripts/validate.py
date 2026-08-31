@@ -73,13 +73,45 @@ def modern_for(bbox, W, H):
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
-def load(tag, suffix='rbf'):
+def reference_for(bbox, W, H, ref='modern'):
+    """The imagery a block is aligned against.
+
+    `modern` is the default. But 1949 and 1956 are much harder to match to 2024
+    imagery than 1961 is -- three quarters of a century of demolition, regrowth and
+    rebuilding -- and that shows up as weak control and a long tail. 1961 is already
+    aligned to modern to a few metres, and 1956 is only five years from it, so
+    matching 1956 to 1961 asks a far easier question and inherits 1961's absolute
+    accuracy. This is the standard way to register a historical series: chain
+    through the epoch you have already solved rather than reaching across the whole
+    gap every time.
+
+    Where the reference epoch has no coverage, modern fills in, so the block is
+    never left without something to align to."""
+    mod = modern_for(bbox, W, H)
+    if ref in (None, 'modern'):
+        return mod
+    geo_p = P('data', f'{ref}_final_geo.json')
+    tif = P('mosaics', f'detroit_{ref}_final.tif')
+    if not (os.path.exists(geo_p) and os.path.exists(tif)):
+        raise SystemExit(f"reference epoch {ref} has no final mosaic yet")
+    g = json.load(open(geo_p)); S, W_, N, E = g['bbox']
+    s, w, n, e = bbox
+    ds = rasterio.open(tif)
+    col0 = (w - W_) / (E - W_) * ds.width; row0 = (N - n) / (N - S) * ds.height
+    wpx = (e - w) / (E - W_) * ds.width; hpx = (n - s) / (N - S) * ds.height
+    from rasterio.windows import Window as _W
+    a = ds.read(1, window=_W(col0, row0, wpx, hpx), out_shape=(H, W),
+                boundless=True, fill_value=0)
+    return np.where(a > 0, a, mod).astype(np.uint8)
+
+
+def load(tag, suffix='rbf', ref='modern'):
     geo = json.load(open(P('data', f'{tag}_{suffix}_geo.json')))
     bbox = geo['bbox']
     Wp = int((bbox[3] - bbox[1]) * dtmap.MLON / MPP)
     Hp = int((bbox[2] - bbox[0]) * dtmap.MLAT / MPP)
     arr = rasterio.open(P('mosaics', f'detroit_{tag}_{suffix}.tif')).read(1, out_shape=(Hp, Wp))
-    return arr, modern_for(bbox, Wp, Hp), bbox
+    return arr, reference_for(bbox, Wp, Hp, ref), bbox
 
 
 def report(recs, label, lock=1.15):
@@ -156,8 +188,18 @@ def main():
                   f"max {d.max():5.1f}  inconsistent >10 m: {(d>10).sum()}/{len(d)}", flush=True)
 
         print(" 3. MEASUREMENT")
-        report(base, f'{tag}')
+        # Report at two scales, because they answer different questions and the
+        # coarse one flatters the product. The residual varies at roughly the
+        # kilometre scale -- the spacing of the frame centres -- so a 3.6 x 2.0 km
+        # cell averages much of it away. Independent backends against USGS NAIP
+        # confirmed both: ~3-4 m over 3.6 km windows, but 11.6-16.2 m over 1.5 km
+        # windows, on the same imagery on the same day. Somebody looking at a street
+        # corner sees the fine number, so that is the one that matters.
+        report(base, f'{tag}  16x3 cells (3.6 x 2.0 km)')
+        fine = gridval.grid_hier_prep(t, NY=32, NX=6, prior=prior)
+        report(fine, f'{tag}  32x6 cells (1.8 x 1.0 km) <- what a viewer sees')
         json.dump(base, open(P('data', f'gridval_{tag}.json'), 'w'))
+        json.dump(fine, open(P('data', f'gridval_{tag}_fine.json'), 'w'))
         print("    worst cells:  row col valid    dE     dN    mag  ratio pegged")
         for r in sorted([x for x in base if 'skip' not in x], key=lambda r: -r['mag'])[:10]:
             print(f"                  {r['row']:3d} {r['col']:3d} {r['valid']:.2f} "

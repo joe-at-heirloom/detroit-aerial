@@ -11,7 +11,11 @@ Correcting each frame before compositing removes the step; the RBF afterwards on
 has the smooth within-frame part left to do.
 
 Usage:  ./.venv/bin/python scripts/rebuild.py 1961 [--rots] [--skip-frames]
-                                             [--frame-iters 3]
+                                             [--frame-iters 3] [--ref 1961]
+
+`--ref 1961` aligns against the already-solved 1961 mosaic instead of modern
+imagery, falling back to modern outside 1961's coverage. For 1949 and 1956 that is
+a far easier match than reaching across seventy-odd years to 2024.
 """
 import sys, os, json, math, time
 import numpy as np
@@ -76,21 +80,33 @@ def composite(tag, sol, ppm, label, log=print):
     return geo
 
 
-def run(tag, rots=False, skip_frames=False, frame_iters=3):
+def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
+        reuse_fa=False, station_win=2000.0, station_overlap=0.4):
     t0 = time.time()
-    print(f"\n===== rebuild {tag} =====", flush=True)
+    print(f"\n===== rebuild {tag} (reference: {ref}) =====", flush=True)
     sol, ppm = placements(tag)
     print(f"  {len(sol)} frames", flush=True)
 
     if not os.path.exists(P('data', f'{tag}_pre_geo.json')):
         composite(tag, sol, ppm, 'pre')
-    arr, mod, bbox = load(tag, 'pre')
-    t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_pre')
+    arr, mod, bbox = load(tag, 'pre', ref)
+    t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_pre_{ref}')
     prior = gridval.Prior(gridval.coarse_field(t), MPP)
     before = gridval.grid_hier_prep(t, prior=prior)
     report(before, 'pre-warp composite')
 
-    if not skip_frames:
+    if reuse_fa and os.path.exists(P('data', f'{tag}_fa_geo.json')):
+        # The per-frame stage is the expensive part and does not change when only
+        # the control density changes, so reuse its composite while iterating on
+        # the residual field.
+        print("  reusing the existing frame-corrected composite", flush=True)
+        arr, mod, bbox = load(tag, 'fa', ref)
+        t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_fa_{ref}')
+        prior = gridval.Prior(gridval.coarse_field(t), MPP)
+        mid = gridval.grid_hier_prep(t, prior=prior)
+        report(mid, 'after per-frame     ')
+        src, geo = 'fa', json.load(open(P('data', f'{tag}_fa_geo.json')))
+    elif not skip_frames:
         geo = json.load(open(P('data', f'{tag}_pre_geo.json')))
         minE, maxN = geo['minE'], geo['maxN']
         angles = tuple(np.arange(-0.8, 0.81, 0.4)) if rots else (0.0,)
@@ -125,8 +141,8 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3):
         print(f"  total per-frame correction: median {np.median(tot):.1f}  "
               f"p90 {np.percentile(tot,90):.1f}  max {tot.max():.1f} m", flush=True)
         composite(tag, sol, ppm, 'fa')
-        arr, mod, bbox = load(tag, 'fa')
-        t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_fa')
+        arr, mod, bbox = load(tag, 'fa', ref)
+        t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_fa_{ref}')
         prior = gridval.Prior(gridval.coarse_field(t), MPP)
         mid = gridval.grid_hier_prep(t, prior=prior)
         report(mid, 'after per-frame     ')
@@ -135,8 +151,9 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3):
         src, geo = 'pre', json.load(open(P('data', f'{tag}_pre_geo.json')))
 
     kept, tr, R, warp_at = warpsolve.solve(t, bbox, dtmap.MLAT, dtmap.MLON,
-                                           win_m=2000.0, overlap=0.4, iters=5,
-                                           lengths=(250., 400., 600., 800., 1200.))
+                                           win_m=station_win, overlap=station_overlap,
+                                           iters=5,
+                                           lengths=(150., 250., 400., 600., 900.))
     if kept is None:
         print("  no residual field"); return
     json.dump(kept, open(P('data', f'stations_final_{tag}.json'), 'w'))
@@ -149,15 +166,18 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3):
                          f'/tmp/fin_{tag}.raw', step_m=max(50.0, R.length / 8),
                          log=lambda s: None)
     json.dump(out, open(P('data', f'{tag}_final_geo.json'), 'w'))
-    arr2, mod2, _ = load(tag, 'final')
-    t2 = gridval.prepare_cached(arr2, mod2, MPP, f'{tag}_final')
+    arr2, mod2, _ = load(tag, 'final', ref)
+    t2 = gridval.prepare_cached(arr2, mod2, MPP, f'{tag}_final_{ref}')
     prior2 = gridval.Prior(gridval.coarse_field(t2, log=lambda *_: None), MPP)
     after = gridval.grid_hier_prep(t2, prior=prior2)
     json.dump(after, open(P('data', f'gridval_{tag}.json'), 'w'))
+    fine = gridval.grid_hier_prep(t2, NY=32, NX=6, prior=prior2)
+    json.dump(fine, open(P('data', f'gridval_{tag}_fine.json'), 'w'))
     report(before, 'pre-warp composite  ')
     if not skip_frames:
         report(mid, 'after per-frame     ')
-    report(after, 'FINAL               ')
+    report(after, 'FINAL  16x3 cells   ')
+    report(fine, 'FINAL  32x6 cells   ')
     print(f"  [{time.time()-t0:.0f}s]", flush=True)
 
 
@@ -165,6 +185,11 @@ if __name__ == '__main__':
     rots = '--rots' in sys.argv
     sk = '--skip-frames' in sys.argv
     it = int(sys.argv[sys.argv.index('--frame-iters') + 1]) if '--frame-iters' in sys.argv else 3
+    ref = sys.argv[sys.argv.index('--ref') + 1] if '--ref' in sys.argv else 'modern'
+    reuse = '--reuse-fa' in sys.argv
+    swin = float(sys.argv[sys.argv.index('--station-win') + 1]) if '--station-win' in sys.argv else 2000.0
+    sov = float(sys.argv[sys.argv.index('--station-overlap') + 1]) if '--station-overlap' in sys.argv else 0.4
     for tg in [a for a in sys.argv[1:] if not a.startswith('--')
-               and a != str(it)]:
-        run(tg, rots, sk, it)
+               and a != str(it) and a != ref
+               and a != str(swin) and a != str(sov)]:
+        run(tg, rots, sk, it, ref, reuse, swin, sov)

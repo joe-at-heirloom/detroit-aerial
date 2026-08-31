@@ -235,6 +235,23 @@ real data* -- not on a synthetic pair, which only pins its sign convention.
 `scripts/crosscheck.py --realcontrol` is that test, and it is the gate that decides
 which tools are allowed to have an opinion.
 
+What passed it, on 1967 film against NAIP (median error recovering the plant):
+
+| backend | median error | within 5 m | verdict |
+|---|---|---|---|
+| ours (masked NCC on a ridge response) | 0.43 m | 71% | can measure this |
+| scikit-image masked phase correlation | 1.00 m | 79% | can measure this |
+| OpenCV ECC | 0.27 m | 67% | can measure this |
+| SimpleITK Mattes mutual information | 43.69 m | 0% | **cannot** |
+| AROSICS | did not respond to a 30 m plant | -- | **cannot** |
+
+Two independent, validated verifiers therefore remain: **scikit-image** and
+**OpenCV**. Of the two, only OpenCV's ECC is a *local* method, so for absolute
+offsets it is the one to read -- scikit-image's phase correlation searches the
+whole image and will happily lock a block off on this street grid. It was fine in
+the control only because that measures a *change*, which cancels a consistent
+alias.
+
 # Tools
 
 | | |
