@@ -542,6 +542,28 @@ class Prior:
         return tuple((self.V * w[:, None]).sum(0) / s)
 
 
+def prior_for(t, mpp, min_locked=20, log=print, **kw):
+    """A regional prior, but only when enough of it locked.
+
+    The coarse field is solved on 6 km windows of mile-grid arterials. Where those
+    are thin -- 1956 runs west into country where the mile grid weakens, and its
+    coverage is patchier -- few windows lock and the interpolated field is
+    confidently wrong. That is worse than having no prior at all, because every
+    cell then refines within +/-40 m of a wrong centre: measured on 1956's
+    frame-corrected composite, a 12-window prior reported 101 m where a zero prior
+    reported 11 m, for the same raster. 1961, whose field locks 28 windows, gives
+    the same answer either way.
+
+    A prior is only needed when the mosaic is further out than the fine search can
+    walk. After the per-frame stage it never is."""
+    pts = coarse_field(t, log=log, **kw)
+    if len(pts) < min_locked:
+        log(f"  coarse field locked only {len(pts)} windows (< {min_locked}); "
+            f"using a zero prior instead -- a sparse one is worse than none")
+        return Prior([], mpp)
+    return Prior(pts, mpp)
+
+
 def _sig(a):
     """Cheap content signature. A cached ridge map must never be reused after the
     raster underneath it changes -- and a re-warped mosaic has the same shape as

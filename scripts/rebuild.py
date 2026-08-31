@@ -91,7 +91,7 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
         composite(tag, sol, ppm, 'pre')
     arr, mod, bbox = load(tag, 'pre', ref)
     t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_pre_{ref}')
-    prior = gridval.Prior(gridval.coarse_field(t), MPP)
+    prior = gridval.prior_for(t, MPP)
     before = gridval.grid_hier_prep(t, prior=prior)
     report(before, 'pre-warp composite')
 
@@ -102,7 +102,7 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
         print("  reusing the existing frame-corrected composite", flush=True)
         arr, mod, bbox = load(tag, 'fa', ref)
         t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_fa_{ref}')
-        prior = gridval.Prior(gridval.coarse_field(t), MPP)
+        prior = gridval.Prior([], MPP)     # already close; see gridval.prior_for
         mid = gridval.grid_hier_prep(t, prior=prior)
         report(mid, 'after per-frame     ')
         src, geo = 'fa', json.load(open(P('data', f'{tag}_fa_geo.json')))
@@ -158,7 +158,7 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
         composite(tag, sol, ppm, 'fa')
         arr, mod, bbox = load(tag, 'fa', ref)
         t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_fa_{ref}')
-        prior = gridval.Prior(gridval.coarse_field(t), MPP)
+        prior = gridval.Prior([], MPP)     # already close; see gridval.prior_for
         mid = gridval.grid_hier_prep(t, prior=prior)
         report(mid, 'after per-frame     ')
         src, geo = 'fa', json.load(open(P('data', f'{tag}_fa_geo.json')))
@@ -167,7 +167,7 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
 
     kept, tr, R, warp_at, held_out = warpsolve.solve(t, bbox, dtmap.MLAT, dtmap.MLON,
                                            win_m=station_win, overlap=station_overlap,
-                                           iters=5,
+                                           iters=5, prior=gridval.Prior([], MPP),
                                            lengths=(150., 250., 400., 600., 900.))
     if kept is None:
         print("  no residual field"); return
@@ -188,7 +188,7 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
     json.dump(out, open(P('data', f'{tag}_final_geo.json'), 'w'))
     arr2, mod2, _ = load(tag, 'final', ref)
     t2 = gridval.prepare_cached(arr2, mod2, MPP, f'{tag}_final_{ref}')
-    prior2 = gridval.Prior(gridval.coarse_field(t2, log=lambda *_: None), MPP)
+    prior2 = gridval.Prior([], MPP)     # already close after the field
     after = gridval.grid_hier_prep(t2, prior=prior2)
     json.dump(after, open(P('data', f'gridval_{tag}.json'), 'w'))
     fine = gridval.grid_hier_prep(t2, NY=32, NX=6, prior=prior2)

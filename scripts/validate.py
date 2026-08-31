@@ -174,7 +174,7 @@ def main():
             print(f"    planted ({dE:+6.1f},{dN:+6.1f})  recovery error: median {np.median(err):4.1f}  "
                   f"max {err.max():5.1f}  wrong by >10 m: {(err>10).sum()}/{len(u)}", flush=True)
 
-        prior = gridval.Prior(gridval.coarse_field(t), MPP)
+        prior = gridval.prior_for(t, MPP)
         print(" 2. SELF-CONSISTENCY -- plant a shift on the real historical mosaic")
         base = gridval.grid_hier_prep(t, prior=prior)
         B = {(r['row'], r['col']): r for r in base if 'skip' not in r and not r.get('pegged')}
