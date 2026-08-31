@@ -4,3 +4,10 @@ pillow>=10.0
 rasterio>=1.3
 scikit-image>=0.22   # sato ridge filter (pipeline/absorient.py)
 scipy>=1.11          # ndimage.uniform_filter, fft.next_fast_len
+
+# independent verification (scripts/crosscheck.py, scripts/naipcheck.py)
+opencv-python-headless   # ECC registration, an independent implementation
+SimpleITK                # Mattes mutual information, a different algorithm family
+# optional, and measured NOT to work on this data -- see pipeline/glue.py and HANDOFF.md
+# torch, kornia          # LightGlue frame matching
+# arosics                # needs GDAL python bindings; cannot match film to modern imagery

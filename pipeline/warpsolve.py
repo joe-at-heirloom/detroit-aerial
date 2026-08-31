@@ -44,6 +44,7 @@ def solve(t, bbox, MLAT, MLON, win_m=2000.0, overlap=0.4, iters=4,
     maxN = (bbox[2] - 42.3340) * MLAT
     field = gridval.Prior(gridval.coarse_field(t, log=log), mpp)
     kept = None; tr = R = warp_at = None
+    best = None            # (held-out median, kept, trend, RBF, warp_at)
     for it in range(iters):
         st = stations.solve_grid_prep(t, bbox, MLAT, MLON, win_m=win_m,
                                       overlap=overlap, min_valid=min_valid,
@@ -58,15 +59,25 @@ def solve(t, bbox, MLAT, MLON, win_m=2000.0, overlap=0.4, iters=4,
         log(f"  iter {it}: {len(st)} solved -> {len(good)} confident -> {len(kept)} kept"
             f"   moved this pass: median {np.median(moved):5.1f}  p90 "
             f"{np.percentile(moved,90):5.1f}  at search limit {pegged}")
-        L = None
+        L = None; ho = float('inf')
         if lengths:
-            best, table = rbfwarp.cv_length(kept, lengths=lengths)
-            L = best[0]
+            sel, table = rbfwarp.cv_length(kept, lengths=lengths)
+            L = sel[0]; ho = sel[1]
             log(f"    RBF length by held-out station error: {L:.0f} m "
-                f"(held-out median {best[1]:.1f} m)")
+                f"(held-out median {ho:.1f} m)")
         tr, R, warp_at = rbfwarp.fit(kept, length=L or 1000.0, trim=True)
+        # Keep the best pass, not the last one. On the harder blocks the control is
+        # noisy enough that a later pass can fit it worse -- 1949 went 15.2 -> 19.7 m
+        # held-out across five passes -- and returning whichever happened to be last
+        # ships the worse field.
+        if best is None or ho < best[0]:
+            best = (ho, kept, tr, R, warp_at)
         field = PixelField(warp_at, minE, maxN, mpp)
         if np.median(moved) < tol and pegged == 0:
             log(f"  converged after {it+1} passes")
             break
+    if best is not None:
+        if best[0] != float('inf'):
+            log(f"  keeping the pass with the lowest held-out error: {best[0]:.1f} m")
+        return best[1], best[2], best[3], best[4]
     return kept, tr, R, warp_at

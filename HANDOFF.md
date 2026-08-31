@@ -173,12 +173,67 @@ Steps 5–7 are one command: `./.venv/bin/python scripts/rebuild.py 1961`
    This includes the previous session's `/tmp/refine.py`, which tightened the
    search to ±90 m — still wider than the 97.5 m block, so it still aliased. Its
    `mosaics/detroit_*_p2.tif` outputs are not used.
-7. **Random-fold cross-validation on overlapping control windows.** A held-out
+7. **Asking an ArcGIS ImageServer for a pixel grid whose aspect does not match
+   the bbox.** `exportImage` does not simply honour the bbox: if the requested
+   pixel grid has a different aspect ratio, it silently *expands the bbox* to
+   match and returns imagery covering more ground than you asked for. Our check
+   windows are square in metres, which is 1.35:1 in degrees at this latitude, so
+   requesting a square pixel grid stretched the latitude extent by **243 m** --
+   and the independent verification then compared two different footprints and
+   reported ~74 m of error that did not exist. Three separate registration
+   libraries all confirmed that phantom error, because all three were being handed
+   the same mis-framed image. Request a grid whose aspect already matches the bbox
+   in degrees, and assert the returned extent (`naipcheck.verify_extent`).
+
+8. **Random-fold cross-validation on overlapping control windows.** A held-out
    station almost always has a near-duplicate left in the training set, so it
    scores interpolation and rewards ever-shorter length scales. Random folds
    claimed 5.1 m held-out where spatial folds said 9.1 m.
 
 ---
+
+# Independent verification
+
+Everything above is measured against a reference this project built itself. That
+is a single point of failure, and it has been wrong once already. So the whole
+chain is checked against imagery and tooling that share nothing with it:
+
+- **USGS NAIP** (`scripts/naipcheck.py`) -- public-domain orthoimagery from
+  USDA/USGS, a different organisation and a different processing chain than Esri.
+  Its ImageServer returns EPSG:4326 on request, so *the server does the
+  reprojection* and this project's own Mercator handling is taken out of the loop.
+- **Four registration implementations** (`scripts/crosscheck.py`) -- ours, plus
+  scikit-image's masked phase correlation, OpenCV's ECC (gradient-based, not
+  correlation-peak-based) and SimpleITK's Mattes mutual information (an
+  information-theoretic criterion that assumes nothing about the two images having
+  similar brightness). Each is pinned by a planted-shift self-test before it is
+  trusted -- that test caught scikit-image and SimpleITK returning the opposite
+  sign to what their documentation implied.
+
+Measured, our modern reference agrees with NAIP to **1.4-6.2 m** at widely
+separated locations, all four backends agreeing.
+
+## Verify the verifier, every time
+
+Two independent checks were themselves broken, and both looked convincing first:
+
+- **The NAIP request was mis-framed** (see trap 7 below). Three separate
+  registration libraries all agreed on ~74 m of error that did not exist, because
+  all three were being handed the same wrongly-framed image. Agreement between
+  tools is not evidence when they share an input.
+- **AROSICS cannot measure this data.** It is a published, peer-reviewed
+  co-registration package and it reported a beautifully tidy "median 0.51 m, bias
+  0.00" across 349 tie points on the 1967 block. Then a planted 30 m shift was put
+  on the target and it reported the same thing: its global mode returns `None` for
+  two of three planted shifts and reliability 0 for the third, its local mode has
+  median reliability 0. It is built for multi-sensor satellite imagery of the same
+  era, and 1967 panchromatic film against modern orthoimagery is outside what it
+  can match. **Its number was meaningless and would have been reassuring.**
+
+So no backend counts as verification until it has recovered a *planted shift on the
+real data* -- not on a synthetic pair, which only pins its sign convention.
+`scripts/crosscheck.py --realcontrol` is that test, and it is the gate that decides
+which tools are allowed to have an opinion.
 
 # Tools
 
@@ -191,6 +246,10 @@ Steps 5–7 are one command: `./.venv/bin/python scripts/rebuild.py 1961`
 | `scripts/inspectcells.py` | the same, for the worst cells specifically, as-built vs corrected |
 | `scripts/fetchmodern.py` | refetch the modern reference, correctly reprojected |
 | `scripts/manifest.py` | point the viewer at whatever the best build now is |
+| `scripts/naipcheck.py` | verify against USGS NAIP -- independent imagery |
+| `scripts/crosscheck.py` | measure the same windows four ways, three of them third-party |
+| `pipeline/glue.py` | LightGlue frame matching (measured worse than ridge here; see the module) |
+| `scripts/arosicscheck.py` | AROSICS run (kept for the record; it cannot match this data — see above) |
 
 Where both epochs have visible roads, aligned streets render **yellow** and a
 misalignment splits into a red ghost beside a green one. Areas that are red-only
