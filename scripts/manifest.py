@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+"""Regenerate data/manifest.json from whatever mosaics actually exist.
+
+Each block is served from the best build present -- `final` (per-frame corrected
+plus residual field) if it is there, else `v2`, else the original `rbf` -- so the
+viewer follows the pipeline forward without anything being edited by hand.
+"""
+import os, json, sys
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def P(*a): return os.path.join(ROOT, *a)
+
+TAGS = ['1949', '1956', '1961', '1967']
+PREF = ['final', 'v2', 'rbf']
+
+
+def best(tag):
+    for s in PREF:
+        g = P('data', f'{tag}_{s}_geo.json')
+        m = P('mosaics', f'detroit_{tag}_{s}.tif')
+        if os.path.exists(g) and os.path.exists(m):
+            return s, json.load(open(g))
+    return None, None
+
+
+def main():
+    old = json.load(open(P('data', 'manifest.json')))
+    layers = [l for l in old['layers'] if l['group'] == 'downtown']
+    ids = []
+    boxes = []
+    for tag in TAGS:
+        s, g = best(tag)
+        if not g:
+            print(f"  {tag}: no mosaic"); continue
+        lid = f'b{tag}'
+        layers.append(dict(id=lid, group='west', label=tag,
+                           file=f'mosaics/detroit_{tag}_{s}.tif',
+                           bbox=g['bbox'], gray=True))
+        ids.append(lid); boxes.append(g['bbox'])
+        print(f"  {tag}: {s}")
+    mw = json.load(open(P('data', 'modern_west_geo.json')))
+    layers.append(dict(id='modwest', group='west', label='Today',
+                       file='mosaics/modern_west.png', bbox=mw['bbox'], gray=True))
+    ids.append('modwest'); boxes.append(mw['bbox'])
+    union = [min(b[0] for b in boxes), min(b[1] for b in boxes),
+             max(b[2] for b in boxes), max(b[3] for b in boxes)]
+    groups = {'downtown': old['groups']['downtown'],
+              'west': dict(label='West Detroit', layers=ids, bbox=union,
+                           note='1949, 1956, 1961 and 1967 blocks. Per-frame rotation '
+                                'and position, absolute orientation on the mile-grid '
+                                'arterials, per-frame adjustment against modern '
+                                'imagery, then a residual local field.')}
+    json.dump(dict(layers=layers, groups=groups), open(P('data', 'manifest.json'), 'w'), indent=1)
+    print(f"  wrote manifest: {len(layers)} layers")
+
+
+if __name__ == '__main__':
+    main()

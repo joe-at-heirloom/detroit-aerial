@@ -41,11 +41,12 @@ def _bilerp(grid, gx, gy, xs, ys):
             + g[y0 + 1][:, x0] * (1 - tx) * ty + g[y0 + 1][:, x0 + 1] * tx * ty)
 
 
-def apply(src_tif, geo, warp_at, out_tif, raw_path, chunk=1024, log=print):
+def apply(src_tif, geo, warp_at, out_tif, raw_path, chunk=1024, step_m=200.0,
+          log=print):
     g = json.load(open(geo)) if isinstance(geo, str) else geo
     minE, maxN, W, H, mpp = g['minE'], g['maxN'], g['W'], g['H'], g['mpp']
     ds = rasterio.open(src_tif)
-    gx, gy, DE, DN = field(warp_at, minE, maxN, W, H, mpp)
+    gx, gy, DE, DN = field(warp_at, minE, maxN, W, H, mpp, step_m=step_m)
     log(f"  displacement lattice {DE.shape[1]}x{DE.shape[0]}  "
         f"dE {DE.min():+.0f}..{DE.max():+.0f}  dN {DN.min():+.0f}..{DN.max():+.0f} m")
     out = np.memmap(raw_path, dtype=np.uint8, mode='w+', shape=(H, W)); out[:] = 0

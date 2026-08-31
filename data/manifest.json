@@ -56,7 +56,7 @@
    "id": "b1961",
    "group": "west",
    "label": "1961",
-   "file": "mosaics/detroit_1961_rbf.tif",
+   "file": "mosaics/detroit_1961_p2.tif",
    "bbox": [
     42.2305352048412,
     -83.3371931333485,
@@ -69,7 +69,7 @@
    "id": "b1967",
    "group": "west",
    "label": "1967",
-   "file": "mosaics/detroit_1967_rbf.tif",
+   "file": "mosaics/detroit_1967_p2.tif",
    "bbox": [
     42.2296093167972,
     -83.27450607655221,

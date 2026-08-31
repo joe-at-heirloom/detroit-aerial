@@ -9,108 +9,209 @@ any year and modern satellite imagery — **the streets do not move.**
 ## The test of success
 
 Pick any spot in the covered area, at any zoom, and wipe between any two layers.
-A street corner must stay on the same screen pixel. Currently it doesn't
-everywhere, and that is the whole remaining problem.
+A street corner must stay on the same screen pixel.
 
 **Target: every cell under ~10 m. No cell over ~25 m.**
 
-## How we measure it
+---
 
-Cut the mosaic into a **16 × 3 grid** of cells. For each cell, correlate a ridge
-(road-like linear feature) response from the historical imagery against the same
-response from modern imagery, and record how far it had to shift to match. That
-shift is the error for that cell.
+# How we measure it — and how we know the ruler is straight
 
-Measuring on coarse full-width chunks is what fooled us before — it averages the
-left, middle and right of the block together and hides real lateral error. Always
-report **median, p90, max, and the count of cells over 25 m**, never a single
-average.
+Cut the mosaic into a **16 × 3 grid**. For each cell, correlate a ridge (road-like
+linear feature) response from the historical imagery against the same response
+from modern imagery, and record how far it had to shift. Report **median, p90,
+max, and the count of cells over 25 m** — never a single average.
 
-## Where it stands
+That much was already right. What was missing is that **the ruler was bent, and
+every number the project has ever reported was measured with it.** So
+`scripts/validate.py` now proves the metric before it reports anything:
 
-| block | frames | mosaic | control stations | median | p90 | worst cell | cells >25 m |
-|---|---|---|---|---|---|---|---|
-| 1961 | 62 | 820 MP | ~130 | 15.3 m | 55.5 m | 231.9 m | 14 / 44 |
-| 1967 | 51 | 825 MP | ~110 | 11.2 m | 43.0 m | 162.3 m | 8 / 31 |
-| 1949 | 50 | 834 MP | 61 of 121 | not yet measured | | | |
-| 1956 | 70 | 1070 MP | 75 of 159 | not yet measured | | | |
+1. **Planted-shift calibration.** Take the modern imagery, mask it to the
+   historical footprint, move it by a known amount, and measure. Whatever it
+   reports is the metric's own error. It must recover 0 m, and it must recover a
+   planted 120 m too.
+2. **Self-consistency.** Plant a shift on the *real* historical mosaic. Every
+   cell's measurement must move by exactly that much. A metric that locks onto
+   the wrong street lattice passes step 1 and fails this one.
+3. **Only then, the measurement.**
 
-All four `mosaics/detroit_*_rbf.tif` exist (438-547 MB each). 1949 and 1956 have
-been through pass one only and their grids have never been measured — do that
-first, they may be worse than 1961/1967.
+Run it: `./.venv/bin/python scripts/validate.py 1961 1967`
 
-Note the low confident-station yield on the new blocks (61/121 and 75/159, versus
-~85% on 1961). Coverage is thinner (62% and 67%), so there is less overlap with
-modern imagery to correlate against. That is a likely weak point.
+---
 
-Downtown (a separate 3-frame scene, not part of the blocks) is good: 3–5 m.
+# What was actually wrong
 
-## Four things already ruled out — do not repeat these
+## 1. The validator itself was aliasing — the project's own trap, re-entering by the back door
 
-1. **Correlating against the residential street grid.** Detroit's side streets
-   repeat every ~100 m, so a mosaic shifted by exactly one block scores as
-   *perfectly aligned*. Every metric built on this lied, including one reporting
-   "0.28 m bias" on 31,202 samples while the mosaic was 150 m out. Use the
-   **mile-grid arterials** (1609 m spacing) for absolute orientation — they
-   cannot alias inside a ±400 m search.
+Detroit's residential streets in this block repeat every **97.5 m** (measured off
+the modern imagery: ridge autocorrelation r = 0.46–0.67 on the E–W axis). A
+single-stage ±200 m search over a ridge map that contains side streets therefore
+holds six alias positions per axis, and it will confidently return one of the
+wrong ones.
 
-2. **Validating against road centreline vectors.** Modern satellite imagery
-   scores the same 5–6 m against those centrelines as our historical imagery
-   does, so that is the *metric's* noise floor, not our error. Validate against
-   modern **imagery**, not vectors.
+The evidence was sitting in the old numbers. Cell (5,1) reported **dE = +97.5 m** —
+exactly one block, to the decimetre. The "231.9 m worst cell" and the "98 m" cell
+were the metric wandering, not the mosaic moving.
 
-3. **A single global transform per block.** Right on average, wrong everywhere in
-   particular. Per-chunk error stayed at 87–217 m.
+The project already knew not to do this for *absolute orientation*. It came back
+through the validator.
 
-4. **A translation-only bundle adjustment.** Aerial film has a per-frame crab
-   angle (measured spread 3.0° in 1961, 6.4° in 1956). Ignoring it is what made
-   the stitching look crooked. Rotation must be solved per frame.
+**The fix — never search wide, search repeatedly.** No single correlation is
+allowed to be ambiguous:
 
-## The pipeline as it stands
+- a **regional coarse field**, solved on 6 km windows where the mile grid is
+  actually present (1609 m spacing, cannot alias inside ±250 m), gives every cell
+  a starting displacement;
+- each cell then refines by at most **±40 m** — narrower than half a block, so
+  aliasing is impossible — and that refinement is *repeated*, re-centring each
+  time, so the reach extends to ~120 m while every individual search stays
+  unambiguous.
 
-1. **Self-calibrate** each mission — scale and rotation derived from the imagery,
-   never hardcoded (`pipeline/calib.py`).
+Self-consistency went from *"up to 405 m out, 3 cells inconsistent"* to **0.0 m,
+none**.
+
+## 2. The modern reference was Web Mercator with a lat/lon box stamped on it
+
+Comparing the old reference against a correctly reprojected one, band by band up
+the raster, the north–south offset went
+
+    -7.4   -13.8   -17.3   -17.2   -13.8   -6.4  m
+
+— a **symmetric parabola**: zero at both ends, ~17 m at mid-span. That shape, at
+that amplitude, is produced by exactly one thing: Mercator pixels addressed as if
+they were linear in latitude, matched at the endpoints. The closed form for that
+error over this span predicts **15.5 m**.
+
+So every control point in the project was being fitted to a map bowed by up to
+17 m through the middle. The warp dutifully absorbed the bow.
+
+`scripts/fetchmodern.py` refetches Esri World Imagery at z16 (**1.77 m/px**,
+against 3.54 before) and resamples **each output row from its own true Mercator
+latitude**, onto this project's linear-latitude grid.
+
+## 3. The reference did not cover 1949 or 1956 — and the code hid it
+
+1949 runs ~3 km further south than the old reference, 1956 ~3 km further south
+and west. **15.5 km² of 1949's imagery and 65.4 km² of 1956's had no modern
+reference at all.** `modern_for` cropped to the overlap and then *resized the crop
+to the full block extent* — silently stretching the reference across the whole
+block. Anything measured for those two epochs against it was meaningless.
+
+It now samples properly and leaves the uncovered margin as nodata, which the
+masked correlation already knows to ignore. The z16 refetch covers all four
+blocks.
+
+## 4. A smooth field cannot fix a per-frame step
+
+The mosaic is a Voronoi composite of individual negatives, and each negative
+carries its own residual position and crab angle. Where two frames meet the error
+can step discontinuously, and no continuous RBF can represent a step — it splits
+the difference and leaves half the disagreement on both sides. Spatially-blocked
+cross-validation put the floor on a smooth field at **~9 m held-out**, and frame
+centres sit ~1.4 km apart, which is exactly the scale at which the field stopped
+being predictable.
+
+So the frame is corrected as a frame: each negative is rendered alone into map
+space (middle 78% only — the outer margin is where vignetting and relief
+displacement are worst), matched against modern imagery with the same alias-proof
+search, and fed back as its own (dE, dN) before re-compositing.
+
+A frame that does not lock **must not be left at zero** while its neighbours move
+by 70 m — that tears the mosaic exactly where it used to be continuous. Frames
+that fail borrow their neighbourhood's consensus; frames that disagree with their
+neighbourhood are replaced by it.
+
+## 5. Smaller things that were quietly wrong
+
+- The "second peak" exclusion radius was fixed at 140 m, wider than the fine
+  search window, so it blanked the whole surface and **every confidence ratio came
+  back as ~0**.
+- Peak position was integer-pixel, quantising every measurement to ±1.25 m for no
+  reason. Now parabolic sub-pixel.
+- The displacement lattice was sampled every 200 m regardless of the RBF length
+  scale, which cross-validation keeps choosing at 400–600 m. It now scales with it.
+
+---
+
+# The pipeline
+
+1. **Self-calibrate** each mission — scale and rotation from the imagery, never
+   hardcoded (`pipeline/calib.py`).
 2. **Relative orientation with rotation** — windowed phase correlation swept over
    ±3° per overlapping pair (`pipeline/tiesim.py`). Tie residuals 0.5–1.7 m.
 3. **Bundle adjust** rotations, then positions.
-4. **Absolute orientation** against mile-grid arterials
-   (`pipeline/absorient.py`).
-5. **Local warp** — control stations on a grid, correlating historical ridge
-   response against modern ridge response, then a linear trend plus a
-   Gaussian-kernel RBF fitted to them (`pipeline/stations.py`,
-   `pipeline/rbfwarp.py`, `pipeline/rbfapply.py`). Length scale chosen by
-   cross-validation on held-out stations.
+4. **Absolute orientation** against the mile-grid arterials (`pipeline/absorient.py`).
+5. **Composite** the block (`pipeline/mosaic_sim.py`).
+6. **Per-frame adjustment** against modern imagery (`pipeline/frameadjust.py`),
+   then re-composite.
+7. **Residual local field** — control stations solved coarse-to-fine and iterated
+   to convergence (`pipeline/warpsolve.py`), length scale chosen by
+   *spatially-blocked* cross-validation (`pipeline/rbfwarp.py`), applied once
+   (`pipeline/rbfapply.py`).
 
-## The current lead
+Steps 5–7 are one command: `./.venv/bin/python scripts/rebuild.py 1961`
 
-A **second RBF pass**. Pass one solved stations against an *unwarped* mosaic, so
-the search had to be wide (±330 m) and was ambiguous — bad stations produce a bad
-warp. Re-solving on the already-warped result allows a tight ±90 m search, which
-is unambiguous, so the stations are far cleaner and a shorter-length RBF (800 m)
-can remove what pass one missed. Script: `/tmp/refine.py`, reports before/after
-on the same 16 × 3 grid.
+---
 
-**Status: pass two is running on all four blocks as of this handoff.** If its
-output is lost, just re-run `/tmp/refine.py 1961 1967 1949 1956` from the project
-root (copy it into `scripts/` first — it is only in /tmp). It writes
-`mosaics/detroit_*_p2.tif` and prints before/after for each block. Nothing is
-wired into `data/manifest.json` yet, so the viewer still serves the pass-one
-mosaics; swap the manifest `file` and `bbox` entries to the `_p2` versions only
-if the numbers actually improve.
+# Ruled out — do not repeat these
 
-If that is not enough, the next steps in order:
-- denser control stations, with per-station outlier rejection against neighbours
-- iterate passes until the grid stops improving
-- per-frame rather than per-region correction (the frames are the physical unit)
-- orthorectification, which is the real ceiling — buildings lean differently in
-  every negative, so rooftops can never align without a DEM or dense stereo
+1. **Correlating against the residential street grid.** It repeats every 97.5 m
+   here, so a mosaic shifted exactly one block scores as perfectly aligned. One
+   metric reported "0.28 m bias" on 31,202 samples while the mosaic was 150 m out.
+2. **Validating against road centreline vectors.** Modern imagery scores the same
+   5–6 m against them as our imagery does — that is the metric's noise floor.
+3. **Per-cell arterial validation.** Modern imagery, which is zero-error by
+   definition, scores 90–212 m against the arterials in the eastern column with
+   ratio ≈ 1.0. One 3.6 × 2.0 km cell contains about two arterials per axis, which
+   is not enough to lock. Useful only where bearing diversity is high, and only to
+   tell "a few metres" from "a whole block".
+4. **A single global transform per block.** Right on average, wrong everywhere in
+   particular.
+5. **Translation-only bundle adjustment.** Per-frame crab is 3.0° in 1961, 6.4° in
+   1956; 1° over a 3.4 km frame throws the corners 30 m.
+6. **Any correlation search wider than half a block that is not on the arterials.**
+   This includes the previous session's `/tmp/refine.py`, which tightened the
+   search to ±90 m — still wider than the 97.5 m block, so it still aliased. Its
+   `mosaics/detroit_*_p2.tif` outputs are not used.
+7. **Random-fold cross-validation on overlapping control windows.** A held-out
+   station almost always has a near-duplicate left in the training set, so it
+   scores interpolation and rewards ever-shorter length scales. Random folds
+   claimed 5.1 m held-out where spatial folds said 9.1 m.
 
-## Practical notes
+---
+
+# Tools
+
+| | |
+|---|---|
+| `scripts/validate.py` | calibrate the metric, then measure a block |
+| `scripts/rebuild.py` | composite → per-frame → residual field → final mosaic |
+| `scripts/rewarp.py` | field-only re-solve, on the raw composite or on an existing warp |
+| `scripts/montage.py` | alignment sheet: historical in red, modern in green, spread over the block |
+| `scripts/inspectcells.py` | the same, for the worst cells specifically, as-built vs corrected |
+| `scripts/fetchmodern.py` | refetch the modern reference, correctly reprojected |
+| `scripts/manifest.py` | point the viewer at whatever the best build now is |
+
+Where both epochs have visible roads, aligned streets render **yellow** and a
+misalignment splits into a red ghost beside a green one. Areas that are red-only
+or green-only are land-use change, not error — a freeway that did not exist in
+1961 has no 1961 counterpart to align to.
+
+---
+
+# Practical notes
 
 - Run the viewer: `./scripts/run.sh` then <http://localhost:8770>
 - Source frames cached at
-  `/private/tmp/claude-501/.../scratchpad/detroit/fullres/` (~4 GB); if that is
-  gone, re-download from Wayne State's ContentDM IIIF endpoint.
+  `/private/tmp/claude-501/-Users-joelint-Documents-Apps/b1877f49-.../scratchpad/detroit/fullres/`
+  (~4 GB, 238 frames); if that is gone, re-download from Wayne State's ContentDM
+  IIIF endpoint.
+- Ridge maps are memoised under `/tmp/das_ridge`, keyed on the reference imagery
+  as well as the raster, so changing the reference invalidates them.
 - Pipeline modules resolve data paths against `data/` — run scripts from the
   project root.
-- `mosaics/` is ~1.2 GB and gitignored, inside iCloud-synced Documents.
+- `mosaics/` is gitignored and lives inside iCloud-synced Documents. **Two
+  mosaics disappeared from disk mid-session** (`detroit_1961_rbf.tif`,
+  `detroit_1967_rbf.tif`) — not iCloud placeholders, simply gone. Everything is
+  regenerable from `data/` plus the cached frames, but do not treat `mosaics/` as
+  durable storage.
