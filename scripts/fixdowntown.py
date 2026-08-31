@@ -123,7 +123,7 @@ def run(tag, dry=False, ref='naip'):
     pz = prior = gridval.Prior([], MPP)
     before = gridval.grid_hier_prep(t, NY=4, NX=4, prior=prior, min_valid=0.4)
     report(before, f'downtown {tag} before')
-    kept, tr, R, warp_at = warpsolve.solve(t, geo['bbox'], dtmap.MLAT, dtmap.MLON,
+    kept, tr, R, warp_at, held_out = warpsolve.solve(t, geo['bbox'], dtmap.MLAT, dtmap.MLON,
                                            win_m=700.0, overlap=0.4, iters=4,
                                            min_valid=0.45, prior=pz,
                                            lengths=(200., 350., 500., 800.))

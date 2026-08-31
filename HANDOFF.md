@@ -229,7 +229,21 @@ chain is checked against imagery and tooling that share nothing with it:
   sign to what their documentation implied.
 
 Measured, our modern reference agrees with NAIP to **1.4-6.2 m** at widely
-separated locations, all four backends agreeing.
+separated locations, all four backends agreeing; over 24 windows, median 2.16 m,
+max 7.56 m.
+
+**1961 is verified end to end.** Against NAIP, on 1.5 km windows, on the road
+response, by three implementations that agree:
+
+| backend | n | median | p90 | max | bias |
+|---|---|---|---|---|---|
+| ours | 10 | 3.84 m | 9.24 | 14.04 | +1.5, +1.7 |
+| scikit-image | 8 | 3.16 m | 4.92 | 8.00 | 0.0, +2.0 |
+| OpenCV ECC | 12 | 3.79 m | 12.23 | 16.09 | +0.2, +2.3 |
+
+which matches this project's own 32 x 6 grid figure of 3.5 m. The residual ~2 m
+northward bias is inside the reference's own agreement with NAIP, so it is not
+distinguishable from the reference.
 
 ## Verify the verifier, every time
 

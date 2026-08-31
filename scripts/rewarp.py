@@ -102,7 +102,7 @@ def run(tag, source='rbf', dry=False):
     before = gridval.grid_hier_prep(t, prior=prior0)
     report(before, 'before')
 
-    kept, tr, R, warp_at = warpsolve.solve(
+    kept, tr, R, warp_at, held_out = warpsolve.solve(
         t, bbox, dtmap.MLAT, dtmap.MLON, win_m=2000.0, overlap=0.4, iters=5,
         lengths=(400., 600., 800., 1200., 1800.))
     if kept is None:

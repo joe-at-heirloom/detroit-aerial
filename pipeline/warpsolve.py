@@ -39,7 +39,13 @@ class PixelField:
 def solve(t, bbox, MLAT, MLON, win_m=2000.0, overlap=0.4, iters=4,
           min_valid=0.50, min_ratio=1.20, tol=2.0, lengths=None, prior=None,
           log=print):
-    """Returns (stations, trend, RBFWarp, warp_at)."""
+    """Returns (stations, trend, RBFWarp, warp_at, held_out).
+
+    `held_out` is the spatially-blocked cross-validated error of the chosen field.
+    It is returned because the caller has to be able to refuse the field: a field
+    that predicts held-out control worse than the residual it is meant to remove
+    will make the mosaic worse, and on 1956 it did exactly that -- the frames were
+    already at 2.6 m and the field, with 33 m held-out, took them to 65 m."""
     mpp = t['mpp']
     minE = (bbox[1] - (-83.0450)) * MLON
     maxN = (bbox[2] - 42.3340) * MLAT
@@ -84,5 +90,5 @@ def solve(t, bbox, MLAT, MLON, win_m=2000.0, overlap=0.4, iters=4,
     if best is not None:
         if best[0] != float('inf'):
             log(f"  keeping the pass with the lowest held-out error: {best[0]:.1f} m")
-        return best[1], best[2], best[3], best[4]
-    return kept, tr, R, warp_at
+        return best[1], best[2], best[3], best[4], best[0]
+    return kept, tr, R, warp_at, float('inf')

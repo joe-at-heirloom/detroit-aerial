@@ -121,11 +121,21 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
         # no re-compositing until the end. It matters because a frame that failed
         # to lock on the first pass did so with a prior tens of metres off, and
         # borrowing its neighbours' answer is strictly worse than solving its own.
-        for it in range(frame_iters):
+        did_rot = not rots
+        for it in range(frame_iters + (1 if rots else 0)):
             pr = prior if it == 0 else None      # later passes start from ~0
-            ang = angles if (rots and it == frame_iters - 1) else (0.0,)
-            print(f"  per-frame solve, pass {it+1}/{frame_iters} "
-                  f"({len(ang)} angle(s))", flush=True)
+            # Rotation is searched once, on the last pass, when translation has
+            # already converged and a residual angle is the only thing left to
+            # explain. It must not be skipped just because translation converged
+            # early -- that was a bug: the frames settled on pass 2 of 3, the loop
+            # broke, and the rotation pass never ran at all.
+            last = (it == frame_iters - 1) or (not did_rot and it >= frame_iters - 1)
+            ang = angles if (rots and last and not did_rot) else (0.0,)
+            if ang != (0.0,):
+                did_rot = True
+            print(f"  per-frame solve, pass {it+1} "
+                  f"({len(ang)} angle{'s' if len(ang) > 1 else ''}"
+                  f"{', searching rotation' if len(ang) > 1 else ''})", flush=True)
             fx = frameadjust.solve_frames(sol, f"{SP}/fullres", t, minE, maxN, MPP,
                                           prior=pr, rots=ang)
             if not fx:
@@ -138,7 +148,7 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
             for r, v in fx.items():
                 sol[r]['dE'] += v['dE']; sol[r]['dN'] += v['dN']
                 sol[r]['rot'] += v['rot']
-            if np.median(d) < 1.5:
+            if np.median(d) < 1.5 and did_rot:
                 print("    frames converged", flush=True); break
         json.dump({r: dict(dE=sol[r]['dE'], dN=sol[r]['dN'], rot=sol[r]['rot'])
                    for r in sol}, open(P('data', f'frameadj_{tag}.json'), 'w'))
@@ -155,12 +165,17 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
     else:
         src, geo = 'pre', json.load(open(P('data', f'{tag}_pre_geo.json')))
 
-    kept, tr, R, warp_at = warpsolve.solve(t, bbox, dtmap.MLAT, dtmap.MLON,
+    kept, tr, R, warp_at, held_out = warpsolve.solve(t, bbox, dtmap.MLAT, dtmap.MLON,
                                            win_m=station_win, overlap=station_overlap,
                                            iters=5,
                                            lengths=(150., 250., 400., 600., 900.))
     if kept is None:
         print("  no residual field"); return
+    # The field is judged after the fact, not before. Held-out error is pessimistic
+    # by construction and refusing on it would have thrown away 1949's field, which
+    # genuinely helped (6.8 -> 4.0 m). But a field CAN make things worse -- 1956's
+    # took a 2.6 m frame-corrected mosaic to 65 m -- so the result is measured and
+    # the worse of the two is discarded.
     json.dump(kept, open(P('data', f'stations_final_{tag}.json'), 'w'))
     json.dump(dict(kind='poly1_rbf', trend=tr, length=R.length),
               open(P('data', f'rbffit_final_{tag}.json'), 'w'))
@@ -178,6 +193,22 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
     json.dump(after, open(P('data', f'gridval_{tag}.json'), 'w'))
     fine = gridval.grid_hier_prep(t2, NY=32, NX=6, prior=prior2)
     json.dump(fine, open(P('data', f'gridval_{tag}_fine.json'), 'w'))
+    def _med(recs):
+        g = [r for r in recs if 'skip' not in r and not r.get('pegged')
+             and r['ratio'] >= 1.15]
+        return float(np.median([r['mag'] for r in g])) if g else float('inf')
+
+    if not skip_frames and _med(after) > _med(mid):
+        import shutil
+        print(f"  the residual field made it worse ({_med(mid):.1f} -> "
+              f"{_med(after):.1f} m); discarding it and keeping the "
+              f"frame-corrected mosaic", flush=True)
+        shutil.copyfile(P('mosaics', f'detroit_{tag}_{src}.tif'),
+                        P('mosaics', f'detroit_{tag}_final.tif'))
+        json.dump(dict(geo), open(P('data', f'{tag}_final_geo.json'), 'w'))
+        after = mid
+        fine = gridval.grid_hier_prep(t, NY=32, NX=6, prior=prior)
+        json.dump(fine, open(P('data', f'gridval_{tag}_fine.json'), 'w'))
     report(before, 'pre-warp composite  ')
     if not skip_frames:
         report(mid, 'after per-frame     ')
