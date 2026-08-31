@@ -185,7 +185,25 @@ Steps 5–7 are one command: `./.venv/bin/python scripts/rebuild.py 1961`
    the same mis-framed image. Request a grid whose aspect already matches the bbox
    in degrees, and assert the returned extent (`naipcheck.verify_extent`).
 
-8. **Random-fold cross-validation on overlapping control windows.** A held-out
+8. **Denser control stations.** The obvious lever for the ~1 km-scale residual is
+   more control, so 1961 was re-solved with 1200 m station windows at 50% overlap
+   instead of 2000 m at 40% -- 480 stations against 260. Held-out error got
+   **worse**: 12.3 m against 5.9 m. A smaller window is a worse measurement, and
+   more bad measurements do not make a better field. The cross-validation caught
+   it; without that it would have looked like progress, because the in-sample grid
+   would have improved.
+
+9. **Chaining a block through an earlier epoch when the epochs do not share an
+   extent.** Matching 1956 against the already-solved 1961 instead of modern
+   imagery is the right idea -- five years apart rather than sixty-eight -- and the
+   per-frame lock rate did improve, 53 of 70 frames. But 1956 runs several km
+   further west and south than 1961, so outside 1961's coverage the reference falls
+   back to modern, and frames straddling that boundary were matched against a
+   patchwork of 1961 film and modern satellite. Held-out error got worse, 36.5 m
+   against 27.8 m. Chaining needs the reference epoch to actually cover the block,
+   or per-frame choice of which reference to use -- not a blended raster.
+
+10. **Random-fold cross-validation on overlapping control windows.** A held-out
    station almost always has a near-duplicate left in the training set, so it
    scores interpolation and rewards ever-shorter length scales. Random folds
    claimed 5.1 m held-out where spatial folds said 9.1 m.

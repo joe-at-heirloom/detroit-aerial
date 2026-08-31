@@ -72,17 +72,43 @@ def fetch(bbox, W, H, tries=4):
         except Exception:
             pass
     os.makedirs(CACHE, exist_ok=True)
+    # Derive the request size so its aspect matches the bbox in degrees, and apply
+    # the server's size cap BEFORE deriving the other axis -- capping afterwards
+    # breaks the aspect match and re-triggers the very bbox expansion this is here
+    # to avoid.
     aspect = (e - w) / (n - s)
-    Wq = int(round(max(W, H) * max(1.0, aspect)))
-    Hq = int(round(Wq / aspect))
-    Wq = min(Wq, 3800); Hq = min(Hq, 3800)
-    q = urllib.parse.urlencode(dict(bbox=f"{w},{s},{e},{n}", bboxSR=4326, imageSR=4326,
-                                    size=f"{Wq},{Hq}", format='tiff', f='image'))
-    for k in range(tries):
+    def _size(cap):
+        hq = min(max(W, H), cap, int(cap / aspect) if aspect > 1 else cap)
+        hq = max(64, int(round(hq)))
+        wq = int(round(hq * aspect))
+        if wq > cap:
+            wq = cap; hq = max(64, int(round(wq / aspect)))
+        return wq, hq
+
+    # The service 500s on large requests -- 3799 x 2680 is already too much -- so
+    # step the cap down until it answers and resample up afterwards. The aspect
+    # stays matched at every step, which is what keeps the framing honest.
+    for cap in (3000, 2200, 1600, 1100):
+        Wq, Hq = _size(cap)
+        q = urllib.parse.urlencode(dict(bbox=f"{w},{s},{e},{n}", bboxSR=4326,
+                                        imageSR=4326, size=f"{Wq},{Hq}",
+                                        format='tiff', f='image'))
+        got = None
+        for k in range(tries):
+            try:
+                rq = urllib.request.Request(f"{NAIP}?{q}", headers={'User-Agent': UA})
+                got = urllib.request.urlopen(rq, timeout=180).read()
+                break
+            except urllib.error.HTTPError as ex:
+                if ex.code >= 500:
+                    break            # too big; try a smaller cap
+                time.sleep(0.6 * (k + 1))
+            except Exception:
+                time.sleep(0.6 * (k + 1))
+        if got is None:
+            continue
         try:
-            rq = urllib.request.Request(f"{NAIP}?{q}", headers={'User-Agent': UA})
-            b = urllib.request.urlopen(rq, timeout=120).read()
-            im = Image.open(io.BytesIO(b))
+            im = Image.open(io.BytesIO(got))
             a = np.asarray(im)
             if a.ndim == 3:
                 al = a[..., 3] if a.shape[2] == 4 else None
@@ -97,7 +123,7 @@ def fetch(bbox, W, H, tries=4):
             Image.fromarray(g).save(p)
             return g
         except Exception:
-            time.sleep(0.6 * (k + 1))
+            continue
     return None
 
 

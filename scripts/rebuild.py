@@ -81,7 +81,7 @@ def composite(tag, sol, ppm, label, log=print):
 
 
 def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
-        reuse_fa=False, station_win=2000.0, station_overlap=0.4):
+        reuse_fa=False, station_win=2000.0, station_overlap=0.4, rot_range=0.8):
     t0 = time.time()
     print(f"\n===== rebuild {tag} (reference: {ref}) =====", flush=True)
     sol, ppm = placements(tag)
@@ -109,7 +109,12 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
     elif not skip_frames:
         geo = json.load(open(P('data', f'{tag}_pre_geo.json')))
         minE, maxN = geo['minE'], geo['maxN']
-        angles = tuple(np.arange(-0.8, 0.81, 0.4)) if rots else (0.0,)
+        # 1956 carries the largest per-frame crab in the collection -- 6.4 deg of
+        # spread against 3.0 for 1961 -- so whatever the bundle leaves behind is
+        # largest there, and a translation-only per-frame correction cannot take it
+        # out. 1 degree over a 3.4 km frame throws the corners 30 m.
+        rr = float(rot_range)
+        angles = tuple(np.arange(-rr, rr + 1e-9, rr / 3.0)) if rots else (0.0,)
         # Iterate the per-frame solve. A frame is rendered from the negative with
         # whatever correction it currently carries, and matched against the modern
         # ridge map -- which never changes -- so this costs nothing but the solve:
@@ -189,7 +194,8 @@ if __name__ == '__main__':
     reuse = '--reuse-fa' in sys.argv
     swin = float(sys.argv[sys.argv.index('--station-win') + 1]) if '--station-win' in sys.argv else 2000.0
     sov = float(sys.argv[sys.argv.index('--station-overlap') + 1]) if '--station-overlap' in sys.argv else 0.4
+    rr = float(sys.argv[sys.argv.index('--rot-range') + 1]) if '--rot-range' in sys.argv else 0.8
     for tg in [a for a in sys.argv[1:] if not a.startswith('--')
                and a != str(it) and a != ref
-               and a != str(swin) and a != str(sov)]:
-        run(tg, rots, sk, it, ref, reuse, swin, sov)
+               and a != str(swin) and a != str(sov) and a != str(rr)]:
+        run(tg, rots, sk, it, ref, reuse, swin, sov, rr)

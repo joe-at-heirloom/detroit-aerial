@@ -22,9 +22,32 @@ def best(tag):
     return None, None
 
 
+def downtown_layers(old):
+    """Serve the corrected downtown rasters where they exist.
+
+    Downtown was 20-42 m out and nobody knew, because it sits east of the modern
+    reference and every measurement silently returned "no peak". The corrected
+    versions are GeoTIFFs, which serve.py reads the same way it reads the block
+    mosaics."""
+    out = []
+    for l in old['layers']:
+        if l['group'] != 'downtown':
+            continue
+        l = dict(l)
+        fix = P('mosaics', f"downtown_{l['label']}_fix.tif")
+        if l['id'] != 'dtnow' and os.path.exists(fix):
+            l['file'] = f"mosaics/downtown_{l['label']}_fix.tif"
+            g = P('data', f"dt{l['label']}_fix_geo.json")
+            if os.path.exists(g):
+                l['bbox'] = json.load(open(g))['bbox']
+            print(f"  downtown {l['label']}: corrected")
+        out.append(l)
+    return out
+
+
 def main():
     old = json.load(open(P('data', 'manifest.json')))
-    layers = [l for l in old['layers'] if l['group'] == 'downtown']
+    layers = downtown_layers(old)
     ids = []
     boxes = []
     for tag in TAGS:

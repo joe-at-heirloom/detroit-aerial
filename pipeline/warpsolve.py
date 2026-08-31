@@ -37,12 +37,17 @@ class PixelField:
 
 
 def solve(t, bbox, MLAT, MLON, win_m=2000.0, overlap=0.4, iters=4,
-          min_valid=0.50, min_ratio=1.20, tol=2.0, lengths=None, log=print):
+          min_valid=0.50, min_ratio=1.20, tol=2.0, lengths=None, prior=None,
+          log=print):
     """Returns (stations, trend, RBFWarp, warp_at)."""
     mpp = t['mpp']
     minE = (bbox[1] - (-83.0450)) * MLON
     maxN = (bbox[2] - 42.3340) * MLAT
-    field = gridval.Prior(gridval.coarse_field(t, log=log), mpp)
+    # `prior` lets a caller supply the starting field. Downtown needs this: the
+    # regional coarse stage wants 6 km windows of mile-grid arterials and the whole
+    # downtown raster is 3.4 km across, so it has nothing to work with -- but it is
+    # also already within a fine search, so a zero prior is the right answer there.
+    field = prior if prior is not None else gridval.Prior(gridval.coarse_field(t, log=log), mpp)
     kept = None; tr = R = warp_at = None
     best = None            # (held-out median, kept, trend, RBF, warp_at)
     for it in range(iters):

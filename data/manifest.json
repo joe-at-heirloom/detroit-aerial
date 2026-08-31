@@ -4,7 +4,7 @@
    "id": "dt1949",
    "group": "downtown",
    "label": "1949",
-   "file": "mosaics/downtown_1949.png",
+   "file": "mosaics/downtown_1949_fix.tif",
    "bbox": [
     42.31459886110686,
     -83.06110255811492,
@@ -17,7 +17,7 @@
    "id": "dt1956",
    "group": "downtown",
    "label": "1956",
-   "file": "mosaics/downtown_1956.png",
+   "file": "mosaics/downtown_1956_fix.tif",
    "bbox": [
     42.31459886110686,
     -83.06110255811492,
@@ -30,7 +30,7 @@
    "id": "dt1961",
    "group": "downtown",
    "label": "1961",
-   "file": "mosaics/downtown_1961.png",
+   "file": "mosaics/downtown_1961_fix.tif",
    "bbox": [
     42.31459886110686,
     -83.06110255811492,
@@ -53,15 +53,41 @@
    "gray": false
   },
   {
+   "id": "b1949",
+   "group": "west",
+   "label": "1949",
+   "file": "mosaics/detroit_1949_final.tif",
+   "bbox": [
+    42.190317852035825,
+    -83.30849505559738,
+    42.47302450258776,
+    -83.1747519273069
+   ],
+   "gray": true
+  },
+  {
+   "id": "b1956",
+   "group": "west",
+   "label": "1956",
+   "file": "mosaics/detroit_1956_final.tif",
+   "bbox": [
+    42.18842832349288,
+    -83.39050146929121,
+    42.48486088369364,
+    -83.22965911927524
+   ],
+   "gray": true
+  },
+  {
    "id": "b1961",
    "group": "west",
    "label": "1961",
-   "file": "mosaics/detroit_1961_p2.tif",
+   "file": "mosaics/detroit_1961_final.tif",
    "bbox": [
-    42.2305352048412,
-    -83.3371931333485,
-    42.46305105652537,
-    -83.18263866768613
+    42.22960819210404,
+    -83.33864054922661,
+    42.463871769627815,
+    -83.18222157802109
    ],
    "gray": true
   },
@@ -69,38 +95,25 @@
    "id": "b1967",
    "group": "west",
    "label": "1967",
-   "file": "mosaics/detroit_1967_p2.tif",
+   "file": "mosaics/detroit_1967_final.tif",
    "bbox": [
-    42.2296093167972,
-    -83.27450607655221,
-    42.470699683556724,
-    -83.11853737443461
+    42.22909993430276,
+    -83.27429045587664,
+    42.47083575174389,
+    -83.11869794076982
    ],
    "gray": true
   },
   {
-   "id": "mod1961",
+   "id": "modwest",
    "group": "west",
    "label": "Today",
-   "file": "mosaics/modern_1961.png",
+   "file": "mosaics/modern_west.png",
    "bbox": [
-    42.2305352048412,
-    -83.3371931333485,
-    42.46305105652537,
-    -83.18263866768613
-   ],
-   "gray": true
-  },
-  {
-   "id": "mod1967",
-   "group": "west2",
-   "label": "Today",
-   "file": "mosaics/modern_1967.png",
-   "bbox": [
-    42.2296093167972,
-    -83.27450607655221,
-    42.470699683556724,
-    -83.11853737443461
+    42.2176093167972,
+    -83.3491931333485,
+    42.482699683556724,
+    -83.10653737443461
    ],
    "gray": true
   }
@@ -125,17 +138,19 @@
   "west": {
    "label": "West Detroit",
    "layers": [
+    "b1949",
+    "b1956",
     "b1961",
     "b1967",
-    "mod1961"
+    "modwest"
    ],
    "bbox": [
-    42.2305352048412,
-    -83.3371931333485,
-    42.46305105652537,
-    -83.18263866768613
+    42.18842832349288,
+    -83.39050146929121,
+    42.48486088369364,
+    -83.10653737443461
    ],
-   "note": "62-frame 1961 block and 51-frame 1967 block, per-frame rotation, absolute orientation, smooth warp."
+   "note": "1949, 1956, 1961 and 1967 blocks. Per-frame rotation and position, absolute orientation on the mile-grid arterials, per-frame adjustment against modern imagery, then a residual local field."
   }
  }
 }
