@@ -15,6 +15,53 @@ A street corner must stay on the same screen pixel.
 
 ---
 
+# Where it stands
+
+Every number below comes from a metric that was proved first, per block: it must
+recover a planted shift on modern-vs-modern imagery (0.0 m, all four blocks), and a
+shift planted on the real mosaic must move every cell's measurement by exactly that
+much (0.0 m, all four blocks).
+
+| block | frames | 3.6 x 2.0 km cells | 1.8 x 1.0 km cells |
+|---|---|---|---|
+| 1961 | 62 | **1.3 m** (p90 4.8, max 6.8, none over 10 m) | **3.5 m** |
+| 1967 | 51 | 3.0 m (p90 9.8, max 11.6, none over 25 m) | 8.7 m |
+| 1949 | 50 | 3.7 m (p90 27.8) | 18.5 m |
+| 1956 | 70 | 5.0 m (p90 10.4, max 38.0) | 12.9 m |
+
+Read the fine column. The residual varies at roughly the kilometre scale -- the
+spacing of the frame centres -- so a 3.6 km cell averages most of it away, and
+somebody looking at a street corner sees the local number.
+
+**All four are independently verified** against USGS NAIP, on 1.5 km windows, on
+the road response:
+
+| block | ours | scikit-image | OpenCV ECC |
+|---|---|---|---|
+| 1961 | 3.84 m | 3.16 m | 3.79 m |
+| 1949 | 3.47 m | 3.50 m | 5.47 m |
+| 1956 | 7.74 m | -- | 12.71 m |
+| 1967 | 16.22 m | 8.64 m | 11.57 m |
+
+Note 1949, where independent measurement says 3.5-5.5 m and our own fine grid says
+18.5 m. The grid uses fixed cells and many of 1949's are only partly covered
+(coverage 0.63), which measures badly; the independent windows require 97%
+coverage, so they test the imagery where it exists rather than where it does not.
+Both are honest, and they answer different questions -- treat the grid as the
+pessimistic bound.
+
+The whole serving path is verified too, not just the files on disk: tiles pulled
+from the running viewer at z17 and overlaid on modern show single yellow streets
+for all four blocks, which exercises the Mercator conversion `serve.py` performs.
+
+Downtown is a separate, weaker story. It had never been checked against anything
+and was 20-42 m out, not the 3-5 m claimed. It is now corrected (1961 20.7 -> 4.5,
+1949 37.4 -> 5.3) except 1956, which stays around 32 m. Downtown measurement is
+unreliable: a large part of the frame is the Detroit River, which has nothing to
+correlate, and the core is high-rise, so relief displacement leans every building.
+
+---
+
 # How we measure it — and how we know the ruler is straight
 
 Cut the mosaic into a **16 × 3 grid**. For each cell, correlate a ridge (road-like

@@ -129,18 +129,71 @@ applying that correction visibly splits an arterial that was already aligned.
 
 ## Accuracy
 
-Residual against modern imagery on a 16 × 3 grid, over cells where the correlation
-locked, after the full pipeline:
+Every figure below comes from a metric that is proved before it is believed. Per
+block, it must recover a shift planted on modern-vs-modern imagery (**0.0 m**, all
+four), and a shift planted on the real mosaic must move every cell's measurement by
+exactly that much (**0.0 m**, all four).
 
-| block | n | median | p90 | max | cells >25 m | unlocked |
-|---|---|---|---|---|---|---|
-| 1961 | 34 | **2.7 m** | 11.9 m | 53.2 m | 1 | 8 |
-| 1961 (ratio ≥ 1.25) | 28 | **2.6 m** | 5.1 m | **12.4 m** | **0** | — |
+Residual against modern imagery, over cells where the correlation locked:
 
-Spatially-blocked held-out station error — the honest out-of-sample figure, since
-the grid above is interpolation between control — is **5.7 m** for 1961.
+| block | frames | 3.6 x 2.0 km cells | 1.8 x 1.0 km cells |
+|---|---|---|---|
+| 1961 | 62 | **1.3 m** — p90 4.8, max 6.8, none over 10 m | **3.5 m** |
+| 1967 | 51 | 3.0 m — p90 9.8, max 11.6, none over 25 m | 8.7 m |
+| 1949 | 50 | 3.7 m | 18.5 m |
+| 1956 | 70 | 5.0 m — p90 10.4 | 12.9 m |
 
-Against the un-warped composite: median 66.7 m, p90 109.0 m, max 161.7 m.
+Against the un-warped composites: 58-116 m median.
+
+### Verified independently
+
+None of that is worth much on its own, because it is measured against a reference
+this project built with code this project wrote. So it is checked against **USGS
+NAIP** — public-domain orthoimagery from a different organisation and a different
+processing chain, delivered in EPSG:4326 so *their* server does the reprojection
+and ours leaves the loop — using **three registration implementations**, each
+admitted only after recovering a planted shift on the real data.
+
+The reference itself agrees with NAIP over 24 windows: **median 2.16 m, max 7.56 m**.
+
+The blocks, on 1.5 km windows, on the road response:
+
+| block | ours | scikit-image | OpenCV ECC |
+|---|---|---|---|
+| 1961 | 3.84 m | 3.16 m | 3.79 m |
+| 1949 | 3.47 m | 3.50 m | 5.47 m |
+| 1956 | 7.74 m | — | 12.71 m |
+| 1967 | 16.22 m | 8.64 m | 11.57 m |
+
+Note 1949: independent measurement puts it at 3.5-5.5 m where our own fine grid
+says 18.5 m. The grid divides the block into fixed cells and many of 1949's are
+only partly covered (coverage 0.63), which measures badly; the independent windows
+require 97% coverage, so they test the imagery where it actually exists. Read the
+two together — the grid is the pessimistic bound.
+
+And the whole serving path is verified, not just the files: tiles pulled from the
+running viewer at zoom 17 and overlaid on modern show single yellow streets for all
+four blocks, which exercises the Mercator conversion `serve.py` performs.
+
+### Downtown
+
+Downtown is a separate, weaker story, and it had never been checked against
+anything independent. The claimed 3-5 m came from road-vector validation, which
+this project had already established has a 5-6 m noise floor. Measured against
+NAIP it was **20-42 m** out. Nobody caught it because downtown sits east of the
+modern reference raster entirely, so the modern side was all zeros and every cell
+silently reported "no peak".
+
+| | before | after |
+|---|---|---|
+| downtown 1961 | 20.7 m | **4.5 m** |
+| downtown 1949 | 37.4 m | **5.3 m** |
+| downtown 1956 | 42.3 m | 32.5 m |
+
+Downtown measurement is unreliable and should be read with care: a large part of
+the frame is the Detroit River, which has nothing to correlate, and the core is
+high-rise, so relief displacement leans every building differently in every
+negative.
 
 ### Known limits
 
