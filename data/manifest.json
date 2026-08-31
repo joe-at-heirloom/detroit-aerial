@@ -1,0 +1,141 @@
+{
+ "layers": [
+  {
+   "id": "dt1949",
+   "group": "downtown",
+   "label": "1949",
+   "file": "mosaics/downtown_1949.png",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": true
+  },
+  {
+   "id": "dt1956",
+   "group": "downtown",
+   "label": "1956",
+   "file": "mosaics/downtown_1956.png",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": true
+  },
+  {
+   "id": "dt1961",
+   "group": "downtown",
+   "label": "1961",
+   "file": "mosaics/downtown_1961.png",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": true
+  },
+  {
+   "id": "dtnow",
+   "group": "downtown",
+   "label": "Today",
+   "file": "mosaics/downtown_now_hi.jpg",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": false
+  },
+  {
+   "id": "b1961",
+   "group": "west",
+   "label": "1961",
+   "file": "mosaics/detroit_1961_rbf.tif",
+   "bbox": [
+    42.2305352048412,
+    -83.3371931333485,
+    42.46305105652537,
+    -83.18263866768613
+   ],
+   "gray": true
+  },
+  {
+   "id": "b1967",
+   "group": "west",
+   "label": "1967",
+   "file": "mosaics/detroit_1967_rbf.tif",
+   "bbox": [
+    42.2296093167972,
+    -83.27450607655221,
+    42.470699683556724,
+    -83.11853737443461
+   ],
+   "gray": true
+  },
+  {
+   "id": "mod1961",
+   "group": "west",
+   "label": "Today",
+   "file": "mosaics/modern_1961.png",
+   "bbox": [
+    42.2305352048412,
+    -83.3371931333485,
+    42.46305105652537,
+    -83.18263866768613
+   ],
+   "gray": true
+  },
+  {
+   "id": "mod1967",
+   "group": "west2",
+   "label": "Today",
+   "file": "mosaics/modern_1967.png",
+   "bbox": [
+    42.2296093167972,
+    -83.27450607655221,
+    42.470699683556724,
+    -83.11853737443461
+   ],
+   "gray": true
+  }
+ ],
+ "groups": {
+  "downtown": {
+   "label": "Downtown",
+   "layers": [
+    "dt1949",
+    "dt1956",
+    "dt1961",
+    "dtnow"
+   ],
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "note": "1949 / 1956 / 1961 downtown negatives, each georeferenced independently and warped onto one 0.60 m/px grid."
+  },
+  "west": {
+   "label": "West Detroit",
+   "layers": [
+    "b1961",
+    "b1967",
+    "mod1961"
+   ],
+   "bbox": [
+    42.2305352048412,
+    -83.3371931333485,
+    42.46305105652537,
+    -83.18263866768613
+   ],
+   "note": "62-frame 1961 block and 51-frame 1967 block, per-frame rotation, absolute orientation, smooth warp."
+  }
+ }
+}

@@ -1,0 +1,254 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Detroit Air Survey</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#0B0F12; --panel:#141B20; --panel-hi:#1C262C;
+  --rule:#24313A; --ink:#DCE6EB; --ink-dim:#7C8F9B; --ink-faint:#546570;
+  --cyan:#35D6EE; --amber:#E0A94A;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --sans:"Archivo",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);font-family:var(--sans);overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#app{display:flex;flex-direction:column;height:100%}
+.bar{display:flex;align-items:stretch;border-bottom:1px solid var(--rule);background:var(--panel);min-height:50px;flex:0 0 auto}
+.brand{display:flex;flex-direction:column;justify-content:center;padding:6px 16px;border-right:1px solid var(--rule);min-width:190px}
+.brand b{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.brand span{font-family:var(--mono);font-size:10px;color:var(--ink-faint);margin-top:2px}
+.tabs{display:flex}
+.tab{padding:0 16px;display:flex;flex-direction:column;justify-content:center;gap:2px;border-right:1px solid var(--rule)}
+.tab:hover{background:var(--panel-hi)}
+.tab em{font-style:normal;font-family:var(--mono);font-size:13px;font-weight:500}
+.tab i{font-style:normal;font-size:9.5px;color:var(--ink-faint);letter-spacing:.05em;text-transform:uppercase}
+.tab[aria-selected="true"]{background:var(--panel-hi);box-shadow:inset 0 -2px 0 var(--amber)}
+.spacer{flex:1}
+.tools{display:flex;align-items:center;gap:14px;padding:0 16px;font-family:var(--mono);font-size:11px}
+.rail{display:flex;border-bottom:1px solid var(--rule);background:var(--panel);font-family:var(--mono);font-size:11px;flex:0 0 auto;overflow-x:auto}
+.side{display:flex;align-items:center;border-right:1px solid var(--rule)}
+.lbl{padding:0 11px;color:var(--ink-faint);font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.13em}
+.chip{padding:6px 13px;color:var(--ink-dim)}
+.chip:hover{background:var(--panel-hi);color:var(--ink)}
+.chip[aria-pressed="true"]{color:var(--ground);font-weight:500}
+.side.L .chip[aria-pressed="true"]{background:var(--amber)}
+.side.R .chip[aria-pressed="true"]{background:var(--cyan)}
+.op{display:flex;align-items:center;gap:6px}
+.op input[type=range]{width:74px;accent-color:var(--cyan)}
+.hint{padding:0 14px;color:var(--ink-faint);display:flex;align-items:center;white-space:nowrap}
+#mapwrap{position:relative;flex:1;min-height:0}
+#map{position:absolute;inset:0;background:var(--ground)}
+.leaflet-container{background:var(--ground)}
+.leaflet-tile.nofade{opacity:1 !important;transition:none !important}
+#swipe{position:absolute;top:0;bottom:0;width:2px;background:var(--amber);z-index:600;cursor:ew-resize}
+#swipe::after{content:"\2194";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:28px;height:28px;border-radius:50%;background:var(--panel);border:1px solid var(--amber);
+  display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--amber)}
+.tag{position:absolute;top:10px;z-index:601;font-family:var(--mono);font-size:12px;padding:3px 9px;
+  background:rgba(11,15,18,.85);border:1px solid var(--rule)}
+.note{position:absolute;left:14px;top:52px;max-width:330px;z-index:602;background:rgba(11,15,18,.93);
+  border:1px solid var(--rule);padding:12px 14px;font-size:12px;line-height:1.5;color:var(--ink-dim)}
+.note h3{margin:0 0 7px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);font-weight:600}
+.note b{color:var(--ink);font-weight:600}
+.marg{display:flex;border-top:1px solid var(--rule);background:var(--panel);font-family:var(--mono);font-size:11px;flex:0 0 auto}
+.cell{padding:7px 15px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:2px}
+.cell .k{font-size:9px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;font-family:var(--sans)}
+.cell .v{color:var(--ink)}
+.cell.grow{flex:1;border-right:0}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="bar">
+    <div class="brand"><b>Detroit Air Survey</b><span>DTE AERIAL &middot; LOCAL</span></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="spacer"></div>
+    <div class="tools">
+      <label><input type="checkbox" id="streets"> STREET MAP</label>
+      <label><input type="checkbox" id="roads"> CENTRELINES <span style="color:var(--ink-faint)">(z14+)</span></label>
+      <label class="op">OPACITY <input type="range" id="opa" min="20" max="100" value="75"></label>
+      <button id="fit">RESET</button>
+    </div>
+  </div>
+  <div class="rail">
+    <div class="side L" id="railL"><span class="lbl">LEFT</span></div>
+    <div class="side R" id="railR"><span class="lbl">RIGHT</span></div>
+    <div class="hint">drag the divider to wipe &middot; scroll to zoom &middot; native 0.63 m/px</div>
+  </div>
+  <div id="mapwrap">
+    <div id="map"></div>
+    <div id="swipe"></div>
+    <div class="tag" id="tagL"></div>
+    <div class="tag" id="tagR"></div>
+    <div class="note" id="note"></div>
+  </div>
+  <div class="marg">
+    <div class="cell"><span class="k">Comparing</span><span class="v" id="mCmp">&mdash;</span></div>
+    <div class="cell"><span class="k">Cursor</span><span class="v" id="mPos">&mdash;</span></div>
+    <div class="cell"><span class="k">Zoom</span><span class="v" id="mZoom">&mdash;</span></div>
+    <div class="cell grow"><span class="k">Source</span><span class="v" id="mSrc">Wayne State University &middot; DTE Aerial Photo Collection</span></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let MAN, map, left, right, roadsLayer, streetLayer, split = 0.5, cur = null, L_ = 0, R_ = 1;
+
+const NOTES = {
+  downtown: ["Downtown &middot; 1949 / 1956 / 1961",
+    "Three separate negatives, each georeferenced independently and warped onto one <b>0.60 m/px</b> grid &mdash; native resolution of the film.",
+    "Wipe 1949 against 1961 to watch the <b>Hastings Street</b> corridor emptied for the Chrysler Freeway."],
+  west: ["West Detroit &middot; 62 + 51 frames",
+    "Rebuilt with <b>per-frame rotation</b> (crab spread 3.0&deg;), absolute orientation against the mile-grid arterials, then a locally-weighted (RBF) warp fitted to ~110 control stations per block.",
+    "Per-chunk residual vs modern imagery: <b>1961 median 8.5 m</b> (max 18), <b>1967 median 7.3 m</b> (max 14). The earlier global polynomial reached 217 m at the block ends."]
+};
+
+async function boot() {
+  MAN = await (await fetch('/data/manifest.json')).json();
+  const tabs = document.getElementById('tabs');
+  Object.entries(MAN.groups).forEach(([id, g], i) => {
+    const b = document.createElement('button');
+    b.className = 'tab'; b.dataset.g = id;
+    b.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+    b.innerHTML = '<em>' + g.label + '</em><i>' + g.layers.length + ' layers</i>';
+    b.onclick = () => { [...tabs.children].forEach(t => t.setAttribute('aria-selected', String(t === b))); show(id); };
+    tabs.appendChild(b);
+  });
+  map = L.map('map', { zoomControl: true, attributionControl: false, maxZoom: 21,
+                       zoomSnap: 0.25, fadeAnimation: false });
+  map.on('mousemove', e => {
+    document.getElementById('mPos').textContent =
+      e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
+  });
+  map.on('zoomend move', () => {
+    const z = map.getZoom();
+    const mpp = 156543.03 * Math.cos(map.getCenter().lat * Math.PI / 180) / Math.pow(2, z);
+    document.getElementById('mZoom').textContent = 'z' + z.toFixed(2) + '  ' + mpp.toFixed(2) + ' m/px';
+  });
+  document.getElementById('fit').onclick = () => fit();
+  document.getElementById('roads').onchange = e => {
+    if (e.target.checked) { roadsLayer.addTo(map); } else { map.removeLayer(roadsLayer); }
+  };
+  roadsLayer = L.tileLayer('/t/__roads__/{z}/{x}/{y}.png',
+    { maxZoom: 21, minZoom: 14, minNativeZoom: 14, opacity: .9, className: 'nofade' });
+  // Esri's transparent transportation reference: modern roads + names, drawn for
+  // draping over imagery rather than as a basemap.
+  streetLayer = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+    { maxZoom: 19, maxNativeZoom: 19, opacity: .75, className: 'nofade' });
+  const opa = document.getElementById('opa');
+  opa.oninput = () => {
+    const v = opa.value / 100;
+    streetLayer.setOpacity(v);
+    roadsLayer.setOpacity(Math.min(1, v + .15));
+  };
+  document.getElementById('streets').onchange = e => {
+    if (e.target.checked) { streetLayer.addTo(map); streetLayer.bringToFront(); }
+    else map.removeLayer(streetLayer);
+  };
+  wireSwipe();
+  show(Object.keys(MAN.groups)[0]);
+}
+
+function layerUrl(id) { return '/t/' + id + '/{z}/{x}/{y}.png'; }
+
+function show(gid) {
+  cur = MAN.groups[gid];
+  L_ = 0; R_ = cur.layers.length - 1;
+  const n = NOTES[gid] || ['', ''];
+  document.getElementById('note').innerHTML =
+    '<h3>' + n[0] + '</h3>' + n.slice(1).map(p => '<p style="margin:6px 0 0">' + p + '</p>').join('');
+  paint(); fit();
+}
+
+function chips(el, sel, cb) {
+  [...el.querySelectorAll('.chip')].forEach(c => c.remove());
+  cur.layers.forEach((lid, i) => {
+    const l = MAN.layers.find(x => x.id === lid);
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = l.label;
+    b.setAttribute('aria-pressed', String(i === sel));
+    b.onclick = () => cb(i);
+    el.appendChild(b);
+  });
+}
+
+function paint() {
+  if (left) map.removeLayer(left);
+  if (right) map.removeLayer(right);
+  const lid = cur.layers[L_], rid = cur.layers[R_];
+  left = L.tileLayer(layerUrl(lid), { maxZoom: 21, maxNativeZoom: 21, className: 'nofade' }).addTo(map);
+  right = L.tileLayer(layerUrl(rid), { maxZoom: 21, maxNativeZoom: 21, className: 'nofade' }).addTo(map);
+  const name = id => MAN.layers.find(x => x.id === id).label;
+  document.getElementById('tagL').textContent = name(lid);
+  document.getElementById('tagR').textContent = name(rid);
+  document.getElementById('mCmp').textContent = name(lid) + ' → ' + name(rid);
+  chips(document.getElementById('railL'), L_, i => { if (i === R_) R_ = L_; L_ = i; paint(); });
+  chips(document.getElementById('railR'), R_, i => { if (i === L_) L_ = R_; R_ = i; paint(); });
+  if (roadsLayer && document.getElementById('roads').checked) roadsLayer.bringToFront();
+  if (streetLayer && document.getElementById('streets').checked) streetLayer.bringToFront();
+  applyClip();
+}
+
+function applyClip() {
+  const wrap = document.getElementById('mapwrap');
+  const w = wrap.clientWidth;
+  const x = w * split;
+  // Leaflet translates layer containers as you pan, so a clip expressed in the
+  // container's own coordinates drifts. Convert the viewport split into each
+  // container's local frame every time.
+  if (map && left && right && left.getContainer() && right.getContainer()) {
+    const nw = map.containerPointToLayerPoint([0, 0]);
+    const se = map.containerPointToLayerPoint(map.getSize());
+    const clipX = nw.x + (se.x - nw.x) * split;
+    left.getContainer().style.clip =
+      'rect(' + [nw.y, clipX, se.y, nw.x].join('px,') + 'px)';
+    right.getContainer().style.clip =
+      'rect(' + [nw.y, se.x, se.y, clipX].join('px,') + 'px)';
+    left.getContainer().style.clipPath = 'none';
+    right.getContainer().style.clipPath = 'none';
+  }
+  const sw = document.getElementById('swipe');
+  sw.style.left = x + 'px';
+  document.getElementById('tagL').style.left = Math.max(8, x - 74) + 'px';
+  document.getElementById('tagR').style.left = (x + 10) + 'px';
+}
+
+function wireSwipe() {
+  const wrap = document.getElementById('mapwrap'), sw = document.getElementById('swipe');
+  let drag = false;
+  sw.addEventListener('pointerdown', e => { drag = true; sw.setPointerCapture(e.pointerId); e.preventDefault(); });
+  wrap.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const r = wrap.getBoundingClientRect();
+    split = Math.min(.99, Math.max(.01, (e.clientX - r.left) / r.width));
+    applyClip();
+  });
+  const stop = e => { drag = false; try { sw.releasePointerCapture(e.pointerId); } catch (_) {} };
+  wrap.addEventListener('pointerup', stop); wrap.addEventListener('pointercancel', stop);
+  if (map) {
+    ['move', 'zoom', 'zoomanim', 'moveend', 'zoomend', 'viewreset', 'load'].forEach(
+      ev => map.on(ev, applyClip));
+  }
+  new ResizeObserver(applyClip).observe(wrap);
+}
+
+function fit() {
+  const wrap = document.getElementById('mapwrap');
+  if (!wrap.clientWidth || !wrap.clientHeight) { requestAnimationFrame(fit); return; }
+  map.invalidateSize({ animate: false });
+  const b = cur.bbox;
+  map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: [12, 12], animate: false });
+  setTimeout(applyClip, 60);
+}
+
+boot();
+</script>
+</body>
+</html>
