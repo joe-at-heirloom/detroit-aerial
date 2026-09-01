@@ -22,7 +22,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'pipeline'))
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
-import gridval, stations, rbfwarp, rbfapply, warpsolve, frameadjust, dtmap
+import gridval, stations, rbfwarp, rbfapply, warpsolve, frameadjust, blockadjust, dtmap
 import mosaic_sim, apply_anchor
 from PIL import Image
 import rasterio
@@ -122,34 +122,22 @@ def run(tag, rots=False, skip_frames=False, frame_iters=3, ref='modern',
         # to lock on the first pass did so with a prior tens of metres off, and
         # borrowing its neighbours' answer is strictly worse than solving its own.
         did_rot = not rots
-        for it in range(frame_iters + (1 if rots else 0)):
+        for it in range(frame_iters):
             pr = prior if it == 0 else None      # later passes start from ~0
-            # Rotation is searched once, on the last pass, when translation has
-            # already converged and a residual angle is the only thing left to
-            # explain. It must not be skipped just because translation converged
-            # early -- that was a bug: the frames settled on pass 2 of 3, the loop
-            # broke, and the rotation pass never ran at all.
-            last = (it == frame_iters - 1) or (not did_rot and it >= frame_iters - 1)
-            ang = angles if (rots and last and not did_rot) else (0.0,)
-            if ang != (0.0,):
-                did_rot = True
-            print(f"  per-frame solve, pass {it+1} "
-                  f"({len(ang)} angle{'s' if len(ang) > 1 else ''}"
-                  f"{', searching rotation' if len(ang) > 1 else ''})", flush=True)
-            fx = frameadjust.solve_frames(sol, f"{SP}/fullres", t, minE, maxN, MPP,
-                                          prior=pr, rots=ang)
-            if not fx:
-                print("    nothing locked; stopping", flush=True); break
-            d = np.array([math.hypot(v['dE'], v['dN']) for v in fx.values()])
-            print(f"    {len(fx)}/{len(sol)} frames locked; this pass moves them "
-                  f"median {np.median(d):.1f}  p90 {np.percentile(d,90):.1f}  "
-                  f"max {d.max():.1f} m", flush=True)
-            fx = frameadjust.regularise(fx, sol)
-            for r, v in fx.items():
+            print(f"  block adjustment, pass {it+1}/{frame_iters}", flush=True)
+            abs_obs, rel_obs = blockadjust.observe(
+                sol, f"{SP}/fullres", t, minE, maxN, MPP, prior=pr)
+            if not abs_obs:
+                print("    nothing matched modern; stopping", flush=True); break
+            corr = blockadjust.solve_full(sol, abs_obs, rel_obs)
+            for r, v in corr.items():
                 sol[r]['dE'] += v['dE']; sol[r]['dN'] += v['dN']
-                sol[r]['rot'] += v['rot']
-            if np.median(d) < 1.5 and did_rot:
-                print("    frames converged", flush=True); break
+            moved = np.array([math.hypot(v['dE'], v['dN']) for v in corr.values()])
+            print(f"    frames moved this pass: median {np.median(moved):.1f}  "
+                  f"p90 {np.percentile(moved,90):.1f}  max {moved.max():.1f} m",
+                  flush=True)
+            if np.median(moved) < 1.5:
+                print("    converged", flush=True); break
         json.dump({r: dict(dE=sol[r]['dE'], dN=sol[r]['dN'], rot=sol[r]['rot'])
                    for r in sol}, open(P('data', f'frameadj_{tag}.json'), 'w'))
         tot = np.array([math.hypot(sol[r]['dE'], sol[r]['dN']) for r in sol])

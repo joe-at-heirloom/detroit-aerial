@@ -15,6 +15,80 @@ A street corner must stay on the same screen pixel.
 
 ---
 
+# READ THIS FIRST — the project was measuring the wrong thing
+
+Every accuracy figure this project ever produced answers one question: does this
+AREA sit in the right place against modern imagery. None of them answered the
+question a viewer notices first: **does a road stay straight across the join
+between two negatives.**
+
+Those are different properties, and the project optimised the first while
+destroying the second. Measured pair by pair, straight out of the bundle
+adjustment, before any correction:
+
+| block | overlapping frames disagree with each other by |
+|---|---|
+| 1961 | median **16.5 m**, p90 37.1, max 65.7 — 31 of 44 pairs over 10 m |
+| 1949 | median **22.6 m**, p90 60.5, max 73.5 — 36 of 46 pairs over 10 m |
+
+1961 is the block that measures 1.3 m against modern imagery and is independently
+confirmed at 3.2-3.8 m by three registration libraries. It is also torn. **The
+bundle does not close, for any block.**
+
+The per-frame correction stage then made it much worse — it moved frames
+independently by up to 300 m chasing modern imagery, taking 1949 from 22.6 m to
+**56.4 m** of frame-to-frame disagreement while every number being watched improved.
+
+`scripts/seamcheck.py` is the metric that catches this. It uses no external
+reference, no CRS and no third-party library: it renders each overlapping pair with
+its final placement and correlates the two in the region they share. Perfectly
+consistent frames give zero. **It is the acceptance test, and it must never feed the
+pipeline.**
+
+## What the disagreement is made of
+
+`scripts/characterise.py` splits each overlap into sub-windows instead of measuring
+it once, because the two candidate causes want opposite responses. A blunder gives a
+roughly CONSTANT offset across the overlap and is fixable by re-solving. Geometry —
+per-frame tilt, film deformation — VARIES across the overlap and no per-frame shift
+can represent it.
+
+Measured on 1961, across 14 pairs: constant per-pair offset median **15.8 m**,
+variation within each overlap median **8.7 m** (p90 17.3). Within one overlap the
+error ran 6.9 → 21.3 → 25.0 m across the band.
+
+So it is roughly two-thirds blunder, one-third geometry. Re-solving the block can
+remove the first. The second sets a floor near **8-9 m** until there is a camera
+model. **There are no fiducials** — the scans are cropped to the image area, with
+annotation burned into the frame and no film margin — so the classic archival
+interior-orientation route is closed.
+
+## The architecture the evidence supports
+
+Two stages, coupled only at block level, with nothing in between
+(`scripts/close.py`):
+
+**Stage A — close the block.** Solve where each frame sits relative to its
+neighbours from frame-to-frame observations alone, measured in map space on the
+frames themselves. Modern imagery is forbidden to touch an individual frame.
+Same-epoch frames were often taken seconds apart, so this is an easy, trustworthy
+match — unlike film against satellite across seventy years, which is where every bad
+control point in this project came from. Nothing proceeds until the block closes.
+
+**Stage B — place the closed block.** Move the whole thing as one near-rigid body:
+a handful of parameters against many well-spread observations, so no single bad
+match can bend anything. A rigid transform cannot tear a seam. That is the point.
+
+**Deleted permanently: the per-frame correction and the RBF warp.** Both are
+error-concealment devices — they bought excellent absolute numbers by tearing the
+mosaic. A high-degree-of-freedom warp converts measurement error into permanent
+geometry. Also deleted: the mile grid as datum, since it is periodic and that is
+what aliased in the first place; keep it for bias removal only.
+
+Ship with per-frame error published. **Seams first, absolute second.**
+
+---
+
 # Where it stands
 
 Every number below comes from a metric that was proved first, per block: it must
