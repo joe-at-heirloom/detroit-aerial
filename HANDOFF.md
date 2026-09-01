@@ -63,6 +63,67 @@ model. **There are no fiducials** — the scans are cropped to the image area, w
 annotation burned into the frame and no film margin — so the classic archival
 interior-orientation route is closed.
 
+## Stage A works. Placing the closed block does not — and here is exactly why
+
+`scripts/close.py` Stage A closes a block using only frame-to-frame observations,
+and it works, verified end to end:
+
+| | frame-to-frame disagreement |
+|---|---|
+| bundle output | median **20.6 m**, p90 71.7 |
+| after closing | median **0.19 m**, p90 28.4 |
+
+The solver was checked against planted offsets (exact recovery) and against planted
+97.5 m blunders (12 of 12 caught) BEFORE it was run on real data. On the first pass
+it rejected 10 of 64 observations as blunders. The closure survives compositing: the
+composited closed block measures 0.19 m, and a pure translation leaves it at 0.18 m,
+as a translation must.
+
+**Placing that closed block absolutely is unsolved.** The closed block sits ~72 m
+off, and the error is not uniform: it is a **bend of 94 m east and 180 m north end
+to end over 26 km**. That is the textbook behaviour of relative-only adjustment on a
+long strip — local pairwise constraints fix local shape exactly and then accumulate
+drift down a 50-link chain, giving a chain of perfectly-fitted links curving away
+from reality.
+
+Three placement attempts failed, each producing a plausible small number rather than
+a visible failure:
+
+1. **Similarity fit, wrong coordinate frame.** Frames rendered into a canvas from the
+   current solution, matched against a modern ridge map built on a different grid.
+   Reported a confident 9.4 m shift that meant nothing.
+2. **Similarity applied to frame centres only.** A similarity rotates and scales the
+   frames too; moving only centres shears the block. Consistency 0.2 -> 4.4 m.
+3. **Similarity with an alias-proof prior.** Fitted a 0.78% scale that was not real
+   scale but the four-parameter fit absorbing residual shape error. Consistency
+   0.2 -> 21.2 m, worse than the bundle it started from.
+4. **Translation plus a measured degree-1 bend.** The bend is real and was measured
+   before being fitted. But removing 180 m of drift over ~50 frames should cost about
+   3.6 m of seam disagreement per adjacent pair, and it cost **12.9 m** while
+   improving absolute only 72 -> 45 m. Over three times the cost the arithmetic
+   allows means it is absorbing error, not removing it. Reverted.
+
+### The circularity that makes this hard
+
+Measuring the drift requires matching the block against modern imagery. That
+matching aliases on Detroit's 97.5 m residential lattice unless it has a good prior.
+A good prior requires a well-placed block. **A badly bent block cannot measure its
+own bend.**
+
+### The way out, not yet tried
+
+Use absolute control that *cannot* alias. The mile-grid arterials repeat every
+1609 m, so correlation against them is unambiguous inside a +/-400 m search — this is
+the one absolute signal in this scene immune to the trap that has caused most of the
+project's failures. `pipeline/absorient.py` already implements it and this session
+demoted it in favour of ridge-vs-modern-imagery, which aliases.
+
+The directive: constrain the closed strip's drift at several stations along its
+length using arterial correlation, not imagery correlation. Few parameters, smooth
+along the strip, and every candidate correction judged by BOTH numbers — a
+correction that costs more seam disagreement than the drift arithmetic predicts is
+absorbing error and must be rejected.
+
 ## The architecture the evidence supports
 
 Two stages, coupled only at block level, with nothing in between

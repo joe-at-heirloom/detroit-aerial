@@ -131,8 +131,26 @@ def solve(sol, obs, sigma_abs=20.0, sigma_rel=2.0, sigma_rot_abs=0.30,
 # Each frame is rendered once and reused for every pair it belongs to; rendering
 # per pair would repeat the expensive part hundreds of times.
 
-def render_all(sol, imgdir, minE, maxN, W, H, mpp, crop=0.92, log=print):
+_IMCACHE = {}
+
+
+def render_all(sol, imgdir, minE, maxN, W, H, mpp, crop=0.92, log=print, cache=True):
+    """Decoded scans are cached across rounds: closing a block re-renders every
+    frame several times, and re-decoding a 5000x5000 JPEG each time was most of the
+    runtime."""
     import frameadjust
+    if cache:
+        from PIL import Image as _I
+        _I.MAX_IMAGE_PIXELS = None
+        _orig = _I.open
+        def _cached_open(path, *a, **kw):
+            key = str(path)
+            im = _IMCACHE.get(key)
+            if im is None:
+                im = _orig(path, *a, **kw).convert('L')
+                _IMCACHE[key] = im
+            return im
+        _I.open = _cached_open
     out = {}
     recs = sorted([r for r in sol if sol[r].get('ok')])
     for i, r in enumerate(recs):
@@ -142,10 +160,12 @@ def render_all(sol, imgdir, minE, maxN, W, H, mpp, crop=0.92, log=print):
         img, x0, y0 = v
         if (img > 0).mean() < 0.2:
             continue
-        rg, vd = None, None
         out[r] = (img, x0, y0)
         if (i + 1) % 20 == 0:
             log(f"    rendered {i+1}/{len(recs)} frames")
+    if cache:
+        from PIL import Image as _I
+        _I.open = _orig
     return out
 
 

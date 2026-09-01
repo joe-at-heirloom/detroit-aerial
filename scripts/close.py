@@ -84,25 +84,40 @@ def close_block(sol, imgdir, mpp=MPP_TIE, rounds=3, log=print):
         idx = {r: i for i, r in enumerate(recs)}
         n = len(recs)
 
-        def solve(component):
-            A = np.zeros((n, n)); b = np.zeros(n)
-            for a_, b_, de, dn, rt in obs:
-                if a_ not in idx or b_ not in idx:
-                    continue
-                w = min(max(rt - 1.0, 0.02) / 0.5, 3.0)
-                r_ = de if component == 0 else dn
+        use = [(a_, b_, de, dn, rt) for a_, b_, de, dn, rt in obs
+               if a_ in idx and b_ in idx]
+
+        def solve(extra):
+            """extra: per-observation robustness multiplier."""
+            A = np.zeros((n, n)); bE = np.zeros(n); bN = np.zeros(n)
+            for k, (a_, b_, de, dn, rt) in enumerate(use):
+                w = min(max(rt - 1.0, 0.02) / 0.5, 3.0) * extra[k]
                 ia, ib = idx[a_], idx[b_]
                 A[ia, ia] += w; A[ib, ib] += w
                 A[ia, ib] -= w; A[ib, ia] -= w
-                b[ia] += w * r_; b[ib] -= w * r_
-            # gauge: only the SHAPE of the block is determined by relative
-            # observations, so pin the mean correction to zero and let stage B
-            # decide where the whole thing goes
+                bE[ia] += w * de; bE[ib] -= w * de
+                bN[ia] += w * dn; bN[ib] -= w * dn
+            # gauge: relative observations fix only the SHAPE of the block, so pin
+            # the mean correction to zero and let stage B decide where it all goes
             A += np.ones((n, n)) * 1e-3
             A += np.eye(n) * 1e-9
-            return np.linalg.solve(A, b)
+            return np.linalg.solve(A, bE), np.linalg.solve(A, bN)
 
-        cE = solve(0); cN = solve(1)
+        # Iteratively reweighted: a pair that disagrees with the emerging consensus
+        # is downweighted rather than allowed to drag its two frames. Without this,
+        # six one-block blunders among sixty pairs put 14 m of error into the
+        # solution -- and this scene aliases at 97.5 m, so blunders are the norm.
+        extra = np.ones(len(use))
+        for _ in range(6):
+            cE, cN = solve(extra)
+            res = np.array([math.hypot((cE[idx[a_]] - cE[idx[b_]]) - de,
+                                       (cN[idx[a_]] - cN[idx[b_]]) - dn)
+                            for a_, b_, de, dn, rt in use])
+            sg = max(np.median(res) * 1.4826, 2.0)
+            extra = 1.0 / (1.0 + (res / (2.0 * sg)) ** 2)
+        rej = int((extra < 0.25).sum())
+        log(f"           {len(use)} observations, {rej} downweighted as blunders; "
+            f"consensus residual median {np.median(res):.1f} m", flush=True)
         cE -= cE.mean(); cN -= cN.mean()
         for r in recs:
             sol[r]['dE'] += float(cE[idx[r]]); sol[r]['dN'] += float(cN[idx[r]])
@@ -121,14 +136,29 @@ def close_block(sol, imgdir, mpp=MPP_TIE, rounds=3, log=print):
     return sol
 
 
-def place_block(sol, imgdir, t, mpp, kind='similarity', log=print):
-    """Stage B: one rigid move of the whole block onto the map."""
-    minE, maxN, W, H = canvas(sol, mpp)
+def place_block(sol, imgdir, t, mpp, grid, kind='similarity', log=print):
+    """Stage B: one rigid move of the whole block onto the map.
+
+    `grid` is the (minE, maxN) of the raster the modern ridge maps in `t` were
+    built on. The frames MUST be rendered into that same frame of reference --
+    rendering them into a canvas derived from the current solution instead compares
+    them against the wrong part of the modern imagery, which is a silent and
+    total failure."""
+    minE, maxN = grid
+    H, W = t['shape']
+    # A prior is NOT optional here. The bundle's absolute error is tens of metres and
+    # Detroit's street grid repeats every 97.5 m, so a bare +/-40 m fine search locks
+    # onto the nearest alias and reports a confident, tiny, wrong shift -- which is
+    # exactly what happened: 3.6 m reported where ~66 m was needed. The regional
+    # coarse field is solved on 6 km windows of mile-grid arterials, which cannot
+    # alias, and prior_for refuses it if too few windows lock.
+    pri = gridval.prior_for(t, mpp, log=log)
     abs_obs, _ = blockadjust.observe(sol, imgdir, t, minE, maxN, mpp,
-                                     prior=None, log=lambda *_: None)
+                                     prior=pri, log=lambda *_: None)
     if len(abs_obs) < 6:
         log(f"    only {len(abs_obs)} frames matched modern; not placing"); return sol
-    P_ = np.array([[sol[r]['e'], sol[r]['n']] for r in abs_obs])
+    P_ = np.array([[sol[r]['e'] - sol[r].get('dE', 0.0),
+                    sol[r]['n'] - sol[r].get('dN', 0.0)] for r in abs_obs])
     D = np.array([[o['dE'], o['dN']] for o in abs_obs.values()])
     w = np.array([min(max(o['ratio'] - 1.0, 0.02) / 0.5, 3.0) for o in abs_obs.values()])
     # robust: trim observations that disagree with the consensus, iteratively
@@ -162,12 +192,21 @@ def place_block(sol, imgdir, t, mpp, kind='similarity', log=print):
     tx, ty, a, b = p
     log(f"    similarity: shift {tx:+.1f}, {ty:+.1f} m; scale {1+a:.6f}; "
         f"rotation {math.degrees(math.atan2(b, 1+a)):+.4f} deg", flush=True)
+    # A similarity moves the frames' POSITIONS and also rotates and scales the
+    # frames themselves. Applying it to centres alone shears the block apart --
+    # measured, that took internal consistency from 0.2 m back to 4.4 m.
+    scale = math.hypot(1.0 + a, b)
+    rot_deg = math.degrees(math.atan2(b, 1.0 + a))
     for r in sol:
         if not sol[r].get('ok'):
             continue
-        x = sol[r]['e'] - ctr[0]; y = sol[r]['n'] - ctr[1]
+        x = (sol[r]['e'] - sol[r].get('dE', 0.0)) - ctr[0]
+        y = (sol[r]['n'] - sol[r].get('dN', 0.0)) - ctr[1]
         sol[r]['dE'] += float(tx + a * x - b * y)
         sol[r]['dN'] += float(ty + b * x + a * y)
+        sol[r]['rot'] = float(sol[r]['rot'] + rot_deg)
+        sol[r]['gw'] = float(sol[r]['gw'] * scale)
+        sol[r]['gh'] = float(sol[r]['gh'] * scale)
     return sol
 
 
@@ -178,11 +217,18 @@ def run(tag, dry=False, kind='similarity'):
     imgdir = f"{SP}/fullres"
     print("STAGE A -- close the block (frame-to-frame only, no modern imagery)", flush=True)
     sol = close_block(sol, imgdir)
+    # save Stage A on its own: it is the expensive part and stage B is cheap to redo
+    json.dump({r: dict(dE=sol[r]['dE'], dN=sol[r]['dN'], rot=sol[r]['rot'],
+                       gw=sol[r]['gw'], gh=sol[r]['gh'])
+               for r in sol if sol[r].get('ok')},
+              open(P('data', f'stageA_{tag}.json'), 'w'))
     print("STAGE B -- place the closed block as one rigid body", flush=True)
     arr, mod, bbox = validate.load(tag, 'pre')
     t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_pre_modern', log=lambda *_: None)
-    sol = place_block(sol, imgdir, t, MPP, kind=kind)
-    json.dump({r: dict(dE=sol[r]['dE'], dN=sol[r]['dN'], rot=sol[r]['rot'])
+    grid = ((bbox[1] - dtmap.LON0) * dtmap.MLON, (bbox[2] - dtmap.LAT0) * dtmap.MLAT)
+    sol = place_block(sol, imgdir, t, MPP, grid, kind=kind)
+    json.dump({r: dict(dE=sol[r]['dE'], dN=sol[r]['dN'], rot=sol[r]['rot'],
+                       gw=sol[r]['gw'], gh=sol[r]['gh'])
                for r in sol if sol[r].get('ok')},
               open(P('data', f'closed_{tag}.json'), 'w'))
     if dry:
