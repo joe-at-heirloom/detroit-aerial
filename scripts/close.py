@@ -197,6 +197,13 @@ def place_block(sol, imgdir, t, mpp, grid, kind='similarity', log=print):
     # measured, that took internal consistency from 0.2 m back to 4.4 m.
     scale = math.hypot(1.0 + a, b)
     rot_deg = math.degrees(math.atan2(b, 1.0 + a))
+    # D(p) is where the content SITS relative to truth: rotated by +theta, scaled
+    # by s. The correction is the inverse. Positions move by -D (which is what
+    # `dE += D` does, since position = e - dE), and each frame must therefore be
+    # un-rotated by theta and its footprint divided by s. The previous version
+    # added theta and multiplied by s -- doubling the error instead of removing it,
+    # which at 0.77% over a 3.3 km frame is ~25 m in every overlap. That, not
+    # "scale absorbing error", is why consistency went 0.2 -> 21.2 m.
     for r in sol:
         if not sol[r].get('ok'):
             continue
@@ -204,9 +211,9 @@ def place_block(sol, imgdir, t, mpp, grid, kind='similarity', log=print):
         y = (sol[r]['n'] - sol[r].get('dN', 0.0)) - ctr[1]
         sol[r]['dE'] += float(tx + a * x - b * y)
         sol[r]['dN'] += float(ty + b * x + a * y)
-        sol[r]['rot'] = float(sol[r]['rot'] + rot_deg)
-        sol[r]['gw'] = float(sol[r]['gw'] * scale)
-        sol[r]['gh'] = float(sol[r]['gh'] * scale)
+        sol[r]['rot'] = float(sol[r]['rot'] - rot_deg)
+        sol[r]['gw'] = float(sol[r]['gw'] / scale)
+        sol[r]['gh'] = float(sol[r]['gh'] / scale)
     return sol
 
 

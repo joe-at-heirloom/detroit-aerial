@@ -124,6 +124,42 @@ along the strip, and every candidate correction judged by BOTH numbers — a
 correction that costs more seam disagreement than the drift arithmetic predicts is
 absorbing error and must be rejected.
 
+## Stage A closed each line, not the block (found 2026-09-01)
+
+Split by pair class, the "0.19 m" closure was 47 along-track pairs hiding 16
+cross-line pairs:
+
+| pair class | measured / geometric | median | p90 | max |
+|---|---|---|---|---|
+| along-line | 47 / 147 | 0.1 m | 0.4 | 28 |
+| cross-line | 16 / 241 | 16.5 m | 77 | 109 |
+
+1961 is four parallel N-S flight lines, 15-16 frames each, 2.3 km apart with 1.1 km
+sidelap. Each line is closed perfectly along its length and the lines disagree with
+each other by 50-109 m. Along-track ties cannot observe a line's scale -- every
+frame in the line shares it -- only sidelap ties can, and 225 of 241 sidelap pairs
+failed the confidence filter and never entered the solve. Never again report one
+seam median: `scripts/seamclass.py` reports the two classes.
+
+Measured against modern, the lines' along-track scale errors alternate:
+-1.01%, -0.59%, -1.04%, -0.57% -- the signature of alternating flight direction.
+A per-line similarity (4 lines x 4 params) is the physical model. Its held-out
+residual is still ~40 m, but that is measurement noise, not model error: the
+per-frame absolute observations jump 26-38 m between ADJACENT frames that Stage A
+closed to 0.1 m, which no geometry can produce. The noise has a cause -- a 0.7%
+scale error across a 4 km frame smears the correlation peak by ~29 m -- so it
+shrinks as the block converges. Place iteratively: fit the smooth part, apply it as
+a continuous warp of the closed composite (never per-frame; a continuous warp
+cannot open a seam), re-measure on sharper peaks, refit.
+
+The earlier similarity placement failed for a two-character reason, not a deep
+one: rotation and scale were applied with the wrong sign (`rot += th`, `gw *= s`
+where the correction is the inverse), doubling the error. Fixed in close.py. The
+"scale absorbs error" diagnosis in the section above was wrong.
+
+The arterial cross-check cannot referee outside the city: the named-centreline data
+stops at the Detroit limit and most cells have no arterials at all.
+
 ## The architecture the evidence supports
 
 Two stages, coupled only at block level, with nothing in between
