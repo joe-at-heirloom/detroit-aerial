@@ -143,7 +143,20 @@ seam median: `scripts/seamclass.py` reports the two classes.
 
 Measured against modern, the lines' along-track scale errors alternate:
 -1.01%, -0.59%, -1.04%, -0.57% -- the signature of alternating flight direction.
-A per-line similarity (4 lines x 4 params) is the physical model. Its held-out
+Measured properly (`scripts/crossdiag.py`, every sidelap pair regardless of
+threshold, search +/-150 m): 151 of 241 pairs hit the search EDGE, 40 fail on
+coverage, 9 are weak, and the 41 that lock disagree by **median 114 m, max 195 m**.
+The lines sit 100-200 m apart from each other. The same disease on every block:
+1949 cross-line 65 m median (9 of 172 pairs measurable), 1967 54-90 m. And the
+iteration-1 affine warp of 1961 confirms it from the other side: it took absolute
+error from 73 to 43 m and no further, because the 43 m that remains IS the lines
+disagreeing, which no global model can express.
+
+The fix is `scripts/close2.py`: Stage A with a scale and a rotation per flight
+line as unknowns alongside the per-frame translations, solved from along-track and
+cross-line observations together, cross-line searched at +/-250 m. Verified on a
+synthetic two-line block with a planted 0.5% differential scale: recovered exactly,
+residual 0.000 m. A per-line similarity (4 lines x 4 params) is the physical model. Its held-out
 residual is still ~40 m, but that is measurement noise, not model error: the
 per-frame absolute observations jump 26-38 m between ADJACENT frames that Stage A
 closed to 0.1 m, which no geometry can produce. The noise has a cause -- a 0.7%

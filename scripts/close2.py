@@ -21,7 +21,14 @@ rotation. Those are pinned to zero here and left for the absolute step -- which
 then has a four-parameter problem against a block that is consistent throughout,
 instead of a four-parameter problem against four blocks that disagree.
 
-Usage:  ./.venv/bin/python scripts/close2.py 1961 [--rounds 3] [--from stageA]
+Measured before this existed (crossdiag.py, 1961): 151 of 241 sidelap pairs hit
+the search edge at +/-150 m and the 41 that locked disagreed by a median of 114 m,
+max 195 m. The lines sit 100-200 m apart. So the cross-line search defaults to
++/-250 m; same-epoch film matches itself strongly enough that the 97.5 m lattice
+is not the threat there that it is against satellite imagery, and the IRLS still
+downweights any blunder that gets through.
+
+Usage:  ./.venv/bin/python scripts/close2.py 1961 [--rounds 4] [--from stageA] [--cross 250]
 """
 import sys, os, json, math, itertools, time
 import numpy as np
@@ -65,6 +72,89 @@ def pair_observations(rend, sol, lab, mpp, search_along=90.0, search_cross=150.0
             continue
         out.append(dict(a=a, b=b, dE=m['dE'], dN=m['dN'], ratio=m['ratio'], cross=cross,
                         qE=(x0 + x1) / 2, qN=(y0 + y1) / 2))   # canvas px; converted by caller
+    return out
+
+
+def _pc(A, B, pad=2):
+    """Hann-windowed phase correlation, zero-padded so a large shift is not
+    circular. Returns (dx, dy, sharpness, at_boundary) with the same sign convention
+    as gridval.match_cell: F(A) * conj(F(B)), positive dx = A sits east of B."""
+    h, w = A.shape
+    wn = np.outer(np.hanning(h), np.hanning(w)).astype(np.float32)
+    a = (A - A.mean()) * wn; b = (B - B.mean()) * wn
+    H, W = h * pad, w * pad
+    F = np.fft.rfft2(a, s=(H, W)) * np.conj(np.fft.rfft2(b, s=(H, W)))
+    F /= (np.abs(F) + 1e-9)
+    c = np.fft.fftshift(np.fft.irfft2(F, s=(H, W)))
+    pk = np.unravel_index(np.argmax(c), c.shape)
+    peak = float(c[pk]); sharp = peak / (float(c.std()) + 1e-12)
+    dy = pk[0] - H // 2; dx = pk[1] - W // 2
+    at_edge = abs(dx) > w * 0.45 or abs(dy) > h * 0.45
+    return dx, dy, sharp, at_edge
+
+
+def cross_observations(rend, sol, lab, mpp, win_px=400, min_valid=0.85, min_sharp=7.0,
+                       min_windows=3, agree_m=12.0, max_shift_m=300.0, log=print):
+    """Sidelap offsets by multi-window phase correlation.
+
+    One big normalised correlation over a sidelap fails at large shifts: with a
+    +/-250 m search, 1967's cross-line 'matches' came back at a median of 239 m --
+    the search boundary -- because the normalised correlation of the few pixels
+    still overlapping at a big shift is high by chance. The solver then fitted
+    those blunders (per-line scales of 5%, frames moved 700 m).
+
+    Same-epoch film against itself gives phase correlation a delta peak, which is
+    why the original tie-point stage closed to 0.5 m with it. So: tile the sidelap
+    into 800 m windows, phase-correlate each, and accept the pair only if several
+    windows independently agree on the offset. Window-to-window agreement is the
+    confidence measure, and a pair whose windows disagree is dropped rather than
+    guessed."""
+    import itertools
+    keys = sorted(rend)
+    out = []; tried = 0
+    for a, b in itertools.combinations(keys, 2):
+        if lab[a] == lab[b]:
+            continue
+        ia, xa, ya = rend[a]; ib, xb, yb = rend[b]
+        x0 = max(xa, xb); y0 = max(ya, yb)
+        x1 = min(xa + ia.shape[1], xb + ib.shape[1]); y1 = min(ya + ia.shape[0], yb + ib.shape[0])
+        if x1 - x0 < win_px or y1 - y0 < win_px:
+            continue
+        tried += 1
+        offs = []
+        step = win_px // 2
+        for wy in range(y0, y1 - win_px + 1, step):
+            for wx in range(x0, x1 - win_px + 1, step):
+                A = ia[wy - ya:wy - ya + win_px, wx - xa:wx - xa + win_px].astype(np.float32)
+                B = ib[wy - yb:wy - yb + win_px, wx - xb:wx - xb + win_px].astype(np.float32)
+                if (A > 0).mean() < min_valid or (B > 0).mean() < min_valid:
+                    continue
+                if A.std() < 5 or B.std() < 5:
+                    continue
+                dx, dy, sharp, edge = _pc(A, B)
+                if edge or sharp < min_sharp or math.hypot(dx, dy) * mpp > max_shift_m:
+                    continue
+                offs.append((dx * mpp, -dy * mpp, sharp))
+        if len(offs) < min_windows:
+            continue
+        O = np.array(offs)
+        c = np.median(O[:, :2], axis=0)
+        for _ in range(3):
+            d = np.hypot(O[:, 0] - c[0], O[:, 1] - c[1])
+            m = d <= agree_m
+            if m.sum() < min_windows:
+                break
+            c = np.median(O[m, :2], axis=0)
+        d = np.hypot(O[:, 0] - c[0], O[:, 1] - c[1]); m = d <= agree_m
+        if m.sum() < min_windows:
+            continue
+        frac = m.sum() / len(O)
+        out.append(dict(a=a, b=b, dE=float(c[0]), dN=float(c[1]),
+                        ratio=1.0 + 0.5 * frac * min(m.sum(), 8) / 8.0,   # 1.0..1.5
+                        cross=True, nwin=int(m.sum()), nwin_all=int(len(O)),
+                        qE=(x0 + x1) / 2, qN=(y0 + y1) / 2))
+    log(f"           cross-line: {len(out)} pairs from {tried} sidelaps, "
+        f"windows agreeing median {np.median([o['nwin'] for o in out]) if out else 0:.0f}")
     return out
 
 
@@ -156,8 +246,11 @@ def apply_corrections(sol, recs, lab, cE, cN, sig, rho, ctr):
     return sol
 
 
-def seam_report(rend, sol, lab, mpp, label, log=print):
-    obs = pair_observations(rend, sol, lab, mpp)
+def seam_report(rend, sol, lab, mpp, label, log=print, search_cross=250.0):
+    along = [o for o in pair_observations(rend, sol, lab, mpp, search_cross=1.0)
+             if not o['cross']]
+    cross = cross_observations(rend, sol, lab, mpp, max_shift_m=search_cross, log=log)
+    obs = along + cross
     for nm, want in (('along', False), ('cross', True)):
         v = np.array([math.hypot(o['dE'], o['dN']) for o in obs if o['cross'] == want])
         if len(v):
@@ -168,7 +261,7 @@ def seam_report(rend, sol, lab, mpp, label, log=print):
     return obs
 
 
-def run(tag, rounds=3, start='stageA'):
+def run(tag, rounds=3, start='stageA', search_cross=250.0):
     t0 = time.time()
     sol, ppm = placements(tag)
     if start and os.path.exists(P('data', f'{start}_{tag}.json')):
@@ -192,7 +285,7 @@ def run(tag, rounds=3, start='stageA'):
         minE, maxN, W, H = C.canvas(sol, mpp)
         rend = blockadjust.render_all(sol, imgdir, minE, maxN, W, H, mpp, crop=0.95,
                                       log=lambda *_: None)
-        obs = seam_report(rend, sol, lab, mpp, f"round {it}", log=print)
+        obs = seam_report(rend, sol, lab, mpp, f"round {it}", log=print, search_cross=search_cross)
         del rend
         if not obs:
             print("  no observations; stopping"); break
@@ -204,12 +297,22 @@ def run(tag, rounds=3, start='stageA'):
             print(f"           line {k}: scale {sig[k]*1e2:+.3f}%  rotation {math.degrees(rho[k]):+.4f} deg", flush=True)
         mv = np.array([math.hypot(cE[r_], cN[r_]) for r_ in recs])
         print(f"           frame translations: median {np.median(mv):.1f}  max {mv.max():.1f} m", flush=True)
+        # Physical sanity before anything is applied. A flight line's scale error is
+        # a flying-height error; 1.5% is 75 m of altitude on a 5000 m sortie, already
+        # generous. A solution asking for more, or moving frames further than twice
+        # the disagreement it is trying to remove, is fitting blunders, and applying
+        # it would tear the block worse than it found it. Refuse and say so.
+        dis = np.array([math.hypot(o['dE'], o['dN']) for o in obs])
+        if max(abs(v) for v in sig.values()) > 0.015 or np.median(mv) > 2.0 * np.median(dis) + 20:
+            print(f"           REFUSED: implausible solution (max |scale| {max(abs(v) for v in sig.values())*1e2:.2f}%, "
+                  f"median move {np.median(mv):.0f} m vs disagreement {np.median(dis):.0f} m); not applied", flush=True)
+            break
         sol = apply_corrections(sol, recs, lab, cE, cN, sig, rho, ctr)
         if np.median(mv) < 0.5 and max(abs(v) for v in sig.values()) < 2e-5:
             break
     minE, maxN, W, H = C.canvas(sol, mpp)
     rend = blockadjust.render_all(sol, imgdir, minE, maxN, W, H, mpp, crop=0.95, log=lambda *_: None)
-    seam_report(rend, sol, lab, mpp, "CLOSED", log=print)
+    seam_report(rend, sol, lab, mpp, "CLOSED", log=print, search_cross=search_cross)
     del rend
     json.dump({r: dict(dE=sol[r]['dE'], dN=sol[r]['dN'], rot=sol[r]['rot'],
                        gw=sol[r]['gw'], gh=sol[r]['gh']) for r in recs},
@@ -218,4 +321,4 @@ def run(tag, rounds=3, start='stageA'):
 
 
 if __name__ == '__main__':
-    run(sys.argv[1], int(arg('--rounds', 3)), arg('--from', 'stageA'))
+    run(sys.argv[1], int(arg('--rounds', 3)), arg('--from', 'stageA'), float(arg('--cross', 250.0)))
