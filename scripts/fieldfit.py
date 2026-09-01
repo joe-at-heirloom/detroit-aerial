@@ -96,18 +96,26 @@ def predict_model(model, E, N):
     # evaluate every line's similarity, then blend linearly in E between the two
     # nearest line centres -- continuous across the sidelap, exact at line centres
     preds = [predict(np.array(l['p']), E, N, 'similarity', l['cE'], l['cN'], sc) for l in L]
+    # Each line's own similarity applies over the line's body; the transition to
+    # the neighbouring line happens only across the sidelap, a band of width
+    # `blend` centred on the midpoint between line centres. Blending over the whole
+    # inter-line gap would smear each line's correction with its neighbour's across
+    # most of the line -- and the correction is per line for a physical reason.
+    blend = float(model.get('blend', 1200.0))
     pe = np.zeros_like(E); pn = np.zeros_like(N)
     for i in range(len(E)):
         x = E[i]
-        if x <= cE[0]:
-            j0 = j1 = 0; t = 0.0
-        elif x >= cE[-1]:
-            j0 = j1 = len(L) - 1; t = 0.0
-        else:
-            j1 = int(np.searchsorted(cE, x)); j0 = j1 - 1
-            t = (x - cE[j0]) / max(cE[j1] - cE[j0], 1e-9)
-        pe[i] = (1 - t) * preds[j0][0][i] + t * preds[j1][0][i]
-        pn[i] = (1 - t) * preds[j0][1][i] + t * preds[j1][1][i]
+        j = int(np.argmin(np.abs(cE - x)))          # nearest line
+        pe[i], pn[i] = preds[j][0][i], preds[j][1][i]
+        # is x inside a sidelap band with a neighbour?
+        for jn in (j - 1, j + 1):
+            if 0 <= jn < len(L):
+                mid = 0.5 * (cE[j] + cE[jn]); d = (x - mid) * (1 if jn > j else -1)
+                # d in (-blend/2, +blend/2): 0 = midpoint, + toward neighbour
+                if abs(x - mid) < blend / 2:
+                    t = 0.5 + d / blend               # 0.5 at midpoint
+                    pe[i] = (1 - t) * preds[j][0][i] + t * preds[jn][0][i]
+                    pn[i] = (1 - t) * preds[j][1][i] + t * preds[jn][1][i]
     return pe, pn
 
 

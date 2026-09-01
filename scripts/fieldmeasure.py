@@ -43,7 +43,7 @@ def main():
         report(cells, f'  {tag} {label} {NY}x{NX}')
     # per-frame observations too: more samples, and they say which flight line
     # which saved placement was this composite built from
-    stage = {'closedA': 'stageA', 'closed': 'closed', 'placed': 'placed'}.get(label)
+    stage = {'closedA': 'stageA', 'closedA2': 'stageA2', 'closed': 'closed', 'placed': 'placed', 'placedW': 'stageA'}.get(label)
     if stage and not os.path.exists(P('data', f'{stage}_{tag}.json')):
         stage = None
     if stage:
