@@ -156,7 +156,20 @@ The fix is `scripts/close2.py`: Stage A with a scale and a rotation per flight
 line as unknowns alongside the per-frame translations, solved from along-track and
 cross-line observations together, cross-line searched at +/-250 m. Verified on a
 synthetic two-line block with a planted 0.5% differential scale: recovered exactly,
-residual 0.000 m. A per-line similarity (4 lines x 4 params) is the physical model. Its held-out
+residual 0.000 m. A per-line similarity (4 lines x 4 params) is the physical model.
+
+**The sidelap needs a different matcher than the along-track overlap.** With a
++/-250 m normalised-correlation search, 1967's 61 cross-line "matches" came back at
+a median of 239 m -- the search boundary -- because the normalised correlation of
+the few pixels still overlapping at a large shift is high by chance. The solver
+then fitted those blunders (per-line scales of 5%, frames moved 700 m); the runs
+were killed before anything was applied, and close2.py now refuses any solution
+asking for more than 1.5% of line scale or moving frames further than twice the
+disagreement it is removing. Cross-line offsets are now measured the way the
+original tie-point stage measured along-track ones: **multi-window phase
+correlation** on the raw film (same epoch, so a delta peak), accepting a pair only
+when several 800 m windows independently agree. Verified on a planted 190 m shift:
+36 of 36 windows agree. Its held-out
 residual is still ~40 m, but that is measurement noise, not model error: the
 per-frame absolute observations jump 26-38 m between ADJACENT frames that Stage A
 closed to 0.1 m, which no geometry can produce. The noise has a cause -- a 0.7%
