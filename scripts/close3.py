@@ -119,7 +119,12 @@ def seam_stats(ties, label, log=print):
     return out
 
 
-def solve(sol, ties, recs, minE, maxN, mpp, model='similarity', prior_m=1.0, log=print):
+def solve(sol, ties, recs, minE, maxN, mpp, model='similarity', prior_m=0.25, log=print):
+    """prior_m sets how strongly each frame's scale and rotation are held near zero:
+    a scale of 1% costs the same as a (10/prior_m)^2 * 0.25 m^2 residual. At 0.25, 1%
+    costs like a 20 m residual on one tie -- enough that a frame with few ties cannot
+    wander to 4.5% (which happened at 1.0), not enough to suppress the ~0.5% that is
+    physically there and supported by hundreds of ties."""
     """Per-frame [cE, cN, sigma, rho] (affine adds a shear pair). Returns dict of
     corrections. Sign convention as close2: content of frame i at q moves by
     -c_i + sigma_i (q-p_i) + rho_i R90(q-p_i); a tie 'a sits d from b' requires
@@ -249,8 +254,9 @@ def run(tag, rounds=3, start='stageA', model='similarity'):
             break
         sg = np.array([abs(corr[r]['sig']) for r in recs]); rh = np.array([abs(corr[r]['rho']) for r in recs])
         mv = np.array([math.hypot(corr[r]['cE'], corr[r]['cN']) for r in recs])
-        print(f"           per-frame scale |max| {sg.max()*1e2:.3f}%  rotation |max| {math.degrees(rh.max()):.3f} deg  "
-              f"translations median {np.median(mv):.1f} max {mv.max():.1f} m", flush=True)
+        print(f"           per-frame |scale| p50 {np.median(sg)*1e2:.3f}% p90 {np.percentile(sg,90)*1e2:.3f}% max {sg.max()*1e2:.3f}%   "
+              f"|rotation| p50 {math.degrees(np.median(rh)):.3f} p90 {math.degrees(np.percentile(rh,90)):.3f} max {math.degrees(rh.max()):.3f} deg", flush=True)
+        print(f"           translations median {np.median(mv):.1f} max {mv.max():.1f} m", flush=True)
         dis = st.get('cross') or 0.0
         if sg.max() > 0.02 or np.median(mv) > 2.0 * dis + 20:
             print(f"           REFUSED: implausible (scale {sg.max()*1e2:.2f}%, move {np.median(mv):.0f} m "
