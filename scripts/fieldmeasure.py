@@ -30,7 +30,12 @@ def main():
     arr, mod, bbox = validate.load(tag, label, ref)
     t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_{label}_{ref.replace(":", "_")}', log=lambda *_: None)
     print(f"ridge maps ready [{time.time()-t0:.0f}s]", flush=True)
-    pri = gridval.prior_for(t, MPP)
+    # --coarse-search M : first-stage search radius (default 250). Against the
+    # same film (e.g. a COLMAP block vs the old build of the same year) content is
+    # identical, so a wide search is unambiguous, and a block seeded from catalogue
+    # positions that scatter 361 m can sit outside +/-250.
+    cs = float(sys.argv[sys.argv.index('--coarse-search') + 1]) if '--coarse-search' in sys.argv else 250.0
+    pri = gridval.prior_for(t, MPP, search_m=cs)
     out = {'tag': tag, 'label': label, 'bbox': bbox, 'mpp': MPP,
            'shape': list(t['shape']),
            'minE': (bbox[1] - dtmap.LON0) * dtmap.MLON,
