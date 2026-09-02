@@ -332,6 +332,14 @@ positions (COLMAP's matches_importer with a pairs list), and fix the camera at
 the pilot's solved values (focal 3602 px, k -0.00027) rather than re-estimate
 focal, which is degenerate on flat ground.
 
+(A second full-block run with plausible pairs and a fixed camera ALSO split into
+8- and 10-frame models -- because its feature extractor had been killed by a
+`pkill -f "colmap feature_extractor"` aimed at a different block, exited cleanly,
+and left 24 of 62 images in the database. COLMAP exits 0 on SIGTERM with a partial
+database and the driver carries on. Never kill COLMAP processes by generic name
+while a block is solving; check `select count(*) from images` in db.db before
+believing a split.)
+
 What is kept from the hand-rolled work: the absolute measurement, the rigid /
 low-order placement, the seam metric, the viewer. 1961's hand-rolled result stays
 in the viewer until COLMAP's beats it on both numbers. 1967 and 1949 placed at
