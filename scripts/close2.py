@@ -365,6 +365,11 @@ def run(tag, rounds=3, start='stageA', search_cross=250.0, model='similarity'):
                   f"median move {np.median(mv):.0f} m vs disagreement {np.median(dis):.0f} m); not applied", flush=True)
             break
         sol = apply_corrections(sol, recs, lab, cE, cN, sig, rho, ctr)
+        # save after every round: a run takes half an hour and a usable placement
+        # exists after the first round -- do not make anyone wait for the last one
+        json.dump({r: dict(dE=sol[r]['dE'], dN=sol[r]['dN'], rot=sol[r]['rot'],
+                           gw=sol[r]['gw'], gh=sol[r]['gh']) for r in recs},
+                  open(P('data', f'stageA2_{tag}.json'), 'w'))
         if np.median(mv) < 0.5 and max(abs(v) for v in sig.values()) < 2e-5:
             break
     minE, maxN, W, H = C.canvas(sol, mpp)
