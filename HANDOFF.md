@@ -825,3 +825,12 @@ block, and only after seams and absolute placement are verified:
 Nothing is picked by label order. Failed 1949 placements (placedC2..C5) were
 deleted. `scripts/wipepic.py TAG LABEL` draws a build wiped against today at
 mile-road crossings, the quickest visual check that the arterials line up.
+
+## 1949 against USGS NAIP (2026-09-02)
+
+`crosscheck.py --block 1949 --suffix placedC --n 12 --span 1500 --mpp 1.0 --bound 60 --ridge`:
+ours 8.39 m (p90 9.85), scikit-image 8.03 (p90 10.66), OpenCV 8.20 (p90 9.70);
+bias under 1 m both axes. Random scatter, not a shift; the leave-one-out figure
+of the placement fit (6.8 m) predicted most of it. The candidates from the
+normalised scans (1949n) are the only open route to improving it; switch only
+if seams and absolute both measure better.

@@ -116,6 +116,14 @@ imagery, which it was not placed against:
 |---|---|---|---|---|
 | COLMAP + surface | **2.0 m** (p90 4.0) | **2.0 m** (p90 4.0) | **4.2 m** (p90 9.9) | **4.7 m** (p90 11.9) |
 
+Independently, against USGS NAIP on 1.5 km windows, the three implementations
+agree at **8.0 / 8.2 / 8.4 m** (scikit-image / OpenCV / ours) with no systematic
+shift (bias under 1 m in both axes). That is worse than our own figure against
+Esri imagery and worse than 1961's 2-3.5 m. Seventy-five years separate the
+negatives from either reference, the farmland of 1949 is subdivisions now, and
+the placement's own leave-one-out estimate was 6.8 m -- the remaining error is
+the difficulty of measuring 1949 against anything modern, not the block's shape.
+
 **1956** -- solving on the same path; numbers will replace this line.
 
 Downtown is a separate three-frame scene: 1961 and 1949 corrected to ~5 m, 1956
