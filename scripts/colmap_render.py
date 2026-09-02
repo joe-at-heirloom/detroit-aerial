@@ -68,7 +68,39 @@ def self_align(cams, imgs, pts, priors):
     res = np.hypot(*(sc * (R2 @ A.T).T + t2 - B).T)
     print(f"  self-align: scale {sc:.4f}, heading {math.degrees(math.atan2(R2[1,0], R2[0,0])):+.2f} deg, "
           f"camera-vs-catalogue residual median {np.median(res):.0f} m (catalogue is approximate)", flush=True)
+    # the 3D points in the aligned frame, for a ground SURFACE rather than a plane
+    Pa = (sc * (Q @ P.T)).T + T
+    self_align.points = Pa
     return 0.0
+
+
+class Surface:
+    """Ground height as a quadratic in (x, y), fitted to the aligned 3D points.
+
+    A block bundled with a slightly wrong camera on flat terrain bows into a
+    shallow dome -- measured on 1961: the point cloud's plane residual runs -51 to
+    +36 m and camera heights follow a quadratic of -166 m over 10 km. The cameras
+    are consistent with THAT surface, so projecting onto it closes the seams;
+    projecting onto a plane through it left 12-16 m at every join. What the dome
+    leaves is a smooth planimetric stretch, which the absolute warp removes."""
+
+    def __init__(self, pts, order=2):
+        P = np.asarray(pts); self.cx, self.cy = P[:, 0].mean(), P[:, 1].mean(); self.sc = 10000.0
+        x = (P[:, 0] - self.cx) / self.sc; y = (P[:, 1] - self.cy) / self.sc
+        cols = [np.ones_like(x), x, y] + ([x*x, x*y, y*y] if order >= 2 else [])
+        A = np.stack(cols, 1)
+        # robust: two passes trimming outliers (trees, roofs, mismatches)
+        m = np.ones(len(P), bool)
+        for _ in range(3):
+            self.c = np.linalg.lstsq(A[m], P[m, 2], rcond=None)[0]
+            r = A @ self.c - P[:, 2]; s = max(np.median(np.abs(r[m])) * 1.4826, 0.5)
+            m = np.abs(r) < 3 * s
+        self.order = order; self.resid = float(np.median(np.abs((A @ self.c - P[:, 2])[m])))
+
+    def z(self, E, N):
+        x = (np.asarray(E) - self.cx) / self.sc; y = (np.asarray(N) - self.cy) / self.sc
+        cols = [np.ones_like(x), x, y] + ([x*x, x*y, y*y] if self.order >= 2 else [])
+        return sum(c * v for c, v in zip(self.c, cols))
 
 
 def read_model(d):
@@ -113,14 +145,16 @@ def project(cam, R, t, X):
 
 
 def render_frame(name, img, cam, im, zg, E0, N0, minE, maxN, W, H, mpp, crop=0.95):
-    """One negative on the common grid. Footprint estimated from the corners."""
+    """One negative on the common grid. `zg` is a constant ground height or a
+    Surface; footprint estimated from the corners."""
     R, t = img['R'], img['t']
-    # footprint: back-project the four (cropped) image corners onto z = zg
+    surf = zg if isinstance(zg, Surface) else None
+    z0 = float(surf.z(img['C'][0], img['C'][1])) if surf is not None else float(zg)
     w, h = cam['w'], cam['h']; f = cam['params'][0]; cx, cy = cam['params'][1], cam['params'][2]
     pts = []
     for (u, v) in ((w*(1-crop)/2, h*(1-crop)/2), (w*(1+crop)/2, h*(1-crop)/2), (w*(1+crop)/2, h*(1+crop)/2), (w*(1-crop)/2, h*(1+crop)/2)):
         d = R.T @ np.array([(u - cx)/f, (v - cy)/f, 1.0]); C = img['C']
-        s = (zg - C[2]) / d[2]; X = C + s*d; pts.append(X[:2])
+        s = (z0 - C[2]) / d[2]; X = C + s*d; pts.append(X[:2])
     pts = np.array(pts)
     e0, e1 = pts[:, 0].min() + E0, pts[:, 0].max() + E0; n0, n1 = pts[:, 1].min() + N0, pts[:, 1].max() + N0
     x0 = max(0, int((e0 - minE)/mpp)); x1 = min(W, int((e1 - minE)/mpp) + 1)
@@ -129,7 +163,8 @@ def render_frame(name, img, cam, im, zg, E0, N0, minE, maxN, W, H, mpp, crop=0.9
     Es = (minE + (np.arange(x0, x1) + 0.5)*mpp - E0).astype(np.float64)
     Ns = (maxN - (np.arange(y0, y1) + 0.5)*mpp - N0).astype(np.float64)
     EE, NN = np.meshgrid(Es, Ns)
-    X = np.stack([EE.ravel(), NN.ravel(), np.full(EE.size, zg)], 1)
+    ZZ = surf.z(EE, NN) if surf is not None else np.full(EE.shape, z0)
+    X = np.stack([EE.ravel(), NN.ravel(), np.asarray(ZZ).ravel()], 1)
     u, v, ok = project(cam, R, t, X)
     u = u.reshape(EE.shape); v = v.reshape(EE.shape); ok = ok.reshape(EE.shape)
     m = ok & (u >= w*(1-crop)/2) & (u < w*(1+crop)/2 - 1) & (v >= h*(1-crop)/2) & (v < h*(1+crop)/2 - 1)
@@ -152,6 +187,13 @@ def load_block(work, model_dir=None, self_align_=True):
         for l in open(f"{work}/priors.txt"):
             q = l.split(); priors[q[0]] = (float(q[1]), float(q[2]), float(q[3]))
         zg = self_align(cams, imgs, pts, priors)
+        if '--surface' in sys.argv:
+            order = int(arg('--surface', 2))
+            S_ = Surface(self_align.points, order=order)
+            print(f"  ground surface: quadratic fitted to {len(self_align.points)} points, "
+                  f"residual {S_.resid:.1f} m, height range over the block "
+                  f"{S_.z(self_align.points[:,0].min(), self_align.points[:,1].min()) - S_.z(self_align.points[:,0].mean(), self_align.points[:,1].mean()):+.0f} m at a corner", flush=True)
+            zg = S_
     return meta, cams, imgs, zg
 
 
@@ -195,7 +237,9 @@ def mosaic(work, tag, mpp=0.63, model_dir=None, crop=0.95, log=print):
         img = imgs[n]; cam = cams[img['cam']]; w, h = cam['w'], cam['h']; f = cam['params'][0]; cx, cy = cam['params'][1], cam['params'][2]
         pts = []
         for (u, v) in ((w*(1-crop)/2, h*(1-crop)/2), (w*(1+crop)/2, h*(1-crop)/2), (w*(1+crop)/2, h*(1+crop)/2), (w*(1-crop)/2, h*(1+crop)/2)):
-            d = img['R'].T @ np.array([(u - cx)/f, (v - cy)/f, 1.0]); Cc = img['C']; s_ = (zg - Cc[2]) / d[2]; X = Cc + s_*d
+            d = img['R'].T @ np.array([(u - cx)/f, (v - cy)/f, 1.0]); Cc = img['C']
+            zc = float(zg.z(Cc[0], Cc[1])) if isinstance(zg, Surface) else float(zg)
+            s_ = (zc - Cc[2]) / d[2]; X = Cc + s_*d
             pts.append(((X[0] + E0 - minE) / cm, (maxN - (X[1] + N0)) / cm))
         m = Image.new('L', (Wc, Hc), 0); _D.Draw(m).polygon(pts, fill=255); m = np.asarray(m) > 0
         d2 = (xx - (img['C'][0] + E0))**2 + (yy - (img['C'][1] + N0))**2

@@ -341,6 +341,18 @@ in 17 minutes of CPU. `colmap_place.py` then renders it, measures both seam
 classes with the tie-window instrument, builds the production mosaic and places
 it absolutely.
 
+**The connected block domes.** Rendered onto one plane, its seams are along-track
+16.0 m (p90 32) and cross-line 12.2 m (p90 35) -- worse than the pilot's 2.0 and
+the hand-rolled 4.0/4.5. The 3D points' plane residual runs -51 to +36 m and the
+camera heights follow a quadratic of -166 m across 10 km: a flat block bundled
+with a slightly wrong fixed camera bows into a shallow bowl, the textbook failure
+of planar aerial SfM. Two remedies, both in flight: refine focal and radial
+distortion now that four lines with sidelap constrain them (mapper rerun), and
+render onto the model's own fitted quadratic surface (`colmap_render.py
+--surface 2`) rather than a plane -- the cameras are consistent with that
+surface, so seams close, and the smooth planimetric stretch it leaves is what the
+absolute warp already removes.
+
 What is kept from the hand-rolled work: the absolute measurement, the rigid /
 low-order placement, the seam metric, the viewer. 1961's hand-rolled result stays
 in the viewer until COLMAP's beats it on both numbers. 1967 and 1949 placed at
