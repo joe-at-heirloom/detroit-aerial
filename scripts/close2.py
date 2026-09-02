@@ -93,8 +93,8 @@ def _pc(A, B, pad=2):
     return dx, dy, sharp, at_edge
 
 
-def cross_observations(rend, sol, lab, mpp, win_m=800.0, min_valid=0.85, min_sharp=7.0,
-                       min_windows=3, agree_m=12.0, max_shift_m=300.0, use_ridge=False,
+def cross_observations(rend, sol, lab, mpp, win_m=384.0, min_valid=0.75, min_sharp=7.0,
+                       min_windows=3, agree_m=15.0, max_shift_m=300.0, use_ridge=False,
                        log=print):
     """Sidelap offsets by multi-window phase correlation.
 
@@ -106,8 +106,17 @@ def cross_observations(rend, sol, lab, mpp, win_m=800.0, min_valid=0.85, min_sha
 
     Same-epoch film against itself gives phase correlation a delta peak, which is
     why the original tie-point stage closed to 0.5 m with it. So: tile the sidelap
-    into 800 m windows, phase-correlate each, and accept the pair only if several
-    windows independently agree on the offset. Window-to-window agreement is the
+    into small windows, phase-correlate each, and accept the pair only if several
+    windows independently agree on the offset.
+
+    Window size is set by coverage, not by peak strength. Measured on 30 real
+    sidelaps (pcdiag.py): every window that reached the peak test passed it with
+    median sharpness 15-20 against a threshold of 7, but 78% of windows never got
+    there because one frame or the other had under 60% content in them. The frame
+    bounding box is sized by its diagonal to fit any rotation, so two sidelapping
+    boxes intersect ~2.2 km wide where the film actually overlaps ~0.9 km. 800 m
+    windows accepted 3 of 30 sidelaps; 512 m accepted 10; 384 m with a 75% floor
+    is the choice. Raw film and the ridge response performed identically. Window-to-window agreement is the
     confidence measure, and a pair whose windows disagree is dropped rather than
     guessed."""
     import itertools
