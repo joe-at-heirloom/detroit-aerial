@@ -110,7 +110,7 @@ const NOTES = {
 };
 
 async function boot() {
-  MAN = await (await fetch('/data/manifest.json')).json();
+  MAN = await (await fetch('/data/manifest.json?t=' + Date.now(), {cache: 'no-store'})).json();
   const tabs = document.getElementById('tabs');
   Object.entries(MAN.groups).forEach(([id, g], i) => {
     const b = document.createElement('button');
@@ -156,7 +156,11 @@ async function boot() {
   show(Object.keys(MAN.groups)[0]);
 }
 
-function layerUrl(id) { return '/t/' + id + '/{z}/{x}/{y}.png'; }
+function layerUrl(lid) {
+  const L2 = MAN.layers.find(l => l.id === lid);
+  const v = (L2 && L2.ver) ? ('?v=' + L2.ver) : '';
+  return '/t/' + lid + '/{z}/{x}/{y}.png' + v;
+}/{x}/{y}.png'; }
 
 function show(gid) {
   cur = MAN.groups[gid];

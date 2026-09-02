@@ -1,0 +1,10 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "viewer",
+      "url": "http://localhost:8770",
+      "port": 8770
+    }
+  ]
+}

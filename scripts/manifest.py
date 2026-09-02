@@ -13,7 +13,7 @@ TAGS = ['1949', '1956', '1961', '1967']
 # placed3 = closed by the per-frame tie-point bundle (close3), then placed by one
 # continuous low-order warp with seams verified before and after. It is preferred
 # wherever it exists; `final` is the earlier per-frame build whose seams were torn.
-PREF = ['placedC2', 'placedC', 'placed3', 'final', 'v2', 'rbf']
+PREF = ['placedC3', 'placedC2', 'placedC', 'placed3', 'final', 'v2', 'rbf']
 
 
 def best(tag):
@@ -22,7 +22,7 @@ def best(tag):
     # when its file appears.
     allow = sys.argv[sys.argv.index('--placed3') + 1].split(',') if '--placed3' in sys.argv else []
     for s in PREF:
-        if s in ('placed3', 'placedC', 'placedC2') and tag not in allow:
+        if s in ('placed3', 'placedC', 'placedC2', 'placedC3') and tag not in allow:
             continue
         g = P('data', f'{tag}_{s}_geo.json')
         m = P('mosaics', f'detroit_{tag}_{s}.tif')
@@ -57,6 +57,10 @@ def downtown_layers(old):
 def main():
     old = json.load(open(P('data', 'manifest.json')))
     layers = downtown_layers(old)
+    for l in layers:
+        fp = P(l['file'])
+        if os.path.exists(fp):
+            l['ver'] = int(os.path.getmtime(fp))
     ids = []
     boxes = []
     for tag in TAGS:
@@ -66,7 +70,8 @@ def main():
         lid = f'b{tag}'
         layers.append(dict(id=lid, group='west', label=tag,
                            file=f'mosaics/detroit_{tag}_{s}.tif',
-                           bbox=g['bbox'], gray=True))
+                           bbox=g['bbox'], gray=True,
+                           ver=int(os.path.getmtime(m))))     # cache-busts tile URLs
         ids.append(lid); boxes.append(g['bbox'])
         print(f"  {tag}: {s}")
     mw = json.load(open(P('data', 'modern_west_geo.json')))
