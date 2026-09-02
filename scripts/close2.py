@@ -93,8 +93,9 @@ def _pc(A, B, pad=2):
     return dx, dy, sharp, at_edge
 
 
-def cross_observations(rend, sol, lab, mpp, win_px=400, min_valid=0.85, min_sharp=7.0,
-                       min_windows=3, agree_m=12.0, max_shift_m=300.0, log=print):
+def cross_observations(rend, sol, lab, mpp, win_m=800.0, min_valid=0.85, min_sharp=7.0,
+                       min_windows=3, agree_m=12.0, max_shift_m=300.0, use_ridge=False,
+                       log=print):
     """Sidelap offsets by multi-window phase correlation.
 
     One big normalised correlation over a sidelap fails at large shifts: with a
@@ -110,12 +111,23 @@ def cross_observations(rend, sol, lab, mpp, win_px=400, min_valid=0.85, min_shar
     confidence measure, and a pair whose windows disagree is dropped rather than
     guessed."""
     import itertools
+    import gridval as _g
+    win_px = max(64, int(round(win_m / mpp)))
     keys = sorted(rend)
     out = []; tried = 0
+    feat = {}
+    def F(r):
+        # the feature phase-correlated: raw film, or the road-ridge response, which
+        # survives the shadow change between lines flown hours apart
+        if r not in feat:
+            img = rend[r][0]
+            feat[r] = _g.ridge_full(img.astype(np.float32), mpp)[0] if use_ridge else img
+        return feat[r]
     for a, b in itertools.combinations(keys, 2):
         if lab[a] == lab[b]:
             continue
         ia, xa, ya = rend[a]; ib, xb, yb = rend[b]
+        fa, fb = F(a), F(b)
         x0 = max(xa, xb); y0 = max(ya, yb)
         x1 = min(xa + ia.shape[1], xb + ib.shape[1]); y1 = min(ya + ia.shape[0], yb + ib.shape[0])
         if x1 - x0 < win_px or y1 - y0 < win_px:
@@ -125,11 +137,13 @@ def cross_observations(rend, sol, lab, mpp, win_px=400, min_valid=0.85, min_shar
         step = win_px // 2
         for wy in range(y0, y1 - win_px + 1, step):
             for wx in range(x0, x1 - win_px + 1, step):
-                A = ia[wy - ya:wy - ya + win_px, wx - xa:wx - xa + win_px].astype(np.float32)
-                B = ib[wy - yb:wy - yb + win_px, wx - xb:wx - xb + win_px].astype(np.float32)
-                if (A > 0).mean() < min_valid or (B > 0).mean() < min_valid:
+                va = (ia[wy - ya:wy - ya + win_px, wx - xa:wx - xa + win_px] > 0).mean()
+                vb = (ib[wy - yb:wy - yb + win_px, wx - xb:wx - xb + win_px] > 0).mean()
+                if va < min_valid or vb < min_valid:
                     continue
-                if A.std() < 5 or B.std() < 5:
+                A = fa[wy - ya:wy - ya + win_px, wx - xa:wx - xa + win_px].astype(np.float32)
+                B = fb[wy - yb:wy - yb + win_px, wx - xb:wx - xb + win_px].astype(np.float32)
+                if A.std() < (1e-4 if use_ridge else 5) or B.std() < (1e-4 if use_ridge else 5):
                     continue
                 dx, dy, sharp, edge = _pc(A, B)
                 if edge or sharp < min_sharp or math.hypot(dx, dy) * mpp > max_shift_m:
@@ -302,7 +316,9 @@ def run(tag, rounds=3, start='stageA', search_cross=250.0):
         # generous. A solution asking for more, or moving frames further than twice
         # the disagreement it is trying to remove, is fitting blunders, and applying
         # it would tear the block worse than it found it. Refuse and say so.
-        dis = np.array([math.hypot(o['dE'], o['dN']) for o in obs])
+        # the disagreement being removed is the CROSS-line one; along-track pairs are
+        # already at 0.1 m and would make any move look implausible
+        dis = np.array([math.hypot(o['dE'], o['dN']) for o in obs if o['cross']] or [0.0])
         if max(abs(v) for v in sig.values()) > 0.015 or np.median(mv) > 2.0 * np.median(dis) + 20:
             print(f"           REFUSED: implausible solution (max |scale| {max(abs(v) for v in sig.values())*1e2:.2f}%, "
                   f"median move {np.median(mv):.0f} m vs disagreement {np.median(dis):.0f} m); not applied", flush=True)
