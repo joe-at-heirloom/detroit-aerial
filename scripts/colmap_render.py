@@ -217,6 +217,35 @@ def project(cam, R, t, X):
     return fx*xn + cx, fy*yn + cy, ok
 
 
+class Surface:
+    """Ground height as a quadratic in (x, y), fitted to the aligned 3D points.
+
+    A block bundled with a slightly wrong camera on flat terrain bows into a
+    shallow dome -- measured on 1961: the point cloud's plane residual runs -51 to
+    +36 m and camera heights follow a quadratic of -166 m over 10 km. The cameras
+    are consistent with THAT surface, so projecting onto it closes the seams;
+    projecting onto a plane through it left 12-16 m at every join. What the dome
+    leaves is a smooth planimetric stretch, which the absolute warp removes."""
+
+    def __init__(self, pts, order=2):
+        P = np.asarray(pts); self.cx, self.cy = P[:, 0].mean(), P[:, 1].mean(); self.sc = 10000.0
+        x = (P[:, 0] - self.cx) / self.sc; y = (P[:, 1] - self.cy) / self.sc
+        cols = [np.ones_like(x), x, y] + ([x*x, x*y, y*y] if order >= 2 else [])
+        A = np.stack(cols, 1)
+        # robust: two passes trimming outliers (trees, roofs, mismatches)
+        m = np.ones(len(P), bool)
+        for _ in range(3):
+            self.c = np.linalg.lstsq(A[m], P[m, 2], rcond=None)[0]
+            r = A @ self.c - P[:, 2]; s = max(np.median(np.abs(r[m])) * 1.4826, 0.5)
+            m = np.abs(r) < 3 * s
+        self.order = order; self.resid = float(np.median(np.abs((A @ self.c - P[:, 2])[m])))
+
+    def z(self, E, N):
+        x = (np.asarray(E) - self.cx) / self.sc; y = (np.asarray(N) - self.cy) / self.sc
+        cols = [np.ones_like(x), x, y] + ([x*x, x*y, y*y] if self.order >= 2 else [])
+        return sum(c * v for c, v in zip(self.c, cols))
+
+
 def render_frame(name, img, cam, im, zg, E0, N0, minE, maxN, W, H, mpp, crop=0.95):
     """One negative on the common grid. `zg` is a constant ground height or a
     Surface; footprint estimated from the corners."""
