@@ -90,24 +90,24 @@ def seams_after_warp(tag, stage, warp_at, log=print):
     # 100 m; one median over all pairs hides that because along-track pairs
     # outnumber sidelap pairs three to one. Cross-line is the number that says
     # whether a per-line correction did its job.
-    import seamclass as SC
+    import seamclass as SC, close3
     recs = sorted(rend)
     lab = SC.lines_of(sol, recs)
+    # Seams are measured with close3's dense tie windows (phase correlation with a
+    # per-pair consensus), the instrument that closed the block. The whole-overlap
+    # normalised correlation used here before returns the search boundary on
+    # sidelaps and reported 105 m cross-line on a block closed to 4.5 m.
     def stats(rd, nm):
-        obs = blockadjust.relative_observations(rd, mpp, search_m=150.0, min_ratio=1.08,
-                                                log=lambda *_: None)
-        cls = {'along': [], 'cross': []}
-        for a, b, de, dn, rt in obs:
-            cls['along' if lab[a] == lab[b] else 'cross'].append(math.hypot(de, dn))
+        ties = close3.tie_windows(rd, lab, mpp, log=lambda *_: None)
         out = {}
-        for k in ('along', 'cross'):
-            v = np.array(cls[k])
+        for k, want in (('along', False), ('cross', True)):
+            v = np.array([math.hypot(t['dE'], t['dN']) for t in ties if t['cross'] == want])
             if len(v):
-                log(f"    {nm} {k:5s}: {len(v):3d} pairs  median {np.median(v):5.1f}  "
-                    f"p90 {np.percentile(v,90):5.1f}  max {v.max():5.1f} m  over 10 m {(v>10).sum()}")
+                log(f"    {nm} {k:5s}: {len(v):5d} windows  median {np.median(v):5.1f}  "
+                    f"p90 {np.percentile(v,90):5.1f}  max {v.max():5.1f} m")
                 out[k] = float(np.median(v))
             else:
-                log(f"    {nm} {k:5s}:   0 pairs"); out[k] = None
+                log(f"    {nm} {k:5s}:   0 windows"); out[k] = None
         return out
     s0 = stats(rend, 'before warp')
     wr = {r: (warp_render(img, x0, y0, warp_at, minE, maxN, mpp), x0, y0)
