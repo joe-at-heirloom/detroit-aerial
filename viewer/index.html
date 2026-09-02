@@ -106,7 +106,7 @@ const NOTES = {
     "Wipe 1949 against 1961 to watch the <b>Hastings Street</b> corridor emptied for the Chrysler Freeway."],
   west: ["West Detroit &middot; 1949 / 1956 / 1961 / 1967",
     "Each block of negatives is solved as a photogrammetric block with <b>COLMAP</b> (a camera per negative, tied by thousands of matches along and across the flight lines), projected onto the block's own fitted ground surface, then placed on the map by one continuous warp.",
-    "Every build is judged by how far two overlapping negatives disagree about the same ground. <b>1961:</b> 2.0 m along-track, 2.0 m across flight lines, 2.6 m against modern imagery. The other years show the previous build until their COLMAP solves land."]
+    "Every build is judged by how far two overlapping negatives disagree about the same ground, then by how far the whole block sits from modern imagery. <b>1961:</b> 2.0 / 2.0 m seams, 2.6 m absolute. <b>1967:</b> 2.0 / 4.0 m, 2.6 m. <b>1949:</b> 2.0 / 2.0 m, about 4 to 8 m absolute; it was aligned to 1961, so wipe it against 1961 for the tightest comparison. <b>1956:</b> solved, placement in progress; the previous build shows until it is verified."]
 };
 
 async function boot() {
