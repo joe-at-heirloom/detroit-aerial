@@ -317,6 +317,13 @@ COLMAP-rendered frames before and after:
 Seams identical before and after the warp; 41/41 coarse cells locked.
 One command per block: `colmap_block.py TAG` then `colmap_place.py TAG WORK --surface 2`.
 
+**1949 on the same path**: 50/50 frames in one model (seven scan sizes, padded),
+surface residual 1.7 m with only 12 m of bow; seams along-track **2.0 m (p90
+4.0, max 24)**, cross-line **2.0 m (p90 4.5, max 18)** over 7,629 windows. That
+sidelap was 65 m out of the original bundle and 20 m at the hand-rolled best.
+Its catalogue positions scatter 361 m around the solved cameras, so the absolute
+placement's prior is the thing to watch there.
+
 # The simpler path is also the better one: COLMAP (2026-09-01, late)
 
 The user called the hand-rolled pipeline over-engineered for the material, and
