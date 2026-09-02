@@ -1,0 +1,178 @@
+#!/usr/bin/env python
+"""Render a COLMAP-solved block onto the ground plane, measure its seams, and
+composite it -- the acceptance test for the simpler path.
+
+Each negative gets projected through its solved camera (focal, principal point,
+radial distortion, full 3-axis pose) onto one flat plane at the median height of
+COLMAP's 3D points. Detroit is flat, so that is orthorectification. The same two
+numbers as everywhere else in this project -- along-track and cross-line seam
+disagreement, from dense tie windows -- are computed on the rendered frames, so
+COLMAP's geometry is judged by the instrument that touches no reference.
+
+Usage:  ./.venv/bin/python scripts/colmap_render.py /tmp/colmap_pilot [--mpp 2.0] [--tag 1961] [--out /tmp]
+"""
+import sys, os, json, math, time
+import numpy as np
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'pipeline')); sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+from PIL import Image, ImageDraw
+import rasterio
+from rasterio.transform import from_origin
+import dtmap, close3, seamclass as SC
+Image.MAX_IMAGE_PIXELS = None
+
+
+def arg(n, d=None):
+    return sys.argv[sys.argv.index(n) + 1] if n in sys.argv else d
+
+
+def quat_to_R(qw, qx, qy, qz):
+    return np.array([[1 - 2*(qy*qy + qz*qz), 2*(qx*qy - qz*qw), 2*(qx*qz + qy*qw)],
+                     [2*(qx*qy + qz*qw), 1 - 2*(qx*qx + qz*qz), 2*(qy*qz - qx*qw)],
+                     [2*(qx*qz - qy*qw), 2*(qy*qz + qx*qw), 1 - 2*(qx*qx + qy*qy)]])
+
+
+def read_model(d):
+    cams = {}
+    for l in open(f"{d}/cameras.txt"):
+        if l.startswith('#') or not l.strip(): continue
+        p = l.split(); cams[int(p[0])] = dict(model=p[1], w=int(p[2]), h=int(p[3]), params=[float(x) for x in p[4:]])
+    imgs = {}
+    lines = [l for l in open(f"{d}/images.txt") if not l.startswith('#') and l.strip()]
+    for l in lines[0::2]:
+        p = l.split()
+        q = [float(x) for x in p[1:5]]; t = np.array([float(x) for x in p[5:8]])
+        R = quat_to_R(*q); C = -R.T @ t
+        imgs[p[9]] = dict(R=R, t=t, C=C, cam=int(p[8]))
+    zs = []
+    if os.path.exists(f"{d}/points3D.txt"):
+        for l in open(f"{d}/points3D.txt"):
+            if l.startswith('#') or not l.strip(): continue
+            zs.append(float(l.split()[3]))
+    return cams, imgs, (float(np.median(zs)) if zs else None)
+
+
+def project(cam, R, t, X):
+    """world points (N,3) -> pixel (u,v) for SIMPLE_RADIAL / PINHOLE / RADIAL."""
+    x = (R @ X.T).T + t
+    z = x[:, 2]; ok = z > 1e-6
+    xn = x[:, 0] / np.where(ok, z, 1); yn = x[:, 1] / np.where(ok, z, 1)
+    p = cam['params']
+    if cam['model'] == 'SIMPLE_RADIAL':
+        f, cx, cy, k = p; fx = fy = f
+        r2 = xn*xn + yn*yn; d = 1 + k*r2; xn, yn = xn*d, yn*d
+    elif cam['model'] == 'RADIAL':
+        f, cx, cy, k1, k2 = p; fx = fy = f
+        r2 = xn*xn + yn*yn; d = 1 + k1*r2 + k2*r2*r2; xn, yn = xn*d, yn*d
+    elif cam['model'] in ('PINHOLE', 'SIMPLE_PINHOLE'):
+        if cam['model'] == 'PINHOLE': fx, fy, cx, cy = p
+        else: fx, cx, cy = p; fy = fx
+    else:
+        raise ValueError(cam['model'])
+    return fx*xn + cx, fy*yn + cy, ok
+
+
+def render_frame(name, img, cam, im, zg, E0, N0, minE, maxN, W, H, mpp, crop=0.95):
+    """One negative on the common grid. Footprint estimated from the corners."""
+    R, t = img['R'], img['t']
+    # footprint: back-project the four (cropped) image corners onto z = zg
+    w, h = cam['w'], cam['h']; f = cam['params'][0]; cx, cy = cam['params'][1], cam['params'][2]
+    pts = []
+    for (u, v) in ((w*(1-crop)/2, h*(1-crop)/2), (w*(1+crop)/2, h*(1-crop)/2), (w*(1+crop)/2, h*(1+crop)/2), (w*(1-crop)/2, h*(1+crop)/2)):
+        d = R.T @ np.array([(u - cx)/f, (v - cy)/f, 1.0]); C = img['C']
+        s = (zg - C[2]) / d[2]; X = C + s*d; pts.append(X[:2])
+    pts = np.array(pts)
+    e0, e1 = pts[:, 0].min() + E0, pts[:, 0].max() + E0; n0, n1 = pts[:, 1].min() + N0, pts[:, 1].max() + N0
+    x0 = max(0, int((e0 - minE)/mpp)); x1 = min(W, int((e1 - minE)/mpp) + 1)
+    y0 = max(0, int((maxN - n1)/mpp)); y1 = min(H, int((maxN - n0)/mpp) + 1)
+    if x1 - x0 < 8 or y1 - y0 < 8: return None
+    Es = (minE + (np.arange(x0, x1) + 0.5)*mpp - E0).astype(np.float64)
+    Ns = (maxN - (np.arange(y0, y1) + 0.5)*mpp - N0).astype(np.float64)
+    EE, NN = np.meshgrid(Es, Ns)
+    X = np.stack([EE.ravel(), NN.ravel(), np.full(EE.size, zg)], 1)
+    u, v, ok = project(cam, R, t, X)
+    u = u.reshape(EE.shape); v = v.reshape(EE.shape); ok = ok.reshape(EE.shape)
+    m = ok & (u >= w*(1-crop)/2) & (u < w*(1+crop)/2 - 1) & (v >= h*(1-crop)/2) & (v < h*(1+crop)/2 - 1)
+    out = np.zeros(EE.shape, np.uint8)
+    if not m.any(): return None
+    ui = np.clip(u, 0, w - 2); vi = np.clip(v, 0, h - 2)
+    ua = ui.astype(np.int32); va = vi.astype(np.int32); fu = (ui - ua).astype(np.float32); fv = (vi - va).astype(np.float32)
+    val = (im[va, ua]*(1-fu)*(1-fv) + im[va, ua+1]*fu*(1-fv) + im[va+1, ua]*(1-fu)*fv + im[va+1, ua+1]*fu*fv)
+    np.copyto(out, val.astype(np.uint8), where=m)
+    return out, x0, y0
+
+
+def main():
+    work = sys.argv[1]
+    mpp = float(arg('--mpp', 2.0)); out_dir = arg('--out', '/tmp'); tag = arg('--tag', 'colmap')
+    meta = json.load(open(f"{work}/meta.json")); E0, N0 = meta['E0'], meta['N0']
+    cams, imgs, zg = read_model(f"{work}/aligned")
+    if zg is None:
+        raise SystemExit("no points3D.txt -- run model_converter with points")
+    print(f"{len(imgs)} registered frames, camera {cams[list(cams)[0]]['model']} {cams[list(cams)[0]]['params']}, ground z {zg:.1f}")
+    C = np.array([imgs[n]['C'] for n in imgs]); H_fly = float(np.median(C[:, 2]) - zg)
+    print(f"  flying height above ground (solved) {H_fly:.0f} m", flush=True)
+    # common grid
+    half = 2600.0
+    minE = C[:, 0].min() + E0 - half; maxE = C[:, 0].max() + E0 + half
+    minN = C[:, 1].min() + N0 - half; maxN = C[:, 1].max() + N0 + half
+    W = int((maxE - minE)/mpp); H = int((maxN - minN)/mpp)
+    rend = {}; sol = {}
+    for name, img in imgs.items():
+        rec = name.replace('.jpg', '')
+        im = np.asarray(Image.open(f"{work}/images/{name}").convert('L'))
+        r = render_frame(name, img, cams[img['cam']], im, zg, E0, N0, minE, maxN, W, H, mpp)
+        if r is None: continue
+        rend[rec] = r
+        sol[rec] = dict(ok=True, e=img['C'][0] + E0, n=img['C'][1] + N0, dE=0.0, dN=0.0)
+    recs = sorted(rend); lab = SC.lines_of(sol, recs)
+    print(f"  rendered {len(rend)} frames on {W}x{H} @ {mpp} m/px, {max(lab.values())+1} line(s)", flush=True)
+    ties = close3.tie_windows(rend, lab, mpp, log=print)
+    close3.seam_stats(ties, "COLMAP")
+    # composite: nearest camera centre wins
+    comp = np.zeros((H, W), np.uint8); best = np.full((H, W), np.inf, np.float32)
+    for rec, (img, x0, y0) in rend.items():
+        h, w = img.shape
+        ys = (maxN - (np.arange(y0, y0+h) + 0.5)*mpp)[:, None]; xs = (minE + (np.arange(x0, x0+w) + 0.5)*mpp)[None, :]
+        d = (xs - sol[rec]['e'])**2 + (ys - sol[rec]['n'])**2
+        sub = best[y0:y0+h, x0:x0+w]; m = (img > 0) & (d < sub)
+        sub[m] = d[m]; comp[y0:y0+h, x0:x0+w][m] = img[m]
+    la_top = dtmap.LAT0 + maxN/dtmap.MLAT; lo_left = dtmap.LON0 + minE/dtmap.MLON
+    tr = from_origin(lo_left, la_top, mpp/dtmap.MLON, mpp/dtmap.MLAT)
+    p = os.path.join(out_dir, f"colmap_{tag}.tif")
+    with rasterio.open(p, 'w', driver='GTiff', height=H, width=W, count=1, dtype='uint8', crs='EPSG:4326',
+                       transform=tr, tiled=True, compress='DEFLATE') as ds:
+        ds.write(comp, 1)
+    print(f"  wrote {p}", flush=True)
+    # a red/green seam picture: one along-track pair and one cross-line pair if present
+    pairs = [(t['a'], t['b'], t['cross']) for t in ties]
+    seen = {}
+    for a, b, c in pairs:
+        seen.setdefault(c, (a, b))
+    panels = []
+    for c in (False, True):
+        if c not in seen: continue
+        a, b = seen[c]; (ia, xa, ya), (ib, xb, yb) = rend[a], rend[b]
+        x0 = max(xa, xb); y0 = max(ya, yb); x1 = min(xa+ia.shape[1], xb+ib.shape[1]); y1 = min(ya+ia.shape[0], yb+ib.shape[0])
+        cx = (x0+x1)//2; cy = (y0+y1)//2; hh = int(700/mpp)
+        def cut(im, xo, yo):
+            o = np.zeros((2*hh, 2*hh), np.uint8); a0 = max(cy-hh, yo); a1 = min(cy+hh, yo+im.shape[0]); b0 = max(cx-hh, xo); b1 = min(cx+hh, xo+im.shape[1])
+            if a1 > a0 and b1 > b0: o[a0-(cy-hh):a1-(cy-hh), b0-(cx-hh):b1-(cx-hh)] = im[a0-yo:a1-yo, b0-xo:b1-xo]
+            return o
+        def st(x):
+            x = x.astype(np.float32); v = x > 0
+            if v.sum() < 10: return np.zeros_like(x, np.uint8)
+            lo, hi = np.percentile(x[v], [2, 98]); o = np.clip((x-lo)/max(hi-lo, 1)*255, 0, 255); o[~v] = 0; return o.astype(np.uint8)
+        rgb = np.zeros((2*hh, 2*hh, 3), np.uint8); rgb[..., 0] = st(cut(ia, xa, ya)); rgb[..., 1] = st(cut(ib, xb, yb))
+        im = Image.fromarray(rgb); d = ImageDraw.Draw(im); d.rectangle((0, 0, im.width, 20), fill=(0, 0, 0))
+        d.text((6, 4), f"COLMAP {tag} {'CROSS-LINE' if c else 'ALONG-TRACK'}: {a} red / {b} green", fill=(255, 255, 255))
+        panels.append(im)
+    if panels:
+        sheet = Image.new('RGB', (sum(p_.width for p_ in panels) + 10*(len(panels)-1), panels[0].height), (0, 0, 0))
+        x = 0
+        for p_ in panels: sheet.paste(p_, (x, 0)); x += p_.width + 10
+        pp = os.path.join(out_dir, f"colmap_seams_{tag}.png"); sheet.save(pp); print(f"  wrote {pp}")
+
+
+if __name__ == '__main__':
+    main()
