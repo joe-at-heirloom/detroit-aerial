@@ -353,6 +353,17 @@ render onto the model's own fitted quadratic surface (`colmap_render.py
 surface, so seams close, and the smooth planimetric stretch it leaves is what the
 absolute warp already removes.
 
+**Rendered onto its own surface, the COLMAP block closes to 2 m in both classes.**
+`colmap_render.py --surface 2`: quadratic fitted to the 46,564 aligned points at
+2.2 m residual, 144 m of bow at a corner. Full 62-frame 1961: along-track
+**2.0 m median, p90 4.0, max 16** over 5,166 windows; cross-line **2.0 m, p90
+4.5, max 20** over 2,193 windows; 11 windows rejected by consensus (835 on the
+plane). The hand-rolled bundle's best was 4.0 / 4.5 with p90 8 / 11. Refining
+focal instead was degenerate (6574 px). The whole COLMAP chain now takes
+`--surface 2`; the mosaic writes the choice into data/colmap_<tag>.json and the
+seam verification after the absolute warp reads it, so every step renders the
+same way.
+
 What is kept from the hand-rolled work: the absolute measurement, the rigid /
 low-order placement, the seam metric, the viewer. 1961's hand-rolled result stays
 in the viewer until COLMAP's beats it on both numbers. 1967 and 1949 placed at
