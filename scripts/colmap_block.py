@@ -97,18 +97,32 @@ def main():
         '--output_path', f"{work}/sparse",
         '--Mapper.ba_refine_focal_length', '1', '--Mapper.ba_refine_principal_point', '0',
         '--Mapper.ba_refine_extra_params', '1'], log)
+    # The mapper writes one model per connected component. Report them all, keep
+    # the largest as sparse_txt. COLMAP's model_aligner is skipped: it needs a 3D
+    # similarity from camera centres, which is degenerate for a single flight line
+    # and fussy otherwise; colmap_render.py --self-align fits the ground plane and
+    # a 2D similarity to the catalogue instead, and never fails on geometry.
     models = sorted(os.listdir(f"{work}/sparse"))
-    print(f"  mapper produced {len(models)} model(s): {models}", flush=True)
-    best = f"{work}/sparse/{models[0]}"
-    os.makedirs(f"{work}/aligned", exist_ok=True)
-    sh(['colmap', 'model_aligner', '--input_path', best, '--output_path', f"{work}/aligned",
-        '--ref_images_path', f"{work}/priors.txt", '--ref_is_gps', '0',
-        '--alignment_type', 'custom', '--alignment_max_error', '150'], log)
-    sh(['colmap', 'model_converter', '--input_path', f"{work}/aligned",
-        '--output_path', f"{work}/aligned", '--output_type', 'TXT'], log)
-    n_img = sum(1 for l in open(f"{work}/aligned/images.txt") if l and not l.startswith('#')) // 2
-    print(f"  registered {n_img}/{len(recs)} frames; cameras.txt / images.txt in {work}/aligned  "
-          f"[{time.time()-t0:.0f}s]", flush=True)
+    counts = []
+    for m in models:
+        tmp = f"{work}/_m"; os.makedirs(tmp, exist_ok=True)
+        sh(['colmap', 'model_converter', '--input_path', f"{work}/sparse/{m}",
+            '--output_path', tmp, '--output_type', 'TXT'], log)
+        n = sum(1 for l in open(f"{tmp}/images.txt") if l.strip() and not l.startswith('#')) // 2
+        counts.append((n, m))
+    counts.sort(reverse=True)
+    print(f"  mapper produced {len(models)} model(s): " +
+          ", ".join(f"model {m}: {n} frames" for n, m in counts), flush=True)
+    best = counts[0][1]
+    os.makedirs(f"{work}/sparse_txt", exist_ok=True)
+    sh(['colmap', 'model_converter', '--input_path', f"{work}/sparse/{best}",
+        '--output_path', f"{work}/sparse_txt", '--output_type', 'TXT'], log)
+    n_img = counts[0][0]
+    print(f"  registered {n_img}/{len(recs)} frames in the largest model; cameras.txt / "
+          f"images.txt in {work}/sparse_txt  [{time.time()-t0:.0f}s]", flush=True)
+    if n_img < len(recs) * 0.9:
+        print(f"  WARNING: {len(recs)-n_img} frames not in the largest model -- the block "
+              f"did not connect; see the other models", flush=True)
 
 
 if __name__ == '__main__':
