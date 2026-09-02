@@ -80,17 +80,14 @@ def main():
               open(f"{work}/meta.json", 'w'))
 
     db = f"{work}/db.db"
+    # option names as of COLMAP 4.1 (FeatureExtraction.* / FeatureMatching.*)
     sh(['colmap', 'feature_extractor', '--database_path', db, '--image_path', f"{work}/images",
         '--ImageReader.single_camera', '1', '--ImageReader.camera_model', 'SIMPLE_RADIAL',
         '--ImageReader.camera_params', f"{focal_px:.1f},{w/2:.1f},{h/2:.1f},0.0",
-        '--SiftExtraction.max_image_size', '3600', '--SiftExtraction.max_num_features', '12000',
-        '--SiftExtraction.use_gpu', '0'], log)
-    sh(['colmap', 'spatial_matcher', '--database_path', db,
-        '--SpatialMatching.max_num_neighbors', '12', '--SpatialMatching.max_distance', '4000',
-        '--SpatialMatching.is_gps', '0', '--SiftMatching.use_gpu', '0'], log) if False else None
-    # spatial matching needs priors in the database; simpler and safe at this size:
-    # exhaustive matching over ~60 images is ~1800 pairs, fine on CPU.
-    sh(['colmap', 'exhaustive_matcher', '--database_path', db, '--SiftMatching.use_gpu', '0'], log)
+        '--FeatureExtraction.max_image_size', '3600', '--SiftExtraction.max_num_features', '12000',
+        '--FeatureExtraction.use_gpu', '0'], log)
+    # exhaustive matching over ~60 images is ~1800 pairs, fine on CPU
+    sh(['colmap', 'exhaustive_matcher', '--database_path', db, '--FeatureMatching.use_gpu', '0'], log)
     os.makedirs(f"{work}/sparse", exist_ok=True)
     sh(['colmap', 'mapper', '--database_path', db, '--image_path', f"{work}/images",
         '--output_path', f"{work}/sparse",
