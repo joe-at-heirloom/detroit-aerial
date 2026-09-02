@@ -326,6 +326,12 @@ surface residual 3.1 m (205 m of bow at a corner), seams along-track **2.0 m (p9
 held-out, seams unchanged through the warp, absolute **2.6 m at 3.6 km (p90 7.7)**
 and **4.1 m at 1.8 km (p90 11.6)**.
 
+**1949 -- done, in the viewer** (`detroit_1949_placedC.tif`): re-aligned against
+1961 (heading +1.27 deg, scale +0.26%), prior 27/27 windows locked, quadratic
+6.8 m held-out, seams unchanged through the warp at 2.0 / 2.0 m; absolute against
+1961 5.1 m; against modern imagery, which it was NOT placed against, **4.2 m at
+3.6 km (p90 9.9)** and **4.7 m at 1.8 km (p90 11.9)**, nothing unlockable.
+
 **1949 on the same path**: 50/50 frames in one model (seven scan sizes, padded),
 surface residual 1.7 m with only 12 m of bow; seams along-track **2.0 m (p90
 4.0, max 24)**, cross-line **2.0 m (p90 4.5, max 18)** over 7,629 windows. That
