@@ -17,10 +17,20 @@ PREF = ['placedC3', 'placedC2', 'placedC', 'placed3', 'final', 'v2', 'rbf']
 
 
 def best(tag):
-    # --placed3 1961,1956 : only these tags may be served from placed3; a block
-    # is switched when its seams AND absolute placement have been verified, not
-    # when its file appears.
+    # --serve 1961:placedC,1949:placedC : the build to serve, per block, chosen
+    # explicitly after its seams AND absolute placement verified. Nothing is
+    # picked by label order -- that once served a failed placement because its
+    # label sorted "newer".
+    chosen = {}
+    if '--serve' in sys.argv:
+        for kv in sys.argv[sys.argv.index('--serve') + 1].split(','):
+            k, v = kv.split(':'); chosen[k] = v
     allow = sys.argv[sys.argv.index('--placed3') + 1].split(',') if '--placed3' in sys.argv else []
+    if tag in chosen:
+        g = P('data', f'{tag}_{chosen[tag]}_geo.json'); m = P('mosaics', f'detroit_{tag}_{chosen[tag]}.tif')
+        if os.path.exists(g) and os.path.exists(m):
+            return chosen[tag], json.load(open(g))
+        print(f"  {tag}: chosen build {chosen[tag]} missing; falling back")
     for s in PREF:
         if s in ('placed3', 'placedC', 'placedC2', 'placedC3') and tag not in allow:
             continue
