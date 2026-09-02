@@ -336,6 +336,21 @@ unmeasured, not bad, and is NOT in the viewer. 1949 is being placed against
 match than film to satellite across seventy-five, and it inherits 1961's 2.6 m.
 The same will apply to 1956.
 
+**Why 1949 would not place against anything, including its own old build:** the
+COLMAP block is rotated a few degrees and shifted up to ~900 m (self-aligned to
+catalogue positions scattering 361 m), AND smoothly warped -- against the old build
+a similarity does not fit, an affine wants -20% scale east-west only, a quadratic
+leaves 93 m. Cause found in the scans: 1949 has a batch scanned square
+(4998 x 4998) where the rest are 5076 x 4794 -- same negative, ~4.5% more pixels
+per mm. One fixed focal for every negative makes those frames 4.5% wrong and the
+bundle bends the block to fit them. `colmap_block.py` now rescales any scan of a
+different resolution to the majority film height before padding (heights are the
+physical film edge; widths are scan-window differences). `coarsealign.py` measures
+hundreds-of-metres offsets between same-film mosaics at 20 m/px for the cases where
+a block is seeded far off. Two routes ran in parallel: coarse-to-fine placement of
+the warped block (fallback), and a re-solve with normalised scans as tag `1949n`
+(the fix).
+
 # The simpler path is also the better one: COLMAP (2026-09-01, late)
 
 The user called the hand-rolled pipeline over-engineered for the material, and
