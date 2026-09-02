@@ -226,6 +226,15 @@ Same solve on the other blocks (Stage A -> close3, no absolute placement yet):
 | 1949 | 2.0 m (p90 6) | 20.0 m (p90 36) | cross-line STUCK: only ~46 of 172 sidelap pairs yield ties on this 3-line block |
 | 1956 | 4.0 m (p90 9) | 5.7 m (p90 26, max 184) | round 2 refused (3.8% scale asked); closed on round 1's state |
 
+1949's remaining 20 m, diagnosed (`scripts/pairdiag.py`): the worst cross-line
+pairs yielded 2-3 tie windows each -- no constraint -- and the pairs that yielded
+many had windows scattering by +/-45 m, which is noise. Grainy 1949 film over open
+land gives raw-texture phase correlation nothing to lock to. `close3.py --feature
+ridge` phase-correlates the road-ridge response instead; a window with no road is
+flat and skipped rather than wrong. A few along-track pairs (1398/481, 631/708)
+also sit at 20-38 m with high spread: likely tilt across the overlap, which a
+similarity per frame cannot express -- the affine model is the next step there.
+
 Two things to look at next, both about the guard-refused rounds: on a block that is
 already closed the solver still proposes 20-36 m moves with 2-4% scales, which
 means some frames' normal equations are near-singular -- block-edge frames with

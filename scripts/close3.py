@@ -49,11 +49,24 @@ def content_box(img, x0, y0):
 
 
 def tie_windows(rend, lab, mpp, win_m=384.0, step_frac=0.5, min_valid=0.75, min_sharp=7.0,
-                max_shift_m=300.0, agree_m=20.0, min_windows=3, log=print):
-    """Every window of every overlapping pair, as its own tie point."""
+                max_shift_m=300.0, agree_m=20.0, min_windows=3, feature='raw', log=print):
+    """Every window of every overlapping pair, as its own tie point.
+
+    feature='ridge' phase-correlates the road-ridge response instead of the raw
+    film. On 1949 -- grainy film, three lines, open land -- raw-texture windows over
+    fields returned random peaks that scattered by +/-45 m within a pair, and the
+    consensus filter then left the worst sidelaps with 2-3 windows, i.e. no
+    constraint. Roads persist where fields do not; a ridge window with no road in
+    it is flat and skipped rather than wrong."""
+    import gridval
     win = max(64, int(round(win_m / mpp))); step = max(16, int(win * step_frac))
     keys = sorted(rend)
     boxes = {r: content_box(rend[r][0], rend[r][1], rend[r][2]) for r in keys}
+    feat = {}
+    if feature == 'ridge':
+        for r in keys:
+            feat[r] = gridval.ridge_full(rend[r][0].astype(np.float32), mpp)[0]
+    flat_thr = 1e-4 if feature == 'ridge' else 5.0
     ties = []; npairs = {'along': 0, 'cross': 0}; rejected = 0
     for a, b in itertools.combinations(keys, 2):
         ta, tb = boxes[a], boxes[b]
@@ -71,8 +84,11 @@ def tie_windows(rend, lab, mpp, win_m=384.0, step_frac=0.5, min_valid=0.75, min_
                 B = ib[wy - yb:wy - yb + win, wx - xb:wx - xb + win]
                 if (A > 0).mean() < min_valid or (B > 0).mean() < min_valid:
                     continue
+                if feature == 'ridge':
+                    A = feat[a][wy - ya:wy - ya + win, wx - xa:wx - xa + win]
+                    B = feat[b][wy - yb:wy - yb + win, wx - xb:wx - xb + win]
                 A = A.astype(np.float32); B = B.astype(np.float32)
-                if A.std() < 5 or B.std() < 5:
+                if A.std() < flat_thr or B.std() < flat_thr:
                     continue
                 dx, dy, sharp, edge = close2._pc(A, B)
                 if edge or sharp < min_sharp or math.hypot(dx, dy) * mpp > max_shift_m:
@@ -221,7 +237,7 @@ def apply(sol, recs, corr):
     return sol
 
 
-def run(tag, rounds=3, start='stageA', model='similarity'):
+def run(tag, rounds=3, start='stageA', model='similarity', feature='raw', out='stageA3'):
     t0 = time.time()
     sol, ppm = placements(tag)
     if start and os.path.exists(P('data', f'{start}_{tag}.json')):
@@ -234,7 +250,7 @@ def run(tag, rounds=3, start='stageA', model='similarity'):
                 if 'gw' in v: sol[r]['gw'] = v['gw']; sol[r]['gh'] = v['gh']
     recs = sorted([r for r in sol if sol[r].get('ok')])
     lab = SC.lines_of(sol, recs)
-    print(f"\n===== close3 {tag}: from {start}, model {model}, {len(recs)} frames, "
+    print(f"\n===== close3 {tag}: from {start} -> {out}, model {model}, feature {feature}, {len(recs)} frames, "
           f"{max(lab.values())+1} lines =====", flush=True)
     if model == 'affine':
         print("  NOTE: affine shear terms are solved but not applied (render_frame is a "
@@ -244,7 +260,7 @@ def run(tag, rounds=3, start='stageA', model='similarity'):
         minE, maxN, W, H = C.canvas(sol, mpp)
         rend = blockadjust.render_all(sol, imgdir, minE, maxN, W, H, mpp, crop=0.95,
                                       log=lambda *_: None)
-        ties = tie_windows(rend, lab, mpp)
+        ties = tie_windows(rend, lab, mpp, feature=feature)
         del rend
         st = seam_stats(ties, f"round {it}")
         if not ties:
@@ -269,15 +285,19 @@ def run(tag, rounds=3, start='stageA', model='similarity'):
         sol = apply(sol, recs, corr)
         json.dump({r: dict(dE=sol[r]['dE'], dN=sol[r]['dN'], rot=sol[r]['rot'],
                            gw=sol[r]['gw'], gh=sol[r]['gh']) for r in recs},
-                  open(P('data', f'stageA3_{tag}.json'), 'w'))
+                  open(P('data', f'{out}_{tag}.json'), 'w'))
         if np.median(mv) < 0.3 and sg.max() < 3e-5:
             break
     minE, maxN, W, H = C.canvas(sol, mpp)
     rend = blockadjust.render_all(sol, imgdir, minE, maxN, W, H, mpp, crop=0.95, log=lambda *_: None)
-    ties = tie_windows(rend, lab, mpp, log=lambda *_: None); del rend
+    ties = tie_windows(rend, lab, mpp, feature=feature, log=lambda *_: None); del rend
     seam_stats(ties, "CLOSED")
-    print(f"  saved data/stageA3_{tag}.json  [{time.time()-t0:.0f}s]", flush=True)
+    json.dump({r: dict(dE=sol[r]['dE'], dN=sol[r]['dN'], rot=sol[r]['rot'],
+                       gw=sol[r]['gw'], gh=sol[r]['gh']) for r in recs},
+              open(P('data', f'{out}_{tag}.json'), 'w'))
+    print(f"  saved data/{out}_{tag}.json  [{time.time()-t0:.0f}s]", flush=True)
 
 
 if __name__ == '__main__':
-    run(sys.argv[1], int(arg('--rounds', 3)), arg('--from', 'stageA'), arg('--model', 'similarity'))
+    run(sys.argv[1], int(arg('--rounds', 3)), arg('--from', 'stageA'), arg('--model', 'similarity'),
+        arg('--feature', 'raw'), arg('--out', 'stageA3'))
