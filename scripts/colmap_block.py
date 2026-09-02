@@ -91,7 +91,7 @@ def main():
     os.makedirs(f"{work}/sparse", exist_ok=True)
     sh(['colmap', 'mapper', '--database_path', db, '--image_path', f"{work}/images",
         '--output_path', f"{work}/sparse",
-        '--Mapper.ba_refine_focal_length', '1', '--Mapper.ba_refine_principal_point', '1',
+        '--Mapper.ba_refine_focal_length', '1', '--Mapper.ba_refine_principal_point', '0',
         '--Mapper.ba_refine_extra_params', '1'], log)
     models = sorted(os.listdir(f"{work}/sparse"))
     print(f"  mapper produced {len(models)} model(s): {models}", flush=True)

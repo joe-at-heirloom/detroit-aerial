@@ -299,6 +299,32 @@ Ship with per-frame error published. **Seams first, absolute second.**
 
 ---
 
+# The simpler path is also the better one: COLMAP (2026-09-01, late)
+
+The user called the hand-rolled pipeline over-engineered for the material, and
+the pilot proved them right. COLMAP (brew install colmap, CLI only) on six
+consecutive 1961 negatives, default settings, principal point fixed at centre,
+focal prior from a 6-inch lens: 6 of 6 registered, focal solved 0.6% off the
+prior, flying height 2285 m, and on the seam metric that closed the block --
+close3's dense tie windows -- along-track median **2.0 m, p90 4.5, max 10**,
+against 4.0 / 8.2 / 45 from the hand-rolled bundle. It models tilt and a real
+camera; the hand-rolled similarity per frame cannot. Four minutes of compute.
+
+`scripts/colmap_block.py` runs it; `scripts/colmap_render.py` projects each
+negative through its camera onto the ground plane (Detroit is flat: that is
+orthorectification), seam-checks the result, and composites it. COLMAP's own
+model_aligner is degenerate for cameras along one line, so `--self-align` fits
+the ground plane to the 3D points and a 2D similarity to the catalogue instead.
+Two things to keep in mind: on flat ground a free principal point trades off
+against tilt (refine_principal_point must stay 0), and the pilot had no sidelap --
+the full-block run is the real test of cross-line seams.
+
+What is kept from the hand-rolled work: the absolute measurement, the rigid /
+low-order placement, the seam metric, the viewer. 1961's hand-rolled result stays
+in the viewer until COLMAP's beats it on both numbers. 1967 and 1949 placed at
+30 and 52 m absolute from their hand-rolled closures -- their blocks were still
+partly inconsistent -- so the hand-rolled path is the fallback from here.
+
 # 1961 is done, both axes verified (2026-09-01, late)
 
 Closed by the per-frame tie-point bundle (`close3.py`), placed by one continuous
