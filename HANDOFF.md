@@ -211,7 +211,11 @@ by a threshold, which is why close3's guard bounds scale but not rotation.
 
 **close3 works, measured on 1961.** After one round of the per-frame tie-point
 bundle, along-track windows went 8.2 -> 4.0 m median (p90 27 -> 10) and cross-line
-windows 67.2 -> 5.7 m (p90 159 -> 14), both improving together. The rotations were
+windows 67.2 -> 5.7 m (p90 159 -> 14), both improving together. Converged after
+three rounds: along-track 4.0 m (p90 8.2, max 45), cross-line 4.5 m (p90 11.3,
+max 44), over ~9000 tie windows. That 4 m floor is per-window variation inside an
+overlap -- tilt, relief, film -- which a similarity per frame cannot remove; it is
+the published floor, not hidden. The rotations were
 real: the block's per-frame crab was ~1 deg off out of the bundle. Nothing was
 composited from any earlier Stage A variant.
 
