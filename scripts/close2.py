@@ -47,11 +47,17 @@ def arg(n, d=None):
 
 
 def pair_observations(rend, sol, lab, mpp, search_along=90.0, search_cross=150.0,
-                      min_ratio=1.08, min_ovl_px=150):
-    """Measured offset for every overlapping pair, with the overlap midpoint."""
+                      min_ratio=1.08, min_ovl_px=150, only_along=False):
+    """Measured offset for every overlapping pair, with the overlap midpoint.
+
+    only_along skips cross-line pairs before any work is done on them. The ridge
+    filter over a 2 x 4 km sidelap box costs seconds, and there are ~220 of them;
+    computing them only to discard the result was ten minutes per round."""
     keys = sorted(rend)
     out = []
     for a, b in itertools.combinations(keys, 2):
+        if only_along and lab[a] != lab[b]:
+            continue
         ia, xa, ya = rend[a]; ib, xb, yb = rend[b]
         x0 = max(xa, xb); y0 = max(ya, yb)
         x1 = min(xa + ia.shape[1], xb + ib.shape[1]); y1 = min(ya + ia.shape[0], yb + ib.shape[0])
@@ -89,7 +95,11 @@ def _pc(A, B, pad=2):
     pk = np.unravel_index(np.argmax(c), c.shape)
     peak = float(c[pk]); sharp = peak / (float(c.std()) + 1e-12)
     dy = pk[0] - H // 2; dx = pk[1] - W // 2
-    at_edge = abs(dx) > w * 0.45 or abs(dy) > h * 0.45
+    # A shift of 60% of the window leaves 40% overlapping, which a Hann-windowed
+    # phase correlation still resolves as a delta; the sharpness threshold decides
+    # whether that peak is real. 45% was rejecting genuine 175-185 m sidelap
+    # offsets in 384 m windows.
+    at_edge = abs(dx) > w * 0.60 or abs(dy) > h * 0.60
     return dx, dy, sharp, at_edge
 
 
@@ -132,15 +142,29 @@ def cross_observations(rend, sol, lab, mpp, win_m=384.0, min_valid=0.75, min_sha
             img = rend[r][0]
             feat[r] = _g.ridge_full(img.astype(np.float32), mpp)[0] if use_ridge else img
         return feat[r]
+    tight = {}
+    def content_box(r):
+        # the frame's canvas box is sized by its diagonal; the film inside it is
+        # smaller. Tile only where there is film, or most windows are empty.
+        if r not in tight:
+            img, x0, y0 = rend[r]
+            rows = np.where((img > 0).mean(1) > 0.5)[0]; cols = np.where((img > 0).mean(0) > 0.5)[0]
+            if len(rows) == 0 or len(cols) == 0:
+                tight[r] = None
+            else:
+                tight[r] = (x0 + cols[0], y0 + rows[0], x0 + cols[-1] + 1, y0 + rows[-1] + 1)
+        return tight[r]
     for a, b in itertools.combinations(keys, 2):
         if lab[a] == lab[b]:
             continue
-        ia, xa, ya = rend[a]; ib, xb, yb = rend[b]
-        fa, fb = F(a), F(b)
-        x0 = max(xa, xb); y0 = max(ya, yb)
-        x1 = min(xa + ia.shape[1], xb + ib.shape[1]); y1 = min(ya + ia.shape[0], yb + ib.shape[0])
+        ta, tb = content_box(a), content_box(b)
+        if ta is None or tb is None:
+            continue
+        x0 = max(ta[0], tb[0]); y0 = max(ta[1], tb[1]); x1 = min(ta[2], tb[2]); y1 = min(ta[3], tb[3])
         if x1 - x0 < win_px or y1 - y0 < win_px:
             continue
+        ia, xa, ya = rend[a]; ib, xb, yb = rend[b]
+        fa, fb = F(a), F(b)
         tried += 1
         offs = []
         step = win_px // 2
@@ -270,8 +294,7 @@ def apply_corrections(sol, recs, lab, cE, cN, sig, rho, ctr):
 
 
 def seam_report(rend, sol, lab, mpp, label, log=print, search_cross=250.0):
-    along = [o for o in pair_observations(rend, sol, lab, mpp, search_cross=1.0)
-             if not o['cross']]
+    along = pair_observations(rend, sol, lab, mpp, only_along=True)
     cross = cross_observations(rend, sol, lab, mpp, max_shift_m=search_cross, log=log)
     obs = along + cross
     for nm, want in (('along', False), ('cross', True)):

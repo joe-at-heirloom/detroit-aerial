@@ -177,7 +177,14 @@ sidelaps): every window that reached the peak test passed it at median sharpness
 under 60% content in them. Each frame's bounding box is sized by its diagonal, so
 two sidelapping boxes intersect ~2.2 km wide where the film overlaps ~0.9 km, and
 half of every window sits in empty box. 800 m windows accepted 3 of 30 sidelaps,
-512 m accepted 10; 384 m with a 75% coverage floor is the setting. Its held-out
+512 m accepted 10; 384 m with a 75% coverage floor is the setting.
+
+Known inefficiency, deliberately not fixed mid-run: `frameadjust.render_frame`
+sizes every frame's canvas box by its half-diagonal so any rotation fits, which at
+the actual crab angles (under 3 deg) renders about twice the pixels the footprint
+needs and inflates every overlap box. Tightening it to the rotated extent would
+roughly halve Stage A's per-round cost and raise sidelap coverage for free. It
+touches every seam measurement, so do it between runs, and re-verify seams after. Its held-out
 residual is still ~40 m, but that is measurement noise, not model error: the
 per-frame absolute observations jump 26-38 m between ADJACENT frames that Stage A
 closed to 0.1 m, which no geometry can produce. The noise has a cause -- a 0.7%
