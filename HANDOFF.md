@@ -813,3 +813,15 @@ or green-only are land-use change, not error — a freeway that did not exist in
   `detroit_1967_rbf.tif`) — not iCloud placeholders, simply gone. Everything is
   regenerable from `data/` plus the cached frames, but do not treat `mosaics/` as
   durable storage.
+
+## Which build the viewer serves (2026-09-02)
+
+The manifest once served a failed 1949 placement because its label (`placedC3`)
+sorted "newer" than the verified one. Builds are now chosen explicitly, per
+block, and only after seams and absolute placement are verified:
+
+    ./.venv/bin/python scripts/manifest.py --serve 1961:placedC,1967:placedC,1949:placedC
+
+Nothing is picked by label order. Failed 1949 placements (placedC2..C5) were
+deleted. `scripts/wipepic.py TAG LABEL` draws a build wiped against today at
+mile-road crossings, the quickest visual check that the arterials line up.
