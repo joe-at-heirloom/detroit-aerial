@@ -80,11 +80,14 @@ def main():
               open(f"{work}/meta.json", 'w'))
 
     db = f"{work}/db.db"
-    # option names as of COLMAP 4.1 (FeatureExtraction.* / FeatureMatching.*)
+    # option names as of COLMAP 4.1 (FeatureExtraction.* / FeatureMatching.*).
+    # 2800 px on a 3.2 km negative is 1.15 m/px for the tie features -- the pilot
+    # closed to 2 m at 3600 -- and it is 1.65x cheaper per image on CPU, where
+    # 62 images at 3600 took ~40 s each.
     sh(['colmap', 'feature_extractor', '--database_path', db, '--image_path', f"{work}/images",
         '--ImageReader.single_camera', '1', '--ImageReader.camera_model', 'SIMPLE_RADIAL',
         '--ImageReader.camera_params', f"{focal_px:.1f},{w/2:.1f},{h/2:.1f},0.0",
-        '--FeatureExtraction.max_image_size', '3600', '--SiftExtraction.max_num_features', '12000',
+        '--FeatureExtraction.max_image_size', '2800', '--SiftExtraction.max_num_features', '9000',
         '--FeatureExtraction.use_gpu', '0', '--FeatureExtraction.num_threads', '8'], log)
     # exhaustive matching over ~60 images is ~1800 pairs, fine on CPU
     sh(['colmap', 'exhaustive_matcher', '--database_path', db, '--FeatureMatching.use_gpu', '0',
