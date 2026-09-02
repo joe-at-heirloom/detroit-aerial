@@ -233,7 +233,10 @@ land gives raw-texture phase correlation nothing to lock to. `close3.py --featur
 ridge` phase-correlates the road-ridge response instead; a window with no road is
 flat and skipped rather than wrong. A few along-track pairs (1398/481, 631/708)
 also sit at 20-38 m with high spread: likely tilt across the overlap, which a
-similarity per frame cannot express -- the affine model is the next step there.
+similarity per frame cannot express. The ridge-feature pass took 1949's cross-line
+from 20 to 14 m (95 windows) -- modest; the block's sidelap simply carries little
+that phase-correlates. This is where COLMAP's real camera model should do better
+than any per-frame similarity, and 1949 is queued behind 1961 on that path.
 
 Two things to look at next, both about the guard-refused rounds: on a block that is
 already closed the solver still proposes 20-36 m moves with 2-4% scales, which
