@@ -198,6 +198,17 @@ bundle adjustment the panel recommended. `scripts/test_close3.py` plants per-fra
 scale and rotation on a synthetic block and recovers them to 0.02% with zero
 residual; run it before trusting any change.
 
+**The bundle's per-frame rotations may be ~1 deg wrong, and nothing before close3
+could see it.** `tiesim.match` estimated each frame's crab from one 384 px window
+at the overlap centre, swept in 0.5 deg steps, keeping the sharpest peak -- and
+the overlap centre is exactly where rotation has no effect. The "0.5 m tie
+residual" was measured there. Dense tie windows across the whole overlap show
+along-track disagreement of 8 m median, 27 m p90, inside overlaps whose central
+offset is 0.2 m: that is the signature of ~1 deg of rotation between adjacent
+frames, and close3's solve asks for a median of 1.0 deg per frame. Whether those
+rotations are real is decided by re-measuring after applying them (round 1), not
+by a threshold, which is why close3's guard bounds scale but not rotation.
+
 **Run `scripts/test_close2.py` before trusting any change to close2.py.** It plants
 four sidelap shifts from 45 to 225 m and a 0.5% differential line scale, and
 derives the expected sign from how it moved the content. The matcher was right and

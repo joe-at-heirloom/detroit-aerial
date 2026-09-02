@@ -258,7 +258,12 @@ def run(tag, rounds=3, start='stageA', model='similarity'):
               f"|rotation| p50 {math.degrees(np.median(rh)):.3f} p90 {math.degrees(np.percentile(rh,90)):.3f} max {math.degrees(rh.max()):.3f} deg", flush=True)
         print(f"           translations median {np.median(mv):.1f} max {mv.max():.1f} m", flush=True)
         dis = st.get('cross') or 0.0
-        if sg.max() > 0.02 or np.median(mv) > 2.0 * dis + 20:
+        # Scale bound 3%: with the prior at 0.25 the median is ~0.4% and the tail
+        # belongs to poorly-tied edge frames. Rotation is deliberately unbounded --
+        # the bundle estimated each frame's crab from one central window swept in
+        # 0.5 deg steps, where rotation is invisible, so ~1 deg errors are credible
+        # and round 1's re-measurement is the test, not a threshold.
+        if sg.max() > 0.03 or np.median(mv) > 2.0 * dis + 20:
             print(f"           REFUSED: implausible (scale {sg.max()*1e2:.2f}%, move {np.median(mv):.0f} m "
                   f"vs cross disagreement {dis:.0f} m)", flush=True); break
         sol = apply(sol, recs, corr)
