@@ -302,6 +302,21 @@ Ship with per-frame error published. **Seams first, absolute second.**
 
 ---
 
+# 1961 done on the COLMAP path -- both axes, best yet (2026-09-01, 23:20)
+
+`detroit_1961_placedC.tif` is what the viewer serves. COLMAP cameras (fixed at
+the pilot's values), rendered onto the block's fitted quadratic surface,
+composited, placed by one quadratic warp (held-out 3.2 m), seams verified on the
+COLMAP-rendered frames before and after:
+
+| | along-track | cross-line | absolute 3.6 km | absolute 1.8 km |
+|---|---|---|---|---|
+| hand-rolled tie bundle | 4.0 (p90 8) | 4.5 (p90 11) | 4.7 (p90 12) | 5.7 (p90 15) |
+| **COLMAP + surface** | **2.0 (p90 4.0)** | **2.0 (p90 4.5)** | **2.6 (p90 5.8)** | **3.0 (p90 8.0)** |
+
+Seams identical before and after the warp; 41/41 coarse cells locked.
+One command per block: `colmap_block.py TAG` then `colmap_place.py TAG WORK --surface 2`.
+
 # The simpler path is also the better one: COLMAP (2026-09-01, late)
 
 The user called the hand-rolled pipeline over-engineered for the material, and
