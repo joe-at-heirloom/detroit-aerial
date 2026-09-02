@@ -74,20 +74,8 @@ def self_align(cams, imgs, pts, priors):
     return 0.0
 
 
-def refine_against(work, meta, cams, imgs, ref, mpp=5.0, search_m=600.0, log=print):
-    """Refine the block's heading, scale and shift against a reference raster.
-
-    The Procrustes to catalogue positions is only as good as the catalogue: 1949's
-    scatter 361 m around the solved cameras, and the heading it fitted was a few
-    degrees off, which is ~900 m at the block's ends -- far outside any fine
-    search, and a mis-shape no later warp should be asked to absorb. So: render
-    the block coarsely, measure its offset from the reference on the alias-proof
-    arterial coarse field (6 km windows, wide-road ridge, +/-600 m search), fit a
-    2D similarity to those offsets with robust rejection, and fold it into the
-    camera alignment. Four parameters from ~30 windows: well determined, and it
-    cannot bend anything."""
-    import gridval
-    from validate import reference_for
+def _render_coarse(meta, cams, imgs, ims, mpp):
+    """The whole block rendered flat at `mpp`, for measuring it against a reference."""
     E0, N0 = meta['E0'], meta['N0']
     C = np.array([imgs[n]['C'] for n in imgs]); half = 2600.0
     minE = C[:, 0].min() + E0 - half; maxE = C[:, 0].max() + E0 + half
@@ -95,38 +83,32 @@ def refine_against(work, meta, cams, imgs, ref, mpp=5.0, search_m=600.0, log=pri
     W = int((maxE - minE) / mpp); H = int((maxN - minN) / mpp)
     comp = np.zeros((H, W), np.uint8)
     for name, img in imgs.items():
-        im = np.asarray(Image.open(f"{work}/images/{name}").convert('L'))
-        r = render_frame(name, img, cams[img['cam']], im, 0.0, E0, N0, minE, maxN, W, H, mpp, crop=0.95)
+        r = render_frame(name, img, cams[img['cam']], ims[name], 0.0, E0, N0, minE, maxN, W, H, mpp, crop=0.95)
         if r is None: continue
         a, x0, y0 = r; sub = comp[y0:y0 + a.shape[0], x0:x0 + a.shape[1]]
         np.copyto(sub, a, where=(a > 0) & (sub == 0))
     bbox = [dtmap.LAT0 + minN / dtmap.MLAT, dtmap.LON0 + minE / dtmap.MLON,
             dtmap.LAT0 + maxN / dtmap.MLAT, dtmap.LON0 + maxE / dtmap.MLON]
-    refr = reference_for(bbox, W, H, ref)
-    t = gridval.prepare(comp, refr, mpp, log=lambda *_: None)
-    pts = gridval.coarse_field(t, search_m=search_m, log=log)
-    if len(pts) < 8:
-        log(f"  refine-against {ref}: only {len(pts)} windows locked; leaving the alignment as it is")
-        return 0.0
-    # window position (map m) -> where its content actually is: p + d
-    Pw = np.array([[minE + p['x'] * mpp, maxN - p['y'] * mpp] for p in pts])
-    D = np.array([[p['dE'], p['dN']] for p in pts])
-    # content sits +d from the reference, so the block must move by -d
-    keep = np.ones(len(D), bool)
+    return comp, bbox, minE, maxN, W, H
+
+
+def _fit_similarity(A, B):
+    """Robust 2D similarity A -> B (IRLS on a Umeyama fit). Returns sc, R, t, keep, residuals."""
+    keep = np.ones(len(A), bool)
     for _ in range(4):
-        A_ = Pw[keep]; B_ = (Pw - D)[keep]
+        A_ = A[keep]; B_ = B[keep]
         ma, mb = A_.mean(0), B_.mean(0); Ac, Bc = A_ - ma, B_ - mb
         Hm = Ac.T @ Bc / len(A_); U2, S2, Vt2 = np.linalg.svd(Hm)
         d_ = np.sign(np.linalg.det(Vt2.T @ U2.T)); Dm = np.diag([1, d_])
         R2 = Vt2.T @ Dm @ U2.T; sc = float(np.trace(np.diag(S2) @ Dm) / (Ac**2).sum() * len(A_))
         t2 = mb - sc * R2 @ ma
-        res = np.hypot(*((sc * (R2 @ Pw.T).T + t2) - (Pw - D)).T)
+        res = np.hypot(*((sc * (R2 @ A.T).T + t2) - B).T)
         s_ = max(np.median(res[keep]) * 1.4826, 5.0); keep = res < 3 * s_
-    th = math.degrees(math.atan2(R2[1, 0], R2[0, 0]))
-    log(f"  refine-against {ref}: {len(pts)} windows, {int(keep.sum())} kept; similarity shift "
-        f"{t2[0]:+.0f},{t2[1]:+.0f} m (about origin), scale {(sc-1)*1e2:+.3f}%, rotation {th:+.3f} deg; "
-        f"residual median {np.median(res[keep]):.1f} m", flush=True)
-    # fold into the camera alignment: X' = sc*R2*X + t2 in the (E-E0, N-N0) frame
+    return sc, R2, t2, keep, res
+
+
+def _apply_similarity(imgs, sc, R2, t2, E0, N0):
+    """Fold X' = sc*R2*X + t2 (in the E-E0, N-N0 frame) into every camera and the sparse points."""
     Q = np.eye(3); Q[:2, :2] = R2
     T = np.array([t2[0] + sc * (R2 @ np.array([E0, N0]))[0] - E0, t2[1] + sc * (R2 @ np.array([E0, N0]))[1] - N0, 0.0])
     for n, im in imgs.items():
@@ -134,37 +116,65 @@ def refine_against(work, meta, cams, imgs, ref, mpp=5.0, search_m=600.0, log=pri
         im['R'], im['t'], im['C'] = Rn, tn, -Rn.T @ tn
     if hasattr(self_align, 'points') and self_align.points is not None:
         P_ = self_align.points; self_align.points = (sc * (Q @ P_.T)).T + T
+
+
+def refine_against(work, meta, cams, imgs, ref, mpp=5.0, search_m=600.0, log=print, max_pass=3):
+    """Refine the block's heading, scale and shift against a reference raster.
+
+    The Procrustes to catalogue positions is only as good as the catalogue: 1949's
+    scatter 361 m around the solved cameras, and the heading it fitted was a few
+    degrees off, which is ~900 m at the block's ends -- far outside any fine
+    search, and a mis-shape no later warp should be asked to absorb. So: render
+    the block coarsely, measure its offset from the reference on the alias-proof
+    arterial coarse field (6 km windows, wide-road ridge), fit a 2D similarity to
+    those offsets with robust rejection, and fold it into the camera alignment.
+    Four parameters from ~30 windows: well determined, and it cannot bend anything.
+
+    It iterates, because one pass is not enough when the heading is far off: the
+    windows at the block's ends sit outside the search and the fit is made from
+    the middle only. 1956 (33 km long, 1.7 deg off) locked 9 windows of 29 at
+    +/-600 m and fitted a similarity with a 263 m residual. So: if fewer than half
+    the windows lock, the search widens to 1500 m (a mile grid cannot alias inside
+    that); a fit whose residual is over 60 m is not applied; and after applying
+    a fit the block is re-rendered and measured again until the correction is
+    small."""
+    import gridval
+    from validate import reference_for
+    E0, N0 = meta['E0'], meta['N0']
+    ims = {n: np.asarray(Image.open(f"{work}/images/{n}").convert('L')) for n in imgs}
+    search = float(search_m); it = 0; widened = False
+    while it < max_pass:
+        comp, bbox, minE, maxN, W, H = _render_coarse(meta, cams, imgs, ims, mpp)
+        refr = reference_for(bbox, W, H, ref)
+        t = gridval.prepare(comp, refr, mpp, log=lambda *_: None)
+        pts = gridval.coarse_field(t, search_m=search, log=log)
+        n_win = getattr(gridval.coarse_field, 'last_n_windows', 0) or max(len(pts), 1)
+        if len(pts) < max(8, 0.5 * n_win) and not widened:
+            log(f"  refine-against {ref}: {len(pts)} of {n_win} windows locked at +/-{search:.0f} m; "
+                f"widening the search to 1500 m", flush=True)
+            search = 1500.0; widened = True; continue
+        if len(pts) < 8:
+            log(f"  refine-against {ref}: only {len(pts)} windows locked; leaving the alignment as it is", flush=True)
+            return 0.0
+        it += 1
+        Pw = np.array([[minE + p['x'] * mpp, maxN - p['y'] * mpp] for p in pts])
+        D = np.array([[p['dE'], p['dN']] for p in pts])
+        # content sits +d from the reference, so the block must move by -d
+        sc, R2, t2, keep, res = _fit_similarity(Pw, Pw - D)
+        th = math.degrees(math.atan2(R2[1, 0], R2[0, 0])); rmed = float(np.median(res[keep]))
+        off = float(np.median(np.hypot(D[:, 0], D[:, 1])))
+        log(f"  refine-against {ref} pass {it}: {len(pts)}/{n_win} windows, {int(keep.sum())} kept; offset before "
+            f"{off:.0f} m; similarity shift {t2[0]:+.0f},{t2[1]:+.0f} m (about origin), scale {(sc-1)*1e2:+.3f}%, "
+            f"rotation {th:+.3f} deg; residual median {rmed:.1f} m", flush=True)
+        if rmed > 60.0 or keep.sum() < 8:
+            log(f"  refine-against {ref}: fit not trusted (residual {rmed:.1f} m, {int(keep.sum())} kept); "
+                f"not applied", flush=True)
+            return 0.0
+        _apply_similarity(imgs, sc, R2, t2, E0, N0)
+        if abs(th) < 0.02 and off < 10.0 and abs(sc - 1) < 1e-4:
+            break
+        search = min(search, 600.0)
     return 0.0
-
-
-class Surface:
-    """Ground height as a quadratic in (x, y), fitted to the aligned 3D points.
-
-    A block bundled with a slightly wrong camera on flat terrain bows into a
-    shallow dome -- measured on 1961: the point cloud's plane residual runs -51 to
-    +36 m and camera heights follow a quadratic of -166 m over 10 km. The cameras
-    are consistent with THAT surface, so projecting onto it closes the seams;
-    projecting onto a plane through it left 12-16 m at every join. What the dome
-    leaves is a smooth planimetric stretch, which the absolute warp removes."""
-
-    def __init__(self, pts, order=2):
-        P = np.asarray(pts); self.cx, self.cy = P[:, 0].mean(), P[:, 1].mean(); self.sc = 10000.0
-        x = (P[:, 0] - self.cx) / self.sc; y = (P[:, 1] - self.cy) / self.sc
-        cols = [np.ones_like(x), x, y] + ([x*x, x*y, y*y] if order >= 2 else [])
-        A = np.stack(cols, 1)
-        # robust: two passes trimming outliers (trees, roofs, mismatches)
-        m = np.ones(len(P), bool)
-        for _ in range(3):
-            self.c = np.linalg.lstsq(A[m], P[m, 2], rcond=None)[0]
-            r = A @ self.c - P[:, 2]; s = max(np.median(np.abs(r[m])) * 1.4826, 0.5)
-            m = np.abs(r) < 3 * s
-        self.order = order; self.resid = float(np.median(np.abs((A @ self.c - P[:, 2])[m])))
-
-    def z(self, E, N):
-        x = (np.asarray(E) - self.cx) / self.sc; y = (np.asarray(N) - self.cy) / self.sc
-        cols = [np.ones_like(x), x, y] + ([x*x, x*y, y*y] if self.order >= 2 else [])
-        return sum(c * v for c, v in zip(self.c, cols))
-
 
 def read_model(d):
     cams = {}
