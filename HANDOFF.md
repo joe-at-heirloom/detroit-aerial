@@ -842,3 +842,23 @@ chain (refine-ref 1961:placedC): seams 2.0 / 2.0 m (identical), leave-one-out
 7.2 m (vs 6.8), absolute vs 1961 5.2 m at 3.6 km, 6.4 m at 1.8 km (vs 5.1).
 Normalising the scans changes nothing COLMAP cares about. The served 1949 stays.
 Solve kept at /tmp/colmap_1949n for the session; mosaics deleted.
+
+## 1956: a 33 km block needs a cubic placement (2026-09-02)
+
+COLMAP registered all 70 negatives (four lines, 33 km long); seams 2.0 / 4.0 m
+(p90 8.0 / 8.9). The catalogue placement was 815 m off, so `refine_against`
+now iterates and widens its search when fewer than half the windows lock
+(600 m -> 1500 m); three passes converged, rotation -0.69 deg.
+
+Placement against 1961 with the quadratic model: 12.5 m median, p90 46 m. The
+raw field is a parabola along the flight lines (-50 m in the middle, +80 to
++110 m at both ends) plus a cross-track scale gradient. The solved camera
+heights bow by 250 m over each line -- the usual fixed-focal dome -- and the
+rescaled square scans sit exactly on that curve, so the rescale is right. A
+`cubic` model (20 params) added to fieldfit wins by leave-one-out: 7.8 m.
+
+Residuals by region: inside 1961's coverage 5.6 m median (p90 14); the western
+column and the northern 3 km lie outside 1961 and are measured against modern
+imagery, where 1956 matches as badly as 1949 does: 18 m median with outliers
+over 100 m that are failed matches, not block errors. No epoch covers those
+strips, so they stay unverified beyond that.

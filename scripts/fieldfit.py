@@ -36,6 +36,13 @@ def design(E, N, kind, E0, N0, sc):
         q = [one, x, y, x * x, x * y, y * y]
         zq = [z] * 6
         return np.stack(q + zq, 1), np.stack(zq + q, 1)
+    if kind == 'cubic':
+        # A 33 km block (1956) leaves a cubic residual after the quadratic: the
+        # along-track error is a parabola whose curvature itself changes along
+        # the block. 20 parameters; only leave-one-out may choose it.
+        q = [one, x, y, x * x, x * y, y * y, x ** 3, x * x * y, x * y * y, y ** 3]
+        zq = [z] * 10
+        return np.stack(q + zq, 1), np.stack(zq + q, 1)
     raise ValueError(kind)
 
 
@@ -177,7 +184,7 @@ def main():
     print(f"  {'model':12s} {'params':>6s}  {'in-sample med':>13s} {'p90':>6s}   {'leave-one-out med':>17s} {'p90':>6s} {'max':>6s}")
     best = None
     models = {}
-    for kind in ('shift', 'similarity', 'affine', 'quadratic'):
+    for kind in ('shift', 'similarity', 'affine', 'quadratic', 'cubic'):
         p = fit(E, N, dE, dN, w, kind, E0, N0, sc)
         pe, pn = predict(p, E, N, kind, E0, N0, sc)
         r = np.hypot(pe - dE, pn - dN)
