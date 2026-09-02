@@ -85,9 +85,10 @@ def main():
         '--ImageReader.single_camera', '1', '--ImageReader.camera_model', 'SIMPLE_RADIAL',
         '--ImageReader.camera_params', f"{focal_px:.1f},{w/2:.1f},{h/2:.1f},0.0",
         '--FeatureExtraction.max_image_size', '3600', '--SiftExtraction.max_num_features', '12000',
-        '--FeatureExtraction.use_gpu', '0'], log)
+        '--FeatureExtraction.use_gpu', '0', '--FeatureExtraction.num_threads', '8'], log)
     # exhaustive matching over ~60 images is ~1800 pairs, fine on CPU
-    sh(['colmap', 'exhaustive_matcher', '--database_path', db, '--FeatureMatching.use_gpu', '0'], log)
+    sh(['colmap', 'exhaustive_matcher', '--database_path', db, '--FeatureMatching.use_gpu', '0',
+        '--FeatureMatching.num_threads', '8'], log)
     os.makedirs(f"{work}/sparse", exist_ok=True)
     sh(['colmap', 'mapper', '--database_path', db, '--image_path', f"{work}/images",
         '--output_path', f"{work}/sparse",
