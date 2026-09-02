@@ -177,7 +177,14 @@ sidelaps): every window that reached the peak test passed it at median sharpness
 under 60% content in them. Each frame's bounding box is sized by its diagonal, so
 two sidelapping boxes intersect ~2.2 km wide where the film overlaps ~0.9 km, and
 half of every window sits in empty box. 800 m windows accepted 3 of 30 sidelaps,
-512 m accepted 10; 384 m with a 75% coverage floor is the setting.
+512 m accepted 10; 384 m with a 75% coverage floor is the setting -- tiling the
+film's own extent rather than the bounding box, with a boundary rule at 60% of the
+window so a real 185 m offset is not rejected.
+
+**Run `scripts/test_close2.py` before trusting any change to close2.py.** It plants
+four sidelap shifts from 45 to 225 m and a 0.5% differential line scale, and
+derives the expected sign from how it moved the content. The matcher was right and
+the hand-written expectation wrong about north three times in one session.
 
 Known inefficiency, deliberately not fixed mid-run: `frameadjust.render_frame`
 sizes every frame's canvas box by its half-diagonal so any rotation fits, which at
