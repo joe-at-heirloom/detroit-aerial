@@ -335,6 +335,12 @@ if the database is short. It also matches only catalogue-plausible pairs and fix
 the camera at the pilot's values (focal 3602 px, k -0.00027) -- both sensible,
 neither was the fault.
 
+With padded crops, catalogue-plausible pairs and the fixed camera, 1961 solves as
+**one model, 62 of 62 frames**, all 268 pairs verified at ~1,240 inliers each,
+in 17 minutes of CPU. `colmap_place.py` then renders it, measures both seam
+classes with the tie-window instrument, builds the production mosaic and places
+it absolutely.
+
 What is kept from the hand-rolled work: the absolute measurement, the rigid /
 low-order placement, the seam metric, the viewer. 1961's hand-rolled result stays
 in the viewer until COLMAP's beats it on both numbers. 1967 and 1949 placed at
