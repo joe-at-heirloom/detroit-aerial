@@ -90,10 +90,11 @@ def reference_for(bbox, W, H, ref='modern'):
     mod = modern_for(bbox, W, H)
     if ref in (None, 'modern'):
         return mod
-    geo_p = P('data', f'{ref}_final_geo.json')
-    tif = P('mosaics', f'detroit_{ref}_final.tif')
+    rtag, rsuf = (ref.split(':', 1) + ['final'])[:2]     # '1961' or '1961:placedC'
+    geo_p = P('data', f'{rtag}_{rsuf}_geo.json')
+    tif = P('mosaics', f'detroit_{rtag}_{rsuf}.tif')
     if not (os.path.exists(geo_p) and os.path.exists(tif)):
-        raise SystemExit(f"reference epoch {ref} has no final mosaic yet")
+        raise SystemExit(f"reference {ref} has no mosaic ({rtag}_{rsuf})")
     g = json.load(open(geo_p)); S, W_, N, E = g['bbox']
     s, w, n, e = bbox
     ds = rasterio.open(tif)

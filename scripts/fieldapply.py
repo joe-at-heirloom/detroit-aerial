@@ -163,9 +163,10 @@ def main():
     json.dump(res, open(P('data', f'{tag}_{out}_geo.json'), 'w'))
     print(f"  wrote mosaics/detroit_{tag}_{out}.tif [{time.time()-t0:.0f}s]", flush=True)
 
-    print("  absolute placement against modern imagery:", flush=True)
-    arr, mod, bbox = validate.load(tag, out)
-    t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_{out}_modern', log=lambda *_: None)
+    ref = sys.argv[sys.argv.index('--ref') + 1] if '--ref' in sys.argv else 'modern'
+    print(f"  absolute placement against {ref}:", flush=True)
+    arr, mod, bbox = validate.load(tag, out, ref)
+    t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_{out}_{ref.replace(":", "_")}', log=lambda *_: None)
     pri = gridval.prior_for(t, MPP, log=lambda *_: None)
     a = gridval.grid_hier_prep(t, prior=pri); report(a, f'    {tag} 3.6 x 2.0 km')
     b = gridval.grid_hier_prep(t, NY=32, NX=6, prior=pri); report(b, f'    {tag} 1.8 x 1.0 km')

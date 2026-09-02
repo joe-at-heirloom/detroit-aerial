@@ -24,9 +24,11 @@ from rebuild import placements, SP
 
 def main():
     tag, label = sys.argv[1], sys.argv[2]
+    ref = sys.argv[sys.argv.index('--ref') + 1] if '--ref' in sys.argv else 'modern'
+    label_out = sys.argv[sys.argv.index('--label-out') + 1] if '--label-out' in sys.argv else label
     t0 = time.time()
-    arr, mod, bbox = validate.load(tag, label)
-    t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_{label}_modern', log=lambda *_: None)
+    arr, mod, bbox = validate.load(tag, label, ref)
+    t = gridval.prepare_cached(arr, mod, MPP, f'{tag}_{label}_{ref.replace(":", "_")}', log=lambda *_: None)
     print(f"ridge maps ready [{time.time()-t0:.0f}s]", flush=True)
     pri = gridval.prior_for(t, MPP)
     out = {'tag': tag, 'label': label, 'bbox': bbox, 'mpp': MPP,
@@ -65,8 +67,9 @@ def main():
         v = np.array([math.hypot(f['dE'], f['dN']) for f in fr]) if fr else np.array([0.])
         print(f"  {len(fr)} frames matched: median {np.median(v):.1f}  p90 {np.percentile(v,90):.1f} m",
               flush=True)
-    json.dump(out, open(P('data', f'field_{tag}_{label}.json'), 'w'))
-    print(f"saved data/field_{tag}_{label}.json [{time.time()-t0:.0f}s]", flush=True)
+    out['ref'] = ref
+    json.dump(out, open(P('data', f'field_{tag}_{label_out}.json'), 'w'))
+    print(f"saved data/field_{tag}_{label_out}.json (reference {ref}) [{time.time()-t0:.0f}s]", flush=True)
 
 
 if __name__ == '__main__':
