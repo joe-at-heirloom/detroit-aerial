@@ -104,9 +104,9 @@ const NOTES = {
   downtown: ["Downtown &middot; 1949 / 1956 / 1961",
     "Three separate negatives, each georeferenced independently and warped onto one <b>0.60 m/px</b> grid &mdash; native resolution of the film.",
     "Wipe 1949 against 1961 to watch the <b>Hastings Street</b> corridor emptied for the Chrysler Freeway."],
-  west: ["West Detroit &middot; 62 + 51 frames",
-    "Rebuilt with <b>per-frame rotation</b> (crab spread 3.0&deg;), absolute orientation against the mile-grid arterials, then a locally-weighted (RBF) warp fitted to ~110 control stations per block.",
-    "Per-chunk residual vs modern imagery: <b>1961 median 8.5 m</b> (max 18), <b>1967 median 7.3 m</b> (max 14). The earlier global polynomial reached 217 m at the block ends."]
+  west: ["West Detroit &middot; 1949 / 1956 / 1961 / 1967",
+    "Each block of negatives is solved as a photogrammetric block with <b>COLMAP</b> (a camera per negative, tied by thousands of matches along and across the flight lines), projected onto the block's own fitted ground surface, then placed on the map by one continuous warp.",
+    "Every build is judged by how far two overlapping negatives disagree about the same ground. <b>1961:</b> 2.0 m along-track, 2.0 m across flight lines, 2.6 m against modern imagery. The other years show the previous build until their COLMAP solves land."]
 };
 
 async function boot() {
