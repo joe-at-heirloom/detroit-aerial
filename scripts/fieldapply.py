@@ -76,7 +76,9 @@ def seams_after_warp(tag, stage, warp_at, log=print, colmap_work=None):
     mpp = C.MPP_TIE
     if colmap_work:
         import colmap_render
-        rend, sol, minE, maxN, W, H = colmap_render.render_all_colmap(colmap_work, mpp, log=lambda *_: None)
+        cj = json.load(open(P('data', f'colmap_{tag}.json')))
+        rend, sol, minE, maxN, W, H = colmap_render.render_all_colmap(
+            colmap_work, mpp, model_dir=cj.get('model_dir'), surface=cj.get('surface'), log=lambda *_: None)
     else:
         sol, ppm = placements(tag)
         saved = json.load(open(P('data', f'{stage}_{tag}.json')))

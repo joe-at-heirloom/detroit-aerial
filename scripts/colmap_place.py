@@ -22,9 +22,13 @@ def run(args):
 def main():
     tag, work = sys.argv[1], sys.argv[2]
     model = sys.argv[sys.argv.index('--model') + 1] if '--model' in sys.argv else None
+    # --surface N : orthorectify onto the model's fitted ground surface (see
+    # colmap_render.Surface); a domed block needs it. Off unless asked.
+    surf = ['--surface', sys.argv[sys.argv.index('--surface') + 1]] if '--surface' in sys.argv else []
+    cm = ['--model', sys.argv[sys.argv.index('--colmap-model') + 1]] if '--colmap-model' in sys.argv else []
     t0 = time.time()
-    run(['colmap_render.py', work, '--self-align', '--tag', tag, '--out', '/tmp', '--mpp', '2.0'])
-    run(['colmap_render.py', work, '--mosaic', '--self-align', '--tag', tag, '--mpp', '0.63'])
+    run(['colmap_render.py', work, '--self-align', '--tag', tag, '--out', '/tmp', '--mpp', '2.0'] + surf + cm)
+    run(['colmap_render.py', work, '--mosaic', '--self-align', '--tag', tag, '--mpp', '0.63'] + surf + cm)
     run(['fieldmeasure.py', tag, 'colmap'])
     run(['fieldfit.py', tag, 'colmap', '--use', 'cells'])
     run(['fieldapply.py', tag, 'colmap', '--out', 'placedC'] + (['--model', model] if model else []))

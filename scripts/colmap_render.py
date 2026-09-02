@@ -177,8 +177,11 @@ def render_frame(name, img, cam, im, zg, E0, N0, minE, maxN, W, H, mpp, crop=0.9
     return out, x0, y0
 
 
-def load_block(work, model_dir=None, self_align_=True):
-    """Cameras, images (aligned into the local metric frame), ground z, offsets."""
+def load_block(work, model_dir=None, self_align_=True, surface=None):
+    """Cameras, images (aligned into the local metric frame), ground z, offsets.
+    surface: None for a plane, or the polynomial order of a fitted ground surface."""
+    if surface is None and '--surface' in sys.argv:
+        surface = int(arg('--surface', 2))
     meta = json.load(open(f"{work}/meta.json"))
     model_dir = model_dir or (f"{work}/aligned" if os.path.exists(f"{work}/aligned/images.txt") else f"{work}/sparse_txt")
     cams, imgs, zg, pts = read_model(model_dir)
@@ -187,8 +190,8 @@ def load_block(work, model_dir=None, self_align_=True):
         for l in open(f"{work}/priors.txt"):
             q = l.split(); priors[q[0]] = (float(q[1]), float(q[2]), float(q[3]))
         zg = self_align(cams, imgs, pts, priors)
-        if '--surface' in sys.argv:
-            order = int(arg('--surface', 2))
+        if surface:
+            order = int(surface)
             S_ = Surface(self_align.points, order=order)
             print(f"  ground surface: quadratic fitted to {len(self_align.points)} points, "
                   f"residual {S_.resid:.1f} m, height range over the block "
@@ -197,10 +200,10 @@ def load_block(work, model_dir=None, self_align_=True):
     return meta, cams, imgs, zg
 
 
-def render_all_colmap(work, mpp, model_dir=None, crop=0.95, log=print):
+def render_all_colmap(work, mpp, model_dir=None, crop=0.95, log=print, surface=None):
     """Every registered negative on one common grid at `mpp`, plus a placements-
     like dict (camera centres) so seam tools can label flight lines."""
-    meta, cams, imgs, zg = load_block(work, model_dir)
+    meta, cams, imgs, zg = load_block(work, model_dir, surface=surface)
     E0, N0 = meta['E0'], meta['N0']
     C = np.array([imgs[n]['C'] for n in imgs]); half = 2600.0
     minE = C[:, 0].min() + E0 - half; maxE = C[:, 0].max() + E0 + half
@@ -287,7 +290,9 @@ def mosaic(work, tag, mpp=0.63, model_dir=None, crop=0.95, log=print):
     geo = dict(minE=float(minE), maxN=float(maxN), W=W, H=H, mpp=mpp,
                bbox=[dtmap.LAT0 + (maxN - H * mpp) / dtmap.MLAT, lo_left, la_top, dtmap.LON0 + (minE + W * mpp) / dtmap.MLON])
     json.dump(geo, open(_P('data', f'{tag}_colmap_geo.json'), 'w'))
-    json.dump(dict(work=work, model_dir=model_dir), open(_P('data', f'colmap_{tag}.json'), 'w'))
+    json.dump(dict(work=work, model_dir=model_dir,
+                   surface=(int(arg('--surface', 2)) if '--surface' in sys.argv else None)),
+              open(_P('data', f'colmap_{tag}.json'), 'w'))
     log(f"  wrote {out}")
     return geo
 
