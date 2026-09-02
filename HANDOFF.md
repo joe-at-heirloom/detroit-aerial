@@ -354,8 +354,20 @@ different resolution to the majority film height before padding (heights are the
 physical film edge; widths are scan-window differences). `coarsealign.py` measures
 hundreds-of-metres offsets between same-film mosaics at 20 m/px for the cases where
 a block is seeded far off. Two routes ran in parallel: coarse-to-fine placement of
-the warped block (fallback), and a re-solve with normalised scans as tag `1949n`
-(the fix).
+the warped block (fallback), and a re-solve with normalised scans as tag `1949n`.
+
+The fallback failed and said why: the old 1949 build is itself torn 100+ m across
+its lines, so window-by-window offsets against it are not a similarity, not a
+quadratic, and warping to them bent the block (36 -> 80 m, seams opening). Only
+two scans were square, so the resolution batch was not the main story either. The
+main story is the self-alignment: seeded from a catalogue scattering 361 m, its
+heading was **1.27 deg** off -- 550 m at the block's ends. `colmap_render.py
+--refine-ref 1961:placedC` now refines heading, scale and shift against a
+reference on the alias-proof arterial coarse field (24 of 28 windows locked, all
+kept, scale +0.26%, residual 43 m -- the remaining smooth distortion the placement
+warp takes) and folds it into the camera alignment before rendering; seams after
+it are unchanged at 2.0 / 2.0 m, as a similarity guarantees. The whole chain takes
+`--refine-ref` and persists it for the seam verification.
 
 # The simpler path is also the better one: COLMAP (2026-09-01, late)
 
