@@ -50,8 +50,6 @@ def main():
     margin = float(arg('--margin', 0.03))
     t0 = time.time()
     reuse = arg('--reuse-images')
-    if reuse and not os.path.exists(f"{work}/images"):
-        os.makedirs(work, exist_ok=True); os.symlink(reuse, f"{work}/images")
     os.makedirs(f"{work}/images", exist_ok=True)
     log = f"{work}/colmap.log"
     sol, ppm = placements(tag)
@@ -68,14 +66,35 @@ def main():
 
     # 1. crop the film edge; 2. position priors in a local metric frame (E, N, up)
     E0 = np.mean([sol[r]['e'] for r in recs]); N0 = np.mean([sol[r]['n'] for r in recs])
+    # Crop the film edge, then PAD every crop to one common canvas, centred. The
+    # scans come in five slightly different widths (5034-5088 px on 1961) at the
+    # same resolution, and COLMAP with a single shared camera silently skips any
+    # image whose size differs from the first -- 38 of 62 were dropped, and two
+    # runs were misdiagnosed as a block that would not connect. Padding keeps the
+    # scan's px/mm and the principal point exactly; resizing would not.
+    crops = {}
+    for r in recs:
+        src = f"{reuse}/{r}.jpg" if reuse and os.path.exists(f"{reuse}/{r}.jpg") else None
+        if src:
+            crops[r] = Image.open(src).convert('L')
+        else:
+            im = Image.open(f"{SP}/fullres/{r}.jpg").convert('L')
+            w, h = im.size; mx, my = int(w * margin), int(h * margin)
+            crops[r] = im.crop((mx, my, w - mx, h - my))
+    W_ = max(im.size[0] for im in crops.values()); H_ = max(im.size[1] for im in crops.values())
+    sizes = sorted(set(im.size for im in crops.values()))
+    print(f"  {len(sizes)} distinct crop sizes {sizes[0]}..{sizes[-1]}; padding all to {W_}x{H_}", flush=True)
     with open(f"{work}/priors.txt", 'w') as pf:
         for r in recs:
             dst = f"{work}/images/{r}.jpg"
             if not os.path.exists(dst):
-                im = Image.open(f"{SP}/fullres/{r}.jpg").convert('L')
-                w, h = im.size; mx, my = int(w * margin), int(h * margin)
-                im.crop((mx, my, w - mx, h - my)).save(dst, quality=95)
+                im = crops[r]
+                if im.size != (W_, H_):
+                    canvas = Image.new('L', (W_, H_), 0)
+                    canvas.paste(im, ((W_ - im.size[0]) // 2, (H_ - im.size[1]) // 2)); im = canvas
+                im.save(dst, quality=95)
             pf.write(f"{r}.jpg {sol[r]['e']-E0:.2f} {sol[r]['n']-N0:.2f} 0.0\n")
+    del crops
     im = Image.open(f"{work}/images/{recs[0]}.jpg"); w, h = im.size
     # Camera: fixed. On flat ground focal and flying height trade off, so
     # self-calibrating focal is degenerate -- the full-block run produced 7198 px
@@ -110,6 +129,11 @@ def main():
         '--ImageReader.camera_params', f"{focal_px:.1f},{w/2:.1f},{h/2:.1f},{k}",
         '--FeatureExtraction.max_image_size', '3600', '--SiftExtraction.max_num_features', '12000',
         '--FeatureExtraction.use_gpu', '0', '--FeatureExtraction.num_threads', '8'], log)
+    import sqlite3
+    n_db = sqlite3.connect(db).execute('select count(*) from images').fetchone()[0]
+    print(f"  {n_db}/{len(recs)} images in the database after extraction", flush=True)
+    if n_db < len(recs):
+        raise SystemExit(f"failed: only {n_db} of {len(recs)} images extracted -- see {log}")
     sh(['colmap', 'matches_importer', '--database_path', db, '--match_list_path', f"{work}/pairs.txt",
         '--match_type', 'pairs', '--FeatureMatching.use_gpu', '0', '--FeatureMatching.num_threads', '8'], log)
     os.makedirs(f"{work}/sparse", exist_ok=True)

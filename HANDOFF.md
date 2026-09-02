@@ -322,23 +322,18 @@ Two things to keep in mind: on flat ground a free principal point trades off
 against tilt (refine_principal_point must stay 0), and the pilot had no sidelap --
 the full-block run is the real test of cross-line seams.
 
-**The full-block run needs two settings the pilot did not.** With exhaustive
-matching, 1961's 62 frames split into two models of 8 and 10 frames (44 lost),
-the second with a 7198 px focal -- nonsense. A street grid that repeats every
-97.5 m gives SIFT confident matches between negatives that do not overlap, and
-incremental SfM builds on them. The pilot's six frames in a line had no wrong
-pairs to pick. So: match only pairs that plausibly overlap by the catalogue
-positions (COLMAP's matches_importer with a pairs list), and fix the camera at
-the pilot's solved values (focal 3602 px, k -0.00027) rather than re-estimate
-focal, which is degenerate on flat ground.
-
-(A second full-block run with plausible pairs and a fixed camera ALSO split into
-8- and 10-frame models -- because its feature extractor had been killed by a
-`pkill -f "colmap feature_extractor"` aimed at a different block, exited cleanly,
-and left 24 of 62 images in the database. COLMAP exits 0 on SIGTERM with a partial
-database and the driver carries on. Never kill COLMAP processes by generic name
-while a block is solving; check `select count(*) from images` in db.db before
-believing a split.)
+**The full-block run failed for a reason neither diagnosis guessed.** The scans
+come in five slightly different widths (5034-5088 px after cropping, same height,
+so same resolution but different scan windows). COLMAP with a single shared camera
+silently skips any image whose size differs from the first: 24 of 62 entered the
+database, and the 8- and 10-frame "split" models were all 24 images could build.
+Two runs were misdiagnosed -- first as false matches on the repeating grid, then
+as a killed extractor -- before COLMAP's own log line `CAMERA_SINGLE_DIM_ERROR`
+was read. The driver now pads every crop to one common canvas, centred (padding
+keeps px/mm and the principal point; resizing would not), and refuses to continue
+if the database is short. It also matches only catalogue-plausible pairs and fixes
+the camera at the pilot's values (focal 3602 px, k -0.00027) -- both sensible,
+neither was the fault.
 
 What is kept from the hand-rolled work: the absolute measurement, the rigid /
 low-order placement, the seam metric, the viewer. 1961's hand-rolled result stays
