@@ -10,7 +10,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def P(*a): return os.path.join(ROOT, *a)
 
 TAGS = ['1949', '1956', '1961', '1967']
-PREF = ['final', 'v2', 'rbf']
+# placed3 = closed by the per-frame tie-point bundle (close3), then placed by one
+# continuous low-order warp with seams verified before and after. It is preferred
+# wherever it exists; `final` is the earlier per-frame build whose seams were torn.
+PREF = ['placed3', 'final', 'v2', 'rbf']
 
 
 def best(tag):
@@ -68,10 +71,12 @@ def main():
              max(b[2] for b in boxes), max(b[3] for b in boxes)]
     groups = {'downtown': old['groups']['downtown'],
               'west': dict(label='West Detroit', layers=ids, bbox=union,
-                           note='1949, 1956, 1961 and 1967 blocks. Per-frame rotation '
-                                'and position, absolute orientation on the mile-grid '
-                                'arterials, per-frame adjustment against modern '
-                                'imagery, then a residual local field.')}
+                           note='1949, 1956, 1961 and 1967 blocks. Each block closed '
+                                'by a tie-point bundle adjustment -- a translation, '
+                                'scale and rotation per negative from thousands of '
+                                'phase-correlation windows, along-track and across '
+                                'flight lines -- then placed by one continuous '
+                                'low-order warp against modern imagery.')}
     json.dump(dict(layers=layers, groups=groups), open(P('data', 'manifest.json'), 'w'), indent=1)
     print(f"  wrote manifest: {len(layers)} layers")
 
