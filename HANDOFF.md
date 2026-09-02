@@ -209,6 +209,12 @@ frames, and close3's solve asks for a median of 1.0 deg per frame. Whether those
 rotations are real is decided by re-measuring after applying them (round 1), not
 by a threshold, which is why close3's guard bounds scale but not rotation.
 
+**close3 works, measured on 1961.** After one round of the per-frame tie-point
+bundle, along-track windows went 8.2 -> 4.0 m median (p90 27 -> 10) and cross-line
+windows 67.2 -> 5.7 m (p90 159 -> 14), both improving together. The rotations were
+real: the block's per-frame crab was ~1 deg off out of the bundle. Nothing was
+composited from any earlier Stage A variant.
+
 **Run `scripts/test_close2.py` before trusting any change to close2.py.** It plants
 four sidelap shifts from 45 to 225 m and a 0.5% differential line scale, and
 derives the expected sign from how it moved the content. The matcher was right and
