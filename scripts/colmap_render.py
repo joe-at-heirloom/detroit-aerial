@@ -240,11 +240,14 @@ def render_frame(name, img, cam, im, zg, E0, N0, minE, maxN, W, H, mpp, crop=0.9
     return out, x0, y0
 
 
-def load_block(work, model_dir=None, self_align_=True, surface=None):
+def load_block(work, model_dir=None, self_align_=True, surface=None, refine_ref=None):
     """Cameras, images (aligned into the local metric frame), ground z, offsets.
-    surface: None for a plane, or the polynomial order of a fitted ground surface."""
+    surface: None for a plane, or the polynomial order of a fitted ground surface.
+    refine_ref: a reference ('1961:placedC') to refine heading/scale/shift against."""
     if surface is None and '--surface' in sys.argv:
         surface = int(arg('--surface', 2))
+    if refine_ref is None and '--refine-ref' in sys.argv:
+        refine_ref = arg('--refine-ref')
     meta = json.load(open(f"{work}/meta.json"))
     model_dir = model_dir or (f"{work}/aligned" if os.path.exists(f"{work}/aligned/images.txt") else f"{work}/sparse_txt")
     cams, imgs, zg, pts = read_model(model_dir)
@@ -253,9 +256,8 @@ def load_block(work, model_dir=None, self_align_=True, surface=None):
         for l in open(f"{work}/priors.txt"):
             q = l.split(); priors[q[0]] = (float(q[1]), float(q[2]), float(q[3]))
         zg = self_align(cams, imgs, pts, priors)
-        ref = arg('--refine-ref')
-        if ref:
-            zg = refine_against(work, meta, cams, imgs, ref, log=print)
+        if refine_ref:
+            zg = refine_against(work, meta, cams, imgs, refine_ref, log=print)
         if surface:
             order = int(surface)
             S_ = Surface(self_align.points, order=order)
@@ -266,10 +268,10 @@ def load_block(work, model_dir=None, self_align_=True, surface=None):
     return meta, cams, imgs, zg
 
 
-def render_all_colmap(work, mpp, model_dir=None, crop=0.95, log=print, surface=None):
+def render_all_colmap(work, mpp, model_dir=None, crop=0.95, log=print, surface=None, refine_ref=None):
     """Every registered negative on one common grid at `mpp`, plus a placements-
     like dict (camera centres) so seam tools can label flight lines."""
-    meta, cams, imgs, zg = load_block(work, model_dir, surface=surface)
+    meta, cams, imgs, zg = load_block(work, model_dir, surface=surface, refine_ref=refine_ref)
     E0, N0 = meta['E0'], meta['N0']
     C = np.array([imgs[n]['C'] for n in imgs]); half = 2600.0
     minE = C[:, 0].min() + E0 - half; maxE = C[:, 0].max() + E0 + half
@@ -357,7 +359,8 @@ def mosaic(work, tag, mpp=0.63, model_dir=None, crop=0.95, log=print):
                bbox=[dtmap.LAT0 + (maxN - H * mpp) / dtmap.MLAT, lo_left, la_top, dtmap.LON0 + (minE + W * mpp) / dtmap.MLON])
     json.dump(geo, open(_P('data', f'{tag}_colmap_geo.json'), 'w'))
     json.dump(dict(work=work, model_dir=model_dir,
-                   surface=(int(arg('--surface', 2)) if '--surface' in sys.argv else None)),
+                   surface=(int(arg('--surface', 2)) if '--surface' in sys.argv else None),
+                   refine_ref=arg('--refine-ref')),
               open(_P('data', f'colmap_{tag}.json'), 'w'))
     log(f"  wrote {out}")
     return geo
