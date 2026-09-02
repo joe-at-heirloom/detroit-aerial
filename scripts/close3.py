@@ -49,12 +49,12 @@ def content_box(img, x0, y0):
 
 
 def tie_windows(rend, lab, mpp, win_m=384.0, step_frac=0.5, min_valid=0.75, min_sharp=7.0,
-                max_shift_m=300.0, log=print):
+                max_shift_m=300.0, agree_m=20.0, min_windows=3, log=print):
     """Every window of every overlapping pair, as its own tie point."""
     win = max(64, int(round(win_m / mpp))); step = max(16, int(win * step_frac))
     keys = sorted(rend)
     boxes = {r: content_box(rend[r][0], rend[r][1], rend[r][2]) for r in keys}
-    ties = []; npairs = {'along': 0, 'cross': 0}
+    ties = []; npairs = {'along': 0, 'cross': 0}; rejected = 0
     for a, b in itertools.combinations(keys, 2):
         ta, tb = boxes[a], boxes[b]
         if ta is None or tb is None:
@@ -64,7 +64,7 @@ def tie_windows(rend, lab, mpp, win_m=384.0, step_frac=0.5, min_valid=0.75, min_
             continue
         ia, xa, ya = rend[a]; ib, xb, yb = rend[b]
         cross = lab[a] != lab[b]
-        got = 0
+        cand = []
         for wy in range(y0, y1 - win + 1, step):
             for wx in range(x0, x1 - win + 1, step):
                 A = ia[wy - ya:wy - ya + win, wx - xa:wx - xa + win]
@@ -77,14 +77,32 @@ def tie_windows(rend, lab, mpp, win_m=384.0, step_frac=0.5, min_valid=0.75, min_
                 dx, dy, sharp, edge = close2._pc(A, B)
                 if edge or sharp < min_sharp or math.hypot(dx, dy) * mpp > max_shift_m:
                     continue
-                ties.append(dict(a=a, b=b, qx=wx + win / 2, qy=wy + win / 2,
+                cand.append(dict(a=a, b=b, qx=wx + win / 2, qy=wy + win / 2,
                                  dE=dx * mpp, dN=-dy * mpp, sharp=float(sharp), cross=cross))
-                got += 1
-        if got:
-            npairs['cross' if cross else 'along'] += 1
+        # Coarse-to-fine, per pair. A 384 m window on a 97.5 m street lattice can
+        # lock a period away and still be sharp; measured, along-track windows
+        # disagreed by 15 m median (p90 71) inside overlaps that agree to 0.2 m as
+        # a whole. So the pair's robust offset is the prior, and a window is a tie
+        # only if it agrees with it within `agree_m` -- which keeps the genuine
+        # +/-10 m variation across the overlap that scale and rotation live in.
+        if len(cand) < min_windows:
+            rejected += len(cand); continue
+        O = np.array([[c['dE'], c['dN']] for c in cand])
+        ctr = np.median(O, axis=0)
+        for _ in range(4):
+            d = np.hypot(O[:, 0] - ctr[0], O[:, 1] - ctr[1]); m = d <= agree_m
+            if m.sum() < min_windows:
+                break
+            ctr = np.median(O[m], axis=0)
+        d = np.hypot(O[:, 0] - ctr[0], O[:, 1] - ctr[1]); m = d <= agree_m
+        if m.sum() < min_windows:
+            rejected += len(cand); continue
+        rejected += int((~m).sum())
+        ties.extend(c for c, keep in zip(cand, m) if keep)
+        npairs['cross' if cross else 'along'] += 1
     log(f"           ties: {sum(1 for t in ties if not t['cross'])} along-track windows on "
         f"{npairs['along']} pairs, {sum(1 for t in ties if t['cross'])} cross-line windows on "
-        f"{npairs['cross']} pairs")
+        f"{npairs['cross']} pairs; {rejected} windows rejected as off the pair's consensus")
     return ties
 
 
