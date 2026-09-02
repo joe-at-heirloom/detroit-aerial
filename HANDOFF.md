@@ -215,7 +215,25 @@ windows 67.2 -> 5.7 m (p90 159 -> 14), both improving together. Converged after
 three rounds: along-track 4.0 m (p90 8.2, max 45), cross-line 4.5 m (p90 11.3,
 max 44), over ~9000 tie windows. That 4 m floor is per-window variation inside an
 overlap -- tilt, relief, film -- which a similarity per frame cannot remove; it is
-the published floor, not hidden. The rotations were
+the published floor, not hidden.
+
+Same solve on the other blocks (Stage A -> close3, no absolute placement yet):
+
+| block | along-track | cross-line | note |
+|---|---|---|---|
+| 1961 | 4.0 m (p90 8) | 4.5 m (p90 11) | converged |
+| 1967 | 2.0 m (p90 6) | 4.0 m (p90 38, max 132) | a tail of bad sidelaps; round 2 refused by the guard |
+| 1949 | 2.0 m (p90 6) | 20.0 m (p90 36) | cross-line STUCK: only ~46 of 172 sidelap pairs yield ties on this 3-line block |
+| 1956 | 4.5 m after round 1 | 10.0 m after round 1 | round 2 refused (3.8% scale asked) |
+
+Two things to look at next, both about the guard-refused rounds: on a block that is
+already closed the solver still proposes 20-36 m moves with 2-4% scales, which
+means some frames' normal equations are near-singular -- block-edge frames with
+ties on one side only, where translation trades off against scale. A stronger
+prior for frames with few ties, or dropping their scale/rotation to the
+neighbours' consensus, would let round 2 refine instead of being refused. And
+1949's sidelap yields few ties; a per-pair breakdown of tie counts will say
+whether the 20 m is a handful of bad pairs or the block's real floor. The rotations were
 real: the block's per-frame crab was ~1 deg off out of the bundle. Nothing was
 composited from any earlier Stage A variant.
 
