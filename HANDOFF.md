@@ -862,3 +862,5 @@ column and the northern 3 km lie outside 1961 and are measured against modern
 imagery, where 1956 matches as badly as 1949 does: 18 m median with outliers
 over 100 m that are failed matches, not block errors. No epoch covers those
 strips, so they stay unverified beyond that.
+Applied (cubic): seams unchanged 2.0 / 4.0 m; against modern 5.6 m median at
+3.6 km (p90 21.6), 6.2 m at 1.8 km (p90 38.3). Served as `1956:placedC`.

@@ -124,7 +124,19 @@ negatives from either reference, the farmland of 1949 is subdivisions now, and
 the placement's own leave-one-out estimate was 6.8 m -- the remaining error is
 the difficulty of measuring 1949 against anything modern, not the block's shape.
 
-**1956** -- solving on the same path; numbers will replace this line.
+**1956** (70 negatives, four flight lines, 33 km long) -- complete and in the
+viewer. Its catalogue placement was 815 m off; the heading refinement against
+1961 now iterates with a wider search. The block is long enough that the
+placement needed a cubic model (chosen by leave-one-out, 7.8 m):
+
+| | along-track seams | cross-line seams | absolute, 3.6 km cells | absolute, 1.8 km cells |
+|---|---|---|---|---|
+| COLMAP + surface | **2.0 m** (p90 8.0) | **4.0 m** (p90 8.9) | **5.6 m** (p90 21.6) | **6.2 m** (p90 38.3) |
+
+Where 1961 covers the ground the placement residual is 5.6 m median; the
+western column and the northern 3 km lie outside every other epoch and were
+measured against modern imagery only, where 1956 is as hard to match as 1949,
+so the p90 there is the measurement as much as the map.
 
 Downtown is a separate three-frame scene: 1961 and 1949 corrected to ~5 m, 1956
 still ~32 m; much of the frame is the river and the core is high-rise, so no 2D

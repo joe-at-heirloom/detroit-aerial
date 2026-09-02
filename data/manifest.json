@@ -74,15 +74,15 @@
    "id": "b1956",
    "group": "west",
    "label": "1956",
-   "file": "mosaics/detroit_1956_final.tif",
+   "file": "mosaics/detroit_1956_placedC.tif",
    "bbox": [
-    42.188541390147044,
-    -83.3887502934717,
-    42.48532884971699,
-    -83.22915777368897
+    42.189299339339875,
+    -83.38204641171188,
+    42.48569154451726,
+    -83.22073994622545
    ],
    "gray": true,
-   "ver": 1788152410
+   "ver": 1788331788
   },
   {
    "id": "b1961",
@@ -153,9 +153,9 @@
     "modwest"
    ],
    "bbox": [
-    42.188541390147044,
-    -83.3887502934717,
-    42.48532884971699,
+    42.189299339339875,
+    -83.38204641171188,
+    42.48569154451726,
     -83.10653737443461
    ],
    "note": "1949, 1956, 1961 and 1967 blocks. Each block closed by a tie-point bundle adjustment -- a translation, scale and rotation per negative from thousands of phase-correlation windows, along-track and across flight lines -- then placed by one continuous low-order warp against modern imagery."
