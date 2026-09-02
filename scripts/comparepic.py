@@ -36,16 +36,28 @@ def main():
     tag = sys.argv[1]
     span = float(sys.argv[sys.argv.index('--span') + 1]) if '--span' in sys.argv else 2500.0
     out = sys.argv[sys.argv.index('--out') + 1] if '--out' in sys.argv else '/tmp'
-    pilot_geo = json.load(open(P('data', 'pilot_colmap_geo.json'))); S, W, N, E = pilot_geo['bbox']
-    # windows along the pilot strip, centred across it; the pilot is one flight line
-    foot = colmap_footprints('/tmp/colmap_pilot', '/tmp/colmap_pilot/sparse_pp_txt')
-    cE = np.mean([np.mean([p[0] for p in v]) for v in foot.values()])
+    # --colmap-work DIR : a full-block COLMAP solve (default: the 6-frame pilot)
+    work = sys.argv[sys.argv.index('--colmap-work') + 1] if '--colmap-work' in sys.argv else '/tmp/colmap_pilot'
+    model = sys.argv[sys.argv.index('--colmap-model') + 1] if '--colmap-model' in sys.argv else (None if work != '/tmp/colmap_pilot' else '/tmp/colmap_pilot/sparse_pp_txt')
+    ctag = 'pilot' if work == '/tmp/colmap_pilot' else tag
+    clabel = 'colmap' if not os.path.exists(P('data', f'{ctag}_placedC_geo.json')) else 'placedC'
+    cgeo = json.load(open(P('data', f'{ctag}_{clabel}_geo.json'))); S, W, N, E = cgeo['bbox']
+    foot = colmap_footprints(work, model)
+    # windows centred on the join between the two flight lines with the most
+    # sidelap when there are several lines, else across the strip
+    cEs = np.array([np.mean([p[0] for p in v]) for v in foot.values()])
+    lines = np.sort(cEs); gaps = np.where(np.diff(lines) > 800)[0]
+    if len(gaps):
+        groups = np.split(lines, gaps + 1); mids = [(groups[i].mean() + groups[i+1].mean()) / 2 for i in range(len(groups) - 1)]
+        cE = mids[len(mids) // 2]
+    else:
+        cE = cEs.mean()
     lon_c = dtmap.LON0 + cE / dtmap.MLON
     dlat = span / dtmap.MLAT; dlon = span / dtmap.MLON
     px = 800
     sources = (('OLD (per-frame + RBF)', f'{tag}', 'final', 'frameadj'),
                ('BUNDLE (close3, placed)', f'{tag}', 'placed3', 'stageA3'),
-               ('COLMAP (pilot)', 'pilot', 'colmap', None))
+               (f'COLMAP ({clabel})', ctag, clabel, None))
     rows = []
     for f in (0.36, 0.64):
         lat = N - f * (N - S); lat0, lat1, lon0, lon1 = lat - dlat/2, lat + dlat/2, lon_c - dlon/2, lon_c + dlon/2
@@ -72,7 +84,7 @@ def main():
     for j, row in enumerate(rows):
         for i, im in enumerate(row):
             sheet.paste(im, (i * (px + 10), j * (px + 10)))
-    p = os.path.join(out, f'compare_{tag}_{int(span)}.png'); sheet.save(p); print(p)
+    p = os.path.join(out, f'compare_{tag}_{ctag}_{int(span)}.png'); sheet.save(p); print(p)
 
 
 if __name__ == '__main__':
