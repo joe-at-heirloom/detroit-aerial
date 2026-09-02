@@ -82,12 +82,12 @@
    "id": "b1961",
    "group": "west",
    "label": "1961",
-   "file": "mosaics/detroit_1961_final.tif",
+   "file": "mosaics/detroit_1961_placed3.tif",
    "bbox": [
-    42.22960819210404,
-    -83.33864054922661,
-    42.463871769627815,
-    -83.18222157802109
+    42.22974134730488,
+    -83.33857885607212,
+    42.46302574292503,
+    -83.18146932725801
    ],
    "gray": true
   },
@@ -150,7 +150,7 @@
     42.48532884971699,
     -83.10653737443461
    ],
-   "note": "1949, 1956, 1961 and 1967 blocks. Per-frame rotation and position, absolute orientation on the mile-grid arterials, per-frame adjustment against modern imagery, then a residual local field."
+   "note": "1949, 1956, 1961 and 1967 blocks. Each block closed by a tie-point bundle adjustment -- a translation, scale and rotation per negative from thousands of phase-correlation windows, along-track and across flight lines -- then placed by one continuous low-order warp against modern imagery."
   }
  }
 }

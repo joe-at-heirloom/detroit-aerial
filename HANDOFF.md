@@ -299,7 +299,22 @@ Ship with per-frame error published. **Seams first, absolute second.**
 
 ---
 
-# Where it stands
+# 1961 is done, both axes verified (2026-09-01, late)
+
+Closed by the per-frame tie-point bundle (`close3.py`), placed by one continuous
+quadratic warp (`place2.py`), and the viewer serves it (`detroit_1961_placed3.tif`):
+
+| | along-track seams | cross-line seams | absolute vs modern |
+|---|---|---|---|
+| before warp | 4.0 m (p90 8.2) | 4.5 m (p90 11.3) | 67.5 m |
+| after warp | 4.0 m (p90 8.2) | 4.5 m (p90 11.7) | **4.7 m** (p90 12.2, max 25) |
+
+The seam numbers are from close3's dense tie windows, the instrument that closed
+the block. fieldapply's verifier had still been using the whole-overlap normalised
+correlation that returns the search boundary on sidelaps and printed 105 m on this
+same block; that is fixed and it now uses the tie windows.
+
+# Where it stands (earlier in the day)
 
 Every number below comes from a metric that was proved first, per block: it must
 recover a planted shift on modern-vs-modern imagery (0.0 m, all four blocks), and a

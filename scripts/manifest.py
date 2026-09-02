@@ -17,7 +17,13 @@ PREF = ['placed3', 'final', 'v2', 'rbf']
 
 
 def best(tag):
+    # --placed3 1961,1956 : only these tags may be served from placed3; a block
+    # is switched when its seams AND absolute placement have been verified, not
+    # when its file appears.
+    allow = sys.argv[sys.argv.index('--placed3') + 1].split(',') if '--placed3' in sys.argv else []
     for s in PREF:
+        if s == 'placed3' and tag not in allow:
+            continue
         g = P('data', f'{tag}_{s}_geo.json')
         m = P('mosaics', f'detroit_{tag}_{s}.tif')
         if os.path.exists(g) and os.path.exists(m):
