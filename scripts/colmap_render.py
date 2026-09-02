@@ -256,7 +256,7 @@ def main():
         return
     mpp = float(arg('--mpp', 2.0)); out_dir = arg('--out', '/tmp'); tag = arg('--tag', 'colmap')
     meta = json.load(open(f"{work}/meta.json")); E0, N0 = meta['E0'], meta['N0']
-    model_dir = arg('--model', f"{work}/aligned")
+    model_dir = arg('--model') or (f"{work}/aligned" if os.path.exists(f"{work}/aligned/images.txt") else f"{work}/sparse_txt")
     cams, imgs, zg, pts = read_model(model_dir)
     if zg is None:
         raise SystemExit("no points3D.txt -- run model_converter with points")
