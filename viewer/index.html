@@ -160,7 +160,7 @@ function layerUrl(lid) {
   const L2 = MAN.layers.find(l => l.id === lid);
   const v = (L2 && L2.ver) ? ('?v=' + L2.ver) : '';
   return '/t/' + lid + '/{z}/{x}/{y}.png' + v;
-}/{x}/{y}.png'; }
+}
 
 function show(gid) {
   cur = MAN.groups[gid];

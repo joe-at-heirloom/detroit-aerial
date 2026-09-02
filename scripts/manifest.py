@@ -71,7 +71,7 @@ def main():
         layers.append(dict(id=lid, group='west', label=tag,
                            file=f'mosaics/detroit_{tag}_{s}.tif',
                            bbox=g['bbox'], gray=True,
-                           ver=int(os.path.getmtime(m))))     # cache-busts tile URLs
+                           ver=int(os.path.getmtime(P('mosaics', f'detroit_{tag}_{s}.tif')))))
         ids.append(lid); boxes.append(g['bbox'])
         print(f"  {tag}: {s}")
     mw = json.load(open(P('data', 'modern_west_geo.json')))
