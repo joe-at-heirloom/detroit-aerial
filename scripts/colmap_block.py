@@ -81,6 +81,22 @@ def main():
             im = Image.open(f"{SP}/fullres/{r}.jpg").convert('L')
             w, h = im.size; mx, my = int(w * margin), int(h * margin)
             crops[r] = im.crop((mx, my, w - mx, h - my))
+    # Normalise scan RESOLUTION before padding. 1949 has a batch scanned square
+    # (4998 x 4998) where the rest are 5076 x 4794: same 9 x 9 inch negative, ~4.5%
+    # more pixels per millimetre. With one fixed focal for every negative those
+    # frames are 4.5% wrong and the bundle bends the whole block to fit them --
+    # measured as a -20% east-west affine against the old build. The film height
+    # is the same physical dimension on every scan, so scale each crop to the
+    # majority height; then pad widths, which are scan-window differences only.
+    from collections import Counter
+    hmaj = Counter(im.size[1] for im in crops.values()).most_common(1)[0][0]
+    nres = 0
+    for r, im in list(crops.items()):
+        if abs(im.size[1] - hmaj) > 0.01 * hmaj:
+            f_ = hmaj / im.size[1]
+            crops[r] = im.resize((int(round(im.size[0] * f_)), hmaj), Image.LANCZOS); nres += 1
+    if nres:
+        print(f"  {nres} scans at a different resolution rescaled to height {hmaj}", flush=True)
     W_ = max(im.size[0] for im in crops.values()); H_ = max(im.size[1] for im in crops.values())
     sizes = sorted(set(im.size for im in crops.values()))
     print(f"  {len(sizes)} distinct crop sizes {sizes[0]}..{sizes[-1]}; padding all to {W_}x{H_}", flush=True)
