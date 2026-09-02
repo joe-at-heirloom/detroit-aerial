@@ -304,18 +304,16 @@ def main():
         mosaic(work, tag, mpp=mpp, model_dir=arg('--model'))
         return
     mpp = float(arg('--mpp', 2.0)); out_dir = arg('--out', '/tmp'); tag = arg('--tag', 'colmap')
-    meta = json.load(open(f"{work}/meta.json")); E0, N0 = meta['E0'], meta['N0']
-    model_dir = arg('--model') or (f"{work}/aligned" if os.path.exists(f"{work}/aligned/images.txt") else f"{work}/sparse_txt")
-    cams, imgs, zg, pts = read_model(model_dir)
+    # one loader for every path, so --surface applies here as it does in mosaic()
+    meta, cams, imgs, zg = load_block(work, arg('--model'), self_align_='--self-align' in sys.argv)
+    E0, N0 = meta['E0'], meta['N0']
     if zg is None:
         raise SystemExit("no points3D.txt -- run model_converter with points")
-    if '--self-align' in sys.argv:
-        priors = {}
-        for l in open(f"{work}/priors.txt"):
-            q = l.split(); priors[q[0]] = (float(q[1]), float(q[2]), float(q[3]))
-        zg = self_align(cams, imgs, pts, priors)
-    print(f"{len(imgs)} registered frames, camera {cams[list(cams)[0]]['model']} {cams[list(cams)[0]]['params']}, ground z {zg:.1f}")
-    C = np.array([imgs[n]['C'] for n in imgs]); H_fly = float(np.median(C[:, 2]) - zg)
+    zdesc = 'fitted surface' if isinstance(zg, Surface) else f"z {float(zg):.1f}"
+    print(f"{len(imgs)} registered frames, camera {cams[list(cams)[0]]['model']} {cams[list(cams)[0]]['params']}, ground {zdesc}")
+    C = np.array([imgs[n]['C'] for n in imgs])
+    zc = np.array([float(zg.z(c[0], c[1])) for c in C]) if isinstance(zg, Surface) else np.full(len(C), float(zg))
+    H_fly = float(np.median(C[:, 2] - zc))
     print(f"  flying height above ground (solved) {H_fly:.0f} m", flush=True)
     # common grid
     half = 2600.0
