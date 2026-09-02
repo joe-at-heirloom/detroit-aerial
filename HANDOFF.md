@@ -322,7 +322,16 @@ surface residual 1.7 m with only 12 m of bow; seams along-track **2.0 m (p90
 4.0, max 24)**, cross-line **2.0 m (p90 4.5, max 18)** over 7,629 windows. That
 sidelap was 65 m out of the original bundle and 20 m at the hand-rolled best.
 Its catalogue positions scatter 361 m around the solved cameras, so the absolute
-placement's prior is the thing to watch there.
+placement's prior is the thing to watch there -- and it failed: the alias-proof
+coarse field locked 12 of 23 windows, fell back to a zero prior, and 17 of 17
+coarse cells then could not lock at all (the block sits 40-100 m off and a +/-40 m
+fine search cannot reach it). The placement against 2024 imagery is therefore
+unmeasured, not bad, and is NOT in the viewer. 1949 is being placed against
+1961's verified build instead (`fieldmeasure.py 1949 colmap --ref 1961:placedC
+--label-out colmap61`, then fit, then `fieldapply.py ... --fits colmap61 --ref
+1961:placedC --out placedC2`): film to film twelve years apart is a far easier
+match than film to satellite across seventy-five, and it inherits 1961's 2.6 m.
+The same will apply to 1956.
 
 # The simpler path is also the better one: COLMAP (2026-09-01, late)
 
