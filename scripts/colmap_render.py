@@ -32,6 +32,45 @@ def quat_to_R(qw, qx, qy, qz):
                      [2*(qx*qz - qy*qw), 2*(qy*qz + qx*qw), 1 - 2*(qx*qx + qy*qy)]])
 
 
+def self_align(cams, imgs, pts, priors):
+    """Put an unaligned COLMAP model into the local metric frame ourselves.
+
+    model_aligner needs a 3D similarity from camera centres, which is degenerate
+    for cameras along one flight line (roll about the line is free). We do not
+    need it: the ground is a plane, so fit that plane to the 3D points and take
+    its normal as up; then a 2D similarity from the cameras' plane coordinates to
+    the catalogue positions fixes scale, heading and translation, which six
+    points along a line determine perfectly well. Ground goes to z = 0."""
+    P = np.array(pts); c = P.mean(0); U, S, Vt = np.linalg.svd(P - c, full_matrices=False)
+    nrm = Vt[2]
+    C = np.array([imgs[n]['C'] for n in imgs])
+    if np.dot(C.mean(0) - c, nrm) < 0: nrm = -nrm          # cameras above the ground
+    # rotation taking nrm -> +z
+    z = np.array([0, 0, 1.0]); v = np.cross(nrm, z); sn = np.linalg.norm(v); cs = float(np.dot(nrm, z))
+    if sn < 1e-9: Rw = np.eye(3)
+    else:
+        vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+        Rw = np.eye(3) + vx + vx @ vx * ((1 - cs) / sn**2)
+    zplane = float((Rw @ c)[2])
+    names = [n for n in imgs if n in priors]
+    A = np.array([(Rw @ imgs[n]['C'])[:2] for n in names]); B = np.array([priors[n][:2] for n in names])
+    # Umeyama 2D similarity A -> B
+    ma, mb = A.mean(0), B.mean(0); Ac, Bc = A - ma, B - mb
+    H = Ac.T @ Bc / len(A); U2, S2, Vt2 = np.linalg.svd(H)
+    d = np.sign(np.linalg.det(Vt2.T @ U2.T)); D = np.diag([1, d])
+    R2 = Vt2.T @ D @ U2.T; sc = float(np.trace(np.diag(S2) @ D) / (Ac**2).sum() * len(A))
+    t2 = mb - sc * R2 @ ma
+    Q = np.eye(3); Q[:2, :2] = R2; Q = Q @ Rw
+    T = np.array([t2[0], t2[1], -sc * zplane])
+    for n, im in imgs.items():
+        Rn = im['R'] @ Q.T; tn = sc * im['t'] - Rn @ T
+        im['R'], im['t'], im['C'] = Rn, tn, -Rn.T @ tn
+    res = np.hypot(*(sc * (R2 @ A.T).T + t2 - B).T)
+    print(f"  self-align: scale {sc:.4f}, heading {math.degrees(math.atan2(R2[1,0], R2[0,0])):+.2f} deg, "
+          f"camera-vs-catalogue residual median {np.median(res):.0f} m (catalogue is approximate)", flush=True)
+    return 0.0
+
+
 def read_model(d):
     cams = {}
     for l in open(f"{d}/cameras.txt"):
@@ -44,12 +83,13 @@ def read_model(d):
         q = [float(x) for x in p[1:5]]; t = np.array([float(x) for x in p[5:8]])
         R = quat_to_R(*q); C = -R.T @ t
         imgs[p[9]] = dict(R=R, t=t, C=C, cam=int(p[8]))
-    zs = []
+    pts = []
     if os.path.exists(f"{d}/points3D.txt"):
         for l in open(f"{d}/points3D.txt"):
             if l.startswith('#') or not l.strip(): continue
-            zs.append(float(l.split()[3]))
-    return cams, imgs, (float(np.median(zs)) if zs else None)
+            q = l.split(); pts.append((float(q[1]), float(q[2]), float(q[3])))
+    zs = [p[2] for p in pts]
+    return cams, imgs, (float(np.median(zs)) if zs else None), pts
 
 
 def project(cam, R, t, X):
@@ -106,9 +146,15 @@ def main():
     work = sys.argv[1]
     mpp = float(arg('--mpp', 2.0)); out_dir = arg('--out', '/tmp'); tag = arg('--tag', 'colmap')
     meta = json.load(open(f"{work}/meta.json")); E0, N0 = meta['E0'], meta['N0']
-    cams, imgs, zg = read_model(f"{work}/aligned")
+    model_dir = arg('--model', f"{work}/aligned")
+    cams, imgs, zg, pts = read_model(model_dir)
     if zg is None:
         raise SystemExit("no points3D.txt -- run model_converter with points")
+    if '--self-align' in sys.argv:
+        priors = {}
+        for l in open(f"{work}/priors.txt"):
+            q = l.split(); priors[q[0]] = (float(q[1]), float(q[2]), float(q[3]))
+        zg = self_align(cams, imgs, pts, priors)
     print(f"{len(imgs)} registered frames, camera {cams[list(cams)[0]]['model']} {cams[list(cams)[0]]['params']}, ground z {zg:.1f}")
     C = np.array([imgs[n]['C'] for n in imgs]); H_fly = float(np.median(C[:, 2]) - zg)
     print(f"  flying height above ground (solved) {H_fly:.0f} m", flush=True)
