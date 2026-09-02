@@ -142,8 +142,118 @@ def render_frame(name, img, cam, im, zg, E0, N0, minE, maxN, W, H, mpp, crop=0.9
     return out, x0, y0
 
 
+def load_block(work, model_dir=None, self_align_=True):
+    """Cameras, images (aligned into the local metric frame), ground z, offsets."""
+    meta = json.load(open(f"{work}/meta.json"))
+    model_dir = model_dir or (f"{work}/aligned" if os.path.exists(f"{work}/aligned/images.txt") else f"{work}/sparse_txt")
+    cams, imgs, zg, pts = read_model(model_dir)
+    if self_align_:
+        priors = {}
+        for l in open(f"{work}/priors.txt"):
+            q = l.split(); priors[q[0]] = (float(q[1]), float(q[2]), float(q[3]))
+        zg = self_align(cams, imgs, pts, priors)
+    return meta, cams, imgs, zg
+
+
+def render_all_colmap(work, mpp, model_dir=None, crop=0.95, log=print):
+    """Every registered negative on one common grid at `mpp`, plus a placements-
+    like dict (camera centres) so seam tools can label flight lines."""
+    meta, cams, imgs, zg = load_block(work, model_dir)
+    E0, N0 = meta['E0'], meta['N0']
+    C = np.array([imgs[n]['C'] for n in imgs]); half = 2600.0
+    minE = C[:, 0].min() + E0 - half; maxE = C[:, 0].max() + E0 + half
+    minN = C[:, 1].min() + N0 - half; maxN = C[:, 1].max() + N0 + half
+    W = int((maxE - minE) / mpp); H = int((maxN - minN) / mpp)
+    rend = {}; sol = {}
+    for name, img in imgs.items():
+        rec = name.replace('.jpg', '')
+        im = np.asarray(Image.open(f"{work}/images/{name}").convert('L'))
+        r = render_frame(name, img, cams[img['cam']], im, zg, E0, N0, minE, maxN, W, H, mpp, crop=crop)
+        if r is None: continue
+        rend[rec] = r
+        sol[rec] = dict(ok=True, e=img['C'][0] + E0, n=img['C'][1] + N0, dE=0.0, dN=0.0)
+    return rend, sol, minE, maxN, W, H
+
+
+def mosaic(work, tag, mpp=0.63, model_dir=None, crop=0.95, log=print):
+    """Production composite: every pixel from the negative whose centre is
+    nearest among those that cover it, at full resolution, streamed into a
+    memmap so an 800 MP block never needs a float buffer of its own size."""
+    from PIL import ImageDraw as _D
+    meta, cams, imgs, zg = load_block(work, model_dir)
+    E0, N0 = meta['E0'], meta['N0']
+    names = sorted(imgs); C = np.array([imgs[n]['C'] for n in names]); half = 2600.0
+    minE = C[:, 0].min() + E0 - half; maxE = C[:, 0].max() + E0 + half
+    minN = C[:, 1].min() + N0 - half; maxN = C[:, 1].max() + N0 + half
+    W = int((maxE - minE) / mpp); H = int((maxN - minN) / mpp)
+    # coarse owner map: nearest camera centre among the frames whose footprint covers the pixel
+    cm = 8.0; Wc = int(W * mpp / cm) + 1; Hc = int(H * mpp / cm) + 1
+    owner = np.full((Hc, Wc), -1, np.int16); bestd = np.full((Hc, Wc), np.inf, np.float32)
+    yy = (maxN - (np.arange(Hc) + 0.5) * cm)[:, None]; xx = (minE + (np.arange(Wc) + 0.5) * cm)[None, :]
+    foot = {}
+    for i, n in enumerate(names):
+        img = imgs[n]; cam = cams[img['cam']]; w, h = cam['w'], cam['h']; f = cam['params'][0]; cx, cy = cam['params'][1], cam['params'][2]
+        pts = []
+        for (u, v) in ((w*(1-crop)/2, h*(1-crop)/2), (w*(1+crop)/2, h*(1-crop)/2), (w*(1+crop)/2, h*(1+crop)/2), (w*(1-crop)/2, h*(1+crop)/2)):
+            d = img['R'].T @ np.array([(u - cx)/f, (v - cy)/f, 1.0]); Cc = img['C']; s_ = (zg - Cc[2]) / d[2]; X = Cc + s_*d
+            pts.append(((X[0] + E0 - minE) / cm, (maxN - (X[1] + N0)) / cm))
+        m = Image.new('L', (Wc, Hc), 0); _D.Draw(m).polygon(pts, fill=255); m = np.asarray(m) > 0
+        d2 = (xx - (img['C'][0] + E0))**2 + (yy - (img['C'][1] + N0))**2
+        upd = m & (d2 < bestd); owner[upd] = i; bestd[upd] = d2[upd]
+        foot[n] = pts
+    log(f"  owner map {Wc}x{Hc} @ {cm} m; {len(names)} frames; output {W}x{H} @ {mpp} m/px")
+    raw = f"/tmp/colmap_{tag}.raw"
+    comp = np.memmap(raw, dtype=np.uint8, mode='w+', shape=(H, W)); comp[:] = 0
+    k = cm / mpp
+    for i, n in enumerate(names):
+        img = imgs[n]; cam = cams[img['cam']]
+        im = np.asarray(Image.open(f"{work}/images/{n}").convert('L'))
+        # frame bbox in output px from its footprint
+        P = np.array(foot[n]) * k; x0 = max(0, int(P[:, 0].min())); x1 = min(W, int(P[:, 0].max()) + 1)
+        y0 = max(0, int(P[:, 1].min())); y1 = min(H, int(P[:, 1].max()) + 1)
+        if x1 - x0 < 8 or y1 - y0 < 8: continue
+        band = 1024
+        for by in range(y0, y1, band):
+            be = min(y1, by + band)
+            r = render_frame(n, img, cam, im, zg, E0, N0, minE + x0 * mpp, maxN - by * mpp, x1 - x0, be - by, mpp, crop=crop)
+            if r is None: continue
+            arr, ax, ay = r
+            oy = ((np.arange(by + ay, by + ay + arr.shape[0]) / k).astype(np.int32)).clip(0, Hc - 1)
+            ox = ((np.arange(x0 + ax, x0 + ax + arr.shape[1]) / k).astype(np.int32)).clip(0, Wc - 1)
+            own = owner[oy][:, ox] == i
+            m = own & (arr > 0)
+            sub = comp[by + ay:by + ay + arr.shape[0], x0 + ax:x0 + ax + arr.shape[1]]
+            sub[m] = arr[m]
+        if (i + 1) % 10 == 0: log(f"    {i+1}/{len(names)} frames")
+    comp.flush()
+    la_top = dtmap.LAT0 + maxN / dtmap.MLAT; lo_left = dtmap.LON0 + minE / dtmap.MLON
+    tr = from_origin(lo_left, la_top, mpp / dtmap.MLON, mpp / dtmap.MLAT)
+    from validate import P as _P
+    out = _P('mosaics', f'detroit_{tag}_colmap.tif')
+    with rasterio.open(out, 'w', driver='GTiff', height=H, width=W, count=1, dtype='uint8', crs='EPSG:4326',
+                       transform=tr, tiled=True, blockxsize=512, blockysize=512, compress='DEFLATE', predictor=2,
+                       num_threads='ALL_CPUS', BIGTIFF='YES') as ds:
+        for y in range(0, H, 2048):
+            yb = min(H, y + 2048)
+            ds.write(np.asarray(comp[y:yb]), 1, window=rasterio.windows.Window(0, y, W, yb - y))
+        ds.build_overviews([2, 4, 8, 16, 32, 64], rasterio.enums.Resampling.average)
+    del comp
+    try: os.remove(raw)
+    except OSError: pass
+    geo = dict(minE=float(minE), maxN=float(maxN), W=W, H=H, mpp=mpp,
+               bbox=[dtmap.LAT0 + (maxN - H * mpp) / dtmap.MLAT, lo_left, la_top, dtmap.LON0 + (minE + W * mpp) / dtmap.MLON])
+    json.dump(geo, open(_P('data', f'{tag}_colmap_geo.json'), 'w'))
+    json.dump(dict(work=work, model_dir=model_dir), open(_P('data', f'colmap_{tag}.json'), 'w'))
+    log(f"  wrote {out}")
+    return geo
+
+
 def main():
     work = sys.argv[1]
+    if '--mosaic' in sys.argv:
+        tag = arg('--tag', 'colmap'); mpp = float(arg('--mpp', 0.63))
+        mosaic(work, tag, mpp=mpp, model_dir=arg('--model'))
+        return
     mpp = float(arg('--mpp', 2.0)); out_dir = arg('--out', '/tmp'); tag = arg('--tag', 'colmap')
     meta = json.load(open(f"{work}/meta.json")); E0, N0 = meta['E0'], meta['N0']
     model_dir = arg('--model', f"{work}/aligned")

@@ -72,19 +72,23 @@ def warp_render(img, x0, y0, warp_at, minE, maxN, mpp, step_m=400.0):
     return np.where(inb, v, 0).astype(np.uint8)
 
 
-def seams_after_warp(tag, stage, warp_at, log=print):
-    sol, ppm = placements(tag)
-    saved = json.load(open(P('data', f'{stage}_{tag}.json')))
-    for r in list(sol):
-        v = saved.get(str(r)) or saved.get(r)
-        if v:
-            sol[r]['dE'] = v['dE']; sol[r]['dN'] = v['dN']
-            if 'rot' in v: sol[r]['rot'] = v['rot']
-            if 'gw' in v: sol[r]['gw'] = v['gw']; sol[r]['gh'] = v['gh']
+def seams_after_warp(tag, stage, warp_at, log=print, colmap_work=None):
     mpp = C.MPP_TIE
-    minE, maxN, W, H = C.canvas(sol, mpp)
-    rend = blockadjust.render_all(sol, f"{SP}/fullres", minE, maxN, W, H, mpp,
-                                  crop=0.95, log=lambda *_: None)
+    if colmap_work:
+        import colmap_render
+        rend, sol, minE, maxN, W, H = colmap_render.render_all_colmap(colmap_work, mpp, log=lambda *_: None)
+    else:
+        sol, ppm = placements(tag)
+        saved = json.load(open(P('data', f'{stage}_{tag}.json')))
+        for r in list(sol):
+            v = saved.get(str(r)) or saved.get(r)
+            if v:
+                sol[r]['dE'] = v['dE']; sol[r]['dN'] = v['dN']
+                if 'rot' in v: sol[r]['rot'] = v['rot']
+                if 'gw' in v: sol[r]['gw'] = v['gw']; sol[r]['gh'] = v['gh']
+        minE, maxN, W, H = C.canvas(sol, mpp)
+        rend = blockadjust.render_all(sol, f"{SP}/fullres", minE, maxN, W, H, mpp,
+                                      crop=0.95, log=lambda *_: None)
     # Along-track and cross-line pairs are reported separately. A block of parallel
     # lines can be closed along each line and still have the lines disagree by
     # 100 m; one median over all pairs hides that because along-track pairs
@@ -138,9 +142,12 @@ def main():
           f"last held-out {model['loo_median']:.1f} m) =====", flush=True)
     json.dump(models, open(P('data', f'fieldmodel_{tag}_{out}.json'), 'w'))
 
-    stage = {'closedA': 'stageA', 'closedA2': 'stageA2', 'closedA3': 'stageA3', 'closed': 'closed', 'placed': 'placed', 'placedW': 'stageA'}[label]
+    stage = {'closedA': 'stageA', 'closedA2': 'stageA2', 'closedA3': 'stageA3', 'closed': 'closed', 'placed': 'placed', 'placedW': 'stageA'}.get(label)
+    cw = None
+    if label == 'colmap':
+        cw = json.load(open(P('data', f'colmap_{tag}.json')))['work']
     print("  internal consistency, before and after the same warp:", flush=True)
-    s0, s1 = seams_after_warp(tag, stage, warp_at)
+    s0, s1 = seams_after_warp(tag, stage, warp_at, colmap_work=cw)
     a0, a1 = s0.get('along'), s1.get('along')
     if a0 is not None and a1 is not None and a1 > a0 + 1.5:
         print(f"  the warp degrades along-track seams ({a0:.2f} -> {a1:.2f} m); refusing to apply it")
