@@ -25,7 +25,7 @@ def run(tag, stage='closed', label=None):
     which does it with an alias-proof prior; the old zero-prior report here was
     what produced the 46 m number on a block that was 72 m off."""
     t0 = time.time()
-    label = label or {'stageA': 'closedA', 'stageA2': 'closedA2'}.get(stage, stage)
+    label = label or {'stageA': 'closedA', 'stageA2': 'closedA2', 'stageA3': 'closedA3'}.get(stage, stage)
     sol, ppm = placements(tag)
     saved = json.load(open(P('data', f'{stage}_{tag}.json')))
     n = 0

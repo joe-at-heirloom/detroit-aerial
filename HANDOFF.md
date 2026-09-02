@@ -181,6 +181,23 @@ half of every window sits in empty box. 800 m windows accepted 3 of 30 sidelaps,
 film's own extent rather than the bounding box, with a boundary rule at 60% of the
 window so a real 185 m offset is not rejected.
 
+**close2's per-line model is the wrong shape, measured.** On 1961 it took the
+cross-line disagreement from 63 to 21 m by pushing along-track from 0.2 to 9 m:
+least squares sacrificed 50 good observations to serve 121 the model could not fit.
+The lines are not rigidly scaled and rotated relative to each other.
+
+The structural mistake was one offset per pair. A single offset determines a
+translation and nothing else -- scale and rotation are visible only as the offset
+VARYING across the overlap, and collapsing the phase-correlation windows to a median
+throws exactly that away. `scripts/close3.py` keeps every window as its own tie
+point, along-track and cross-line alike (thousands per block), and solves a
+translation, scale and rotation per FRAME: along-track windows pin neighbouring
+frames' scales together (0.2 m over a 2 km overlap allows 0.03% of difference),
+cross-line windows pin the lines to each other. This is the textbook tie-point
+bundle adjustment the panel recommended. `scripts/test_close3.py` plants per-frame
+scale and rotation on a synthetic block and recovers them to 0.02% with zero
+residual; run it before trusting any change.
+
 **Run `scripts/test_close2.py` before trusting any change to close2.py.** It plants
 four sidelap shifts from 45 to 225 m and a 0.5% differential line scale, and
 derives the expected sign from how it moved the content. The matcher was right and

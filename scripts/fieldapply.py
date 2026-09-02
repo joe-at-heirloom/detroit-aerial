@@ -138,7 +138,7 @@ def main():
           f"last held-out {model['loo_median']:.1f} m) =====", flush=True)
     json.dump(models, open(P('data', f'fieldmodel_{tag}_{out}.json'), 'w'))
 
-    stage = {'closedA': 'stageA', 'closedA2': 'stageA2', 'closed': 'closed', 'placed': 'placed', 'placedW': 'stageA'}[label]
+    stage = {'closedA': 'stageA', 'closedA2': 'stageA2', 'closedA3': 'stageA3', 'closed': 'closed', 'placed': 'placed', 'placedW': 'stageA'}[label]
     print("  internal consistency, before and after the same warp:", flush=True)
     s0, s1 = seams_after_warp(tag, stage, warp_at)
     a0, a1 = s0.get('along'), s1.get('along')

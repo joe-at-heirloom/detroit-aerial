@@ -22,10 +22,10 @@ def run(args, log):
 
 def main():
     tag = sys.argv[1]
-    stage = sys.argv[sys.argv.index('--stage') + 1] if '--stage' in sys.argv else 'stageA2'
+    stage = sys.argv[sys.argv.index('--stage') + 1] if '--stage' in sys.argv else 'stageA3'
     model = sys.argv[sys.argv.index('--model') + 1] if '--model' in sys.argv else None
-    label = {'stageA2': 'closedA2', 'stageA': 'closedA'}.get(stage, stage)
-    out = 'placed2' if stage == 'stageA2' else f'placed_{stage}'
+    label = {'stageA3': 'closedA3', 'stageA2': 'closedA2', 'stageA': 'closedA'}.get(stage, stage)
+    out = {'stageA3': 'placed3', 'stageA2': 'placed2'}.get(stage, f'placed_{stage}')
     t0 = time.time()
     run(['applyclosed.py', tag, '--stage', stage, '--label', label], None)
     run(['fieldmeasure.py', tag, label], None)
