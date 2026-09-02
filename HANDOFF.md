@@ -322,6 +322,16 @@ Two things to keep in mind: on flat ground a free principal point trades off
 against tilt (refine_principal_point must stay 0), and the pilot had no sidelap --
 the full-block run is the real test of cross-line seams.
 
+**The full-block run needs two settings the pilot did not.** With exhaustive
+matching, 1961's 62 frames split into two models of 8 and 10 frames (44 lost),
+the second with a 7198 px focal -- nonsense. A street grid that repeats every
+97.5 m gives SIFT confident matches between negatives that do not overlap, and
+incremental SfM builds on them. The pilot's six frames in a line had no wrong
+pairs to pick. So: match only pairs that plausibly overlap by the catalogue
+positions (COLMAP's matches_importer with a pairs list), and fix the camera at
+the pilot's solved values (focal 3602 px, k -0.00027) rather than re-estimate
+focal, which is degenerate on flat ground.
+
 What is kept from the hand-rolled work: the absolute measurement, the rigid /
 low-order placement, the seam metric, the viewer. 1961's hand-rolled result stays
 in the viewer until COLMAP's beats it on both numbers. 1967 and 1949 placed at
