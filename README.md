@@ -97,9 +97,9 @@ must move every cell by exactly that much (0.0 m).
 |---|---|---|---|---|
 | COLMAP + surface | **2.0 m** (p90 4.0, max 16) | **2.0 m** (p90 4.5, max 20) | **2.6 m** (p90 5.8) | **3.0 m** (p90 8.0) |
 
-Seams are identical before and after the placement warp. Independent verification
-against USGS NAIP by three registration implementations follows the same protocol
-as before and is recorded in `HANDOFF.md` as it lands.
+Seams are identical before and after the placement warp. Independently, against
+USGS NAIP on 1.5 km windows, three registration implementations put it at
+**2.2 / 3.1 / 3.5 m** (scikit-image / OpenCV / ours).
 
 **1949, 1956, 1967** -- solving on the same path; numbers will replace this line.
 

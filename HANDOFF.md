@@ -315,7 +315,10 @@ COLMAP-rendered frames before and after:
 | **COLMAP + surface** | **2.0 (p90 4.0)** | **2.0 (p90 4.5)** | **2.6 (p90 5.8)** | **3.0 (p90 8.0)** |
 
 Seams identical before and after the warp; 41/41 coarse cells locked.
-One command per block: `colmap_block.py TAG` then `colmap_place.py TAG WORK --surface 2`.
+Independently, against USGS NAIP on 1.5 km windows: scikit-image **2.24 m**
+(p90 5.4, max 5.8), OpenCV **3.10 m**, ours **3.53 m** -- the previous build's
+were 3.16 / 3.79 / 3.84. One command per block: `colmap_block.py TAG` then
+`colmap_place.py TAG WORK --surface 2`.
 
 **1949 on the same path**: 50/50 frames in one model (seven scan sizes, padded),
 surface residual 1.7 m with only 12 m of bow; seams along-track **2.0 m (p90
