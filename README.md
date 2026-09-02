@@ -101,7 +101,13 @@ Seams are identical before and after the placement warp. Independently, against
 USGS NAIP on 1.5 km windows, three registration implementations put it at
 **2.2 / 3.1 / 3.5 m** (scikit-image / OpenCV / ours).
 
-**1949, 1956, 1967** -- solving on the same path; numbers will replace this line.
+**1967** (51 negatives, four flight lines) -- complete and in the viewer:
+
+| | along-track seams | cross-line seams | absolute, 3.6 km cells | absolute, 1.8 km cells |
+|---|---|---|---|---|
+| COLMAP + surface | **2.0 m** (p90 4.5) | **4.0 m** (p90 7.2) | **2.6 m** (p90 7.7) | **4.1 m** (p90 11.6) |
+
+**1949, 1956** -- solving on the same path; numbers will replace this line.
 
 Downtown is a separate three-frame scene: 1961 and 1949 corrected to ~5 m, 1956
 still ~32 m; much of the frame is the river and the core is high-rise, so no 2D

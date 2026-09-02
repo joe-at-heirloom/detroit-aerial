@@ -320,6 +320,12 @@ Independently, against USGS NAIP on 1.5 km windows: scikit-image **2.24 m**
 were 3.16 / 3.79 / 3.84. One command per block: `colmap_block.py TAG` then
 `colmap_place.py TAG WORK --surface 2`.
 
+**1967 on the same path -- done, in the viewer**: 51/51 frames in one model,
+surface residual 3.1 m (205 m of bow at a corner), seams along-track **2.0 m (p90
+4.5)**, cross-line **4.0 m (p90 7.2)**, prior 30/30 windows locked, quadratic 6.1 m
+held-out, seams unchanged through the warp, absolute **2.6 m at 3.6 km (p90 7.7)**
+and **4.1 m at 1.8 km (p90 11.6)**.
+
 **1949 on the same path**: 50/50 frames in one model (seven scan sizes, padded),
 surface residual 1.7 m with only 12 m of bow; seams along-track **2.0 m (p90
 4.0, max 24)**, cross-line **2.0 m (p90 4.5, max 18)** over 7,629 windows. That
