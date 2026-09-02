@@ -19,6 +19,7 @@ Steps (CLI only, no GUI):
   7. model_converter    -> TXT  (cameras.txt, images.txt for rendering)
 
 Usage:  ./.venv/bin/python scripts/colmap_block.py 1961 [--work /tmp/colmap_1961] [--margin 0.03]
+        [--reuse-images DIR] [--focal 3602] [--k -0.00027]
 """
 import sys, os, json, math, subprocess, time
 import numpy as np
@@ -48,6 +49,9 @@ def main():
     work = arg('--work', f'/tmp/colmap_{tag}')
     margin = float(arg('--margin', 0.03))
     t0 = time.time()
+    reuse = arg('--reuse-images')
+    if reuse and not os.path.exists(f"{work}/images"):
+        os.makedirs(work, exist_ok=True); os.symlink(reuse, f"{work}/images")
     os.makedirs(f"{work}/images", exist_ok=True)
     log = f"{work}/colmap.log"
     sol, ppm = placements(tag)
@@ -73,9 +77,24 @@ def main():
                 im.crop((mx, my, w - mx, h - my)).save(dst, quality=95)
             pf.write(f"{r}.jpg {sol[r]['e']-E0:.2f} {sol[r]['n']-N0:.2f} 0.0\n")
     im = Image.open(f"{work}/images/{recs[0]}.jpg"); w, h = im.size
-    # focal prior: a 9x9 inch negative scanned at this size, 6 inch lens (the usual)
-    px_per_mm = w / (228.6 * (1 - 2 * margin)); focal_px = 152.4 * px_per_mm
-    print(f"  images {w}x{h}, focal prior {focal_px:.0f} px (6-inch lens)", flush=True)
+    # Camera: fixed. On flat ground focal and flying height trade off, so
+    # self-calibrating focal is degenerate -- the full-block run produced 7198 px
+    # for one component. The pilot on six frames solved 3602 px with the principal
+    # point fixed, 0.6% from the 6-inch-lens prior; use that and refine nothing.
+    focal_px = float(arg('--focal', 3602.0)); k = float(arg('--k', -0.00027))
+    print(f"  images {w}x{h}, camera fixed: focal {focal_px:.0f} px, k {k:+.5f}", flush=True)
+    # Pairs: only negatives that plausibly overlap by the catalogue. Exhaustive
+    # matching on a street grid that repeats every 97.5 m matched non-overlapping
+    # negatives confidently and split the block.
+    rad = {r: math.hypot(sol[r]['gw'], sol[r]['gh']) / 2 for r in recs}
+    pairs = []
+    for i, a in enumerate(recs):
+        for b in recs[i + 1:]:
+            d = math.hypot(sol[a]['e'] - sol[b]['e'], sol[a]['n'] - sol[b]['n'])
+            if 1.0 < d < 0.75 * (rad[a] + rad[b]):
+                pairs.append(f"{a}.jpg {b}.jpg")
+    open(f"{work}/pairs.txt", 'w').write("\n".join(pairs) + "\n")
+    print(f"  {len(pairs)} plausible pairs (of {len(recs)*(len(recs)-1)//2})", flush=True)
     json.dump(dict(E0=E0, N0=N0, focal_px=focal_px, w=w, h=h, margin=margin, recs=recs),
               open(f"{work}/meta.json", 'w'))
 
@@ -84,19 +103,20 @@ def main():
     # 2800 px on a 3.2 km negative is 1.15 m/px for the tie features -- the pilot
     # closed to 2 m at 3600 -- and it is 1.65x cheaper per image on CPU, where
     # 62 images at 3600 took ~40 s each.
+    if os.path.exists(db):
+        os.remove(db)
     sh(['colmap', 'feature_extractor', '--database_path', db, '--image_path', f"{work}/images",
         '--ImageReader.single_camera', '1', '--ImageReader.camera_model', 'SIMPLE_RADIAL',
-        '--ImageReader.camera_params', f"{focal_px:.1f},{w/2:.1f},{h/2:.1f},0.0",
-        '--FeatureExtraction.max_image_size', '2800', '--SiftExtraction.max_num_features', '9000',
+        '--ImageReader.camera_params', f"{focal_px:.1f},{w/2:.1f},{h/2:.1f},{k}",
+        '--FeatureExtraction.max_image_size', '3600', '--SiftExtraction.max_num_features', '12000',
         '--FeatureExtraction.use_gpu', '0', '--FeatureExtraction.num_threads', '8'], log)
-    # exhaustive matching over ~60 images is ~1800 pairs, fine on CPU
-    sh(['colmap', 'exhaustive_matcher', '--database_path', db, '--FeatureMatching.use_gpu', '0',
-        '--FeatureMatching.num_threads', '8'], log)
+    sh(['colmap', 'matches_importer', '--database_path', db, '--match_list_path', f"{work}/pairs.txt",
+        '--match_type', 'pairs', '--FeatureMatching.use_gpu', '0', '--FeatureMatching.num_threads', '8'], log)
     os.makedirs(f"{work}/sparse", exist_ok=True)
     sh(['colmap', 'mapper', '--database_path', db, '--image_path', f"{work}/images",
         '--output_path', f"{work}/sparse",
-        '--Mapper.ba_refine_focal_length', '1', '--Mapper.ba_refine_principal_point', '0',
-        '--Mapper.ba_refine_extra_params', '1'], log)
+        '--Mapper.ba_refine_focal_length', '0', '--Mapper.ba_refine_principal_point', '0',
+        '--Mapper.ba_refine_extra_params', '0'], log)
     # The mapper writes one model per connected component. Report them all, keep
     # the largest as sparse_txt. COLMAP's model_aligner is skipped: it needs a 3D
     # similarity from camera centres, which is degenerate for a single flight line
