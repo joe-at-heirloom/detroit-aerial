@@ -137,6 +137,9 @@ Where 1961 covers the ground the placement residual is 5.6 m median; the
 western column and the northern 3 km lie outside every other epoch and were
 measured against modern imagery only, where 1956 is as hard to match as 1949,
 so the p90 there is the measurement as much as the map.
+Independently, against USGS NAIP on 1.5 km windows, the three implementations
+put it at **4.5 / 4.6 / 5.9 m** (scikit-image / OpenCV / ours), p90 21-31 m,
+bias under 3 m: the same picture, a good centre and uncertain edges.
 
 Downtown is a separate three-frame scene: 1961 and 1949 corrected to ~5 m, 1956
 still ~32 m; much of the frame is the river and the core is high-rise, so no 2D

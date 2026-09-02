@@ -864,3 +864,6 @@ over 100 m that are failed matches, not block errors. No epoch covers those
 strips, so they stay unverified beyond that.
 Applied (cubic): seams unchanged 2.0 / 4.0 m; against modern 5.6 m median at
 3.6 km (p90 21.6), 6.2 m at 1.8 km (p90 38.3). Served as `1956:placedC`.
+Against USGS NAIP (`crosscheck.py --block 1956 --suffix placedC --n 12 --span 1500
+--mpp 1.0 --bound 60 --ridge`): ours 5.90 m (p90 31.2), scikit-image 4.47 (p90 29.3),
+OpenCV 4.59 (p90 21.2); bias dE -2.6 dN +1.0. Agrees with our own 5.6 m / p90 21.6.
