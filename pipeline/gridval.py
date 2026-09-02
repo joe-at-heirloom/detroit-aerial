@@ -513,6 +513,7 @@ def coarse_field(t, win_m=6000.0, overlap=0.5, search_m=250.0,
         good = [p for p, kp in zip(good, keep) if kp]
     log(f"  coarse field: {len(pts)} windows, {len(good)} locked "
         f"(ratio >= {min_ratio})")
+    coarse_field.last_n_windows = len(pts)
     return good
 
 
@@ -557,8 +558,14 @@ def prior_for(t, mpp, min_locked=20, log=print, **kw):
     A prior is only needed when the mosaic is further out than the fine search can
     walk. After the per-frame stage it never is."""
     pts = coarse_field(t, log=log, **kw)
-    if len(pts) < min_locked:
-        log(f"  coarse field locked only {len(pts)} windows (< {min_locked}); "
+    # Accept the field when MOST windows locked, not when an absolute count did:
+    # the count scales with block size. 12 of 32 on 1956 was worse than none; 19
+    # of 26 on 1949 was a dense field that a count of 20 threw away, after which a
+    # zero prior could not reach a block sitting 40-100 m off.
+    n_win = getattr(coarse_field, 'last_n_windows', None) or max(len(pts), 1)
+    ok = len(pts) >= 12 and len(pts) >= 0.6 * n_win
+    if not ok:
+        log(f"  coarse field locked only {len(pts)} of {n_win} windows; "
             f"using a zero prior instead -- a sparse one is worse than none")
         return Prior([], mpp)
     return Prior(pts, mpp)
