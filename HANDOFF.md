@@ -834,3 +834,11 @@ bias under 1 m both axes. Random scatter, not a shift; the leave-one-out figure
 of the placement fit (6.8 m) predicted most of it. The candidates from the
 normalised scans (1949n) are the only open route to improving it; switch only
 if seams and absolute both measure better.
+
+## 1949 from the normalised scans (1949n): not better, discarded (2026-09-02)
+
+Same 50 negatives after tone normalisation, solved and placed by the same
+chain (refine-ref 1961:placedC): seams 2.0 / 2.0 m (identical), leave-one-out
+7.2 m (vs 6.8), absolute vs 1961 5.2 m at 3.6 km, 6.4 m at 1.8 km (vs 5.1).
+Normalising the scans changes nothing COLMAP cares about. The served 1949 stays.
+Solve kept at /tmp/colmap_1949n for the session; mosaics deleted.
