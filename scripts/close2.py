@@ -205,7 +205,9 @@ def cross_observations(rend, sol, lab, mpp, win_m=384.0, min_valid=0.75, min_sha
     return out
 
 
-def solve_block(sol, obs, recs, lab, minE, maxN, mpp, log=print):
+def solve_block(sol, obs, recs, lab, minE, maxN, mpp, log=print, model='similarity'):
+    """model: 'similarity' (per-line scale + rotation), 'scale' (per-line scale
+    only), or 'translate' (per-frame translations only, from both pair classes)."""
     """Per-frame translation + per-line (scale, rotation), linear least squares,
     iteratively reweighted. Returns corrections in dE-units (position moves by -c)
     and per-line (sigma, rho)."""
@@ -256,6 +258,13 @@ def solve_block(sol, obs, recs, lab, minE, maxN, mpp, log=print):
             for i1 in grp:
                 for i2 in grp:
                     A[i1, i2] += big / len(grp)
+        # model restriction: pin unused per-line parameters to zero hard
+        if model in ('scale', 'translate'):
+            for k in range(nl):
+                A[iR(k), iR(k)] += 1e9
+        if model == 'translate':
+            for k in range(nl):
+                A[iS(k), iS(k)] += 1e9
         A += np.eye(nu) * 1e-9
         return np.linalg.solve(A, rhs)
 
@@ -307,7 +316,7 @@ def seam_report(rend, sol, lab, mpp, label, log=print, search_cross=250.0):
     return obs
 
 
-def run(tag, rounds=3, start='stageA', search_cross=250.0):
+def run(tag, rounds=3, start='stageA', search_cross=250.0, model='similarity'):
     t0 = time.time()
     sol, ppm = placements(tag)
     if start and os.path.exists(P('data', f'{start}_{tag}.json')):
@@ -324,7 +333,7 @@ def run(tag, rounds=3, start='stageA', search_cross=250.0):
     recs = sorted([r for r in sol if sol[r].get('ok')])
     lab = SC.lines_of(sol, recs)
     nl = max(lab.values()) + 1
-    print(f"  {len(recs)} frames, {nl} flight lines", flush=True)
+    print(f"  {len(recs)} frames, {nl} flight lines, model {model}", flush=True)
     mpp = C.MPP_TIE
     imgdir = f"{SP}/fullres"
     for it in range(rounds):
@@ -335,7 +344,7 @@ def run(tag, rounds=3, start='stageA', search_cross=250.0):
         del rend
         if not obs:
             print("  no observations; stopping"); break
-        r = solve_block(sol, obs, recs, lab, minE, maxN, mpp)
+        r = solve_block(sol, obs, recs, lab, minE, maxN, mpp, model=model)
         if r is None:
             break
         cE, cN, sig, rho, ctr = r
@@ -369,4 +378,5 @@ def run(tag, rounds=3, start='stageA', search_cross=250.0):
 
 
 if __name__ == '__main__':
-    run(sys.argv[1], int(arg('--rounds', 3)), arg('--from', 'stageA'), float(arg('--cross', 250.0)))
+    run(sys.argv[1], int(arg('--rounds', 3)), arg('--from', 'stageA'), float(arg('--cross', 250.0)),
+        arg('--model', 'similarity'))
