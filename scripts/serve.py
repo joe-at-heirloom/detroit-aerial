@@ -97,10 +97,24 @@ def render_tile(layer_id, z, x, y):
     if tE <= src.W or tW >= src.E or tN <= src.S or tS >= src.N:
         return None                        # tile lies outside the mosaic
 
+    # A tile that hangs over the edge of the mosaic may only paint the part of
+    # itself that lands on real ground. Clamping the read window WITHOUT also
+    # narrowing the output rectangle -- which this did once -- resampled the few
+    # columns that exist across the full 256, so the outermost strip of every
+    # block was stretched and displaced by up to a whole tile. So: work out which
+    # columns and rows of the OUTPUT are drawable first, and paint only those.
+
     # longitude is linear in both frames -> a single column mapping
-    fx0 = (tW - src.W) / (src.E - src.W) * src.w
-    fx1 = (tE - src.W) / (src.E - src.W) * src.w
-    px0, px1 = int(math.floor(fx0)), int(math.ceil(fx1))
+    lo0 = max(tW, src.W); lo1 = min(tE, src.E)
+    if lo1 <= lo0:
+        return None
+    oc0 = max(0, int(math.floor((lo0 - tW) / (tE - tW) * TILE)))
+    oc1 = min(TILE, int(math.ceil((lo1 - tW) / (tE - tW) * TILE)))
+    if oc1 <= oc0:
+        return None
+    lo0e = tW + (tE - tW) * oc0 / TILE; lo1e = tW + (tE - tW) * oc1 / TILE
+    px0 = max(0, int(math.floor((lo0e - src.W) / (src.E - src.W) * src.w)))
+    px1 = min(src.w, int(math.ceil((lo1e - src.W) / (src.E - src.W) * src.w)))
 
     # latitude: tile rows are Mercator, source rows are linear in degrees
     def merc(lat):
@@ -110,28 +124,34 @@ def render_tile(layer_id, z, x, y):
     lat = np.array([math.degrees(2 * math.atan(math.exp(mN + (mS - mN) * r / TILE)) - math.pi / 2)
                     for r in rows])
     fy = (src.N - lat) / (src.N - src.S) * src.h
-    py0, py1 = int(math.floor(fy.min())), int(math.ceil(fy.max()))
+    okr = (fy >= 0) & (fy < src.h)
+    if not okr.any():
+        return None
+    or0 = int(np.argmax(okr)); or1 = TILE - int(np.argmax(okr[::-1]))
+    py0 = max(0, int(math.floor(fy[or0])))
+    py1 = min(src.h, int(math.ceil(fy[or1 - 1])))
     if px1 <= px0 or py1 <= py0:
         return None
 
-    band = src.read(px0, py0, px1, py1, TILE, max(1, py1 - py0))
+    band = src.read(px0, py0, px1, py1, oc1 - oc0, max(1, py1 - py0))
     if band is None or band.size == 0:
         return None
     if band.ndim == 3:
         band = band[..., :3]
-    # resample rows onto the Mercator grid
-    idx = np.clip(((fy - py0) / max(1, (py1 - py0)) * band.shape[0]).astype(int),
+    # resample rows onto the Mercator grid, over the drawable rows only
+    idx = np.clip(((fy[or0:or1] - py0) / max(1, (py1 - py0)) * band.shape[0]).astype(int),
                   0, band.shape[0] - 1)
-    out = band[idx]
-    if out.ndim == 2:
-        rgb = np.dstack([out, out, out])
-    else:
-        rgb = out
-    alpha = np.where(rgb.max(axis=2) > 0, 255, 0).astype(np.uint8)
-    rgba = np.dstack([rgb.astype(np.uint8), alpha])
+    sub = band[idx]
+    if sub.ndim == 2:
+        sub = np.dstack([sub, sub, sub])
+    sub = sub[:, :oc1 - oc0, :3]
+
+    rgb = np.zeros((TILE, TILE, 3), np.uint8)
+    rgb[or0:or0 + sub.shape[0], oc0:oc0 + sub.shape[1]] = sub
+    alpha = np.zeros((TILE, TILE), np.uint8)
+    alpha[or0:or0 + sub.shape[0], oc0:oc0 + sub.shape[1]] = np.where(sub.max(axis=2) > 0, 255, 0)
+    rgba = np.dstack([rgb, alpha])
     im = Image.fromarray(rgba, "RGBA")
-    if im.size != (TILE, TILE):
-        im = im.resize((TILE, TILE), Image.LANCZOS)
     buf = io.BytesIO()
     im.save(buf, "PNG", optimize=False)
     return buf.getvalue()
