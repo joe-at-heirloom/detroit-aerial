@@ -2,12 +2,23 @@
   "_note": "Researched pins for the viewer. Each is a place where the change between 1949 and today is legible in the imagery. blurb is HTML; sources are {label, url}.",
   "places": [
     {
+      "id": "herman-gardens",
+      "group": "west",
+      "lat": 42.35389,
+      "lon": -83.21139,
+      "title": "Herman Gardens",
+      "blurb": "The superblock south-east of the crossing, and the most legible thing in this whole survey. <b>Herman Gardens</b> was public housing built in 1943 &mdash; 2,144 units, mostly two-storey rows &mdash; laid out at 45&deg; to the street grid, so in 1949 it reads as a diagonal herringbone against the rectangular blocks all around it. It is still there, entire, in 1961 and 1967. Demolition ran through the 1980s and 1990s, and Gardenview Estates opened on the site on 2 September 2009 with 607 units. <b>Wipe 1949 against today:</b> the herringbone becomes open grass with a few curving new streets. John DeLorean, Judge Greg Mathis and The Spinners all lived here.",
+      "sources": [
+        { "label": "Wikipedia: Herman Gardens", "url": "https://en.wikipedia.org/wiki/Herman_Gardens" }
+      ]
+    },
+    {
       "id": "joy-southfield",
       "group": "west",
       "lat": 42.35785,
       "lon": -83.21649,
       "title": "Joy Rd & Southfield Freeway",
-      "blurb": "In 1949 there is no freeway here. Southfield Road is an ordinary surface street with houses and shops fronting it, and the residential grid runs straight through. The State Highway Department approved converting it to a freeway in June 1957; the first segment opened on 19 December 1961 and ran from Dearborn up to W Chicago Blvd, just north of Joy Road &mdash; so this crossing sits on the oldest piece of M-39. <b>Wipe 1949 against 1961 along the corridor and you catch the demolition in progress:</b> the 1961 negatives show a broad swath of bare graded earth, the buildings gone and the mainline still unpaved, with the Joy Road bridge already formed. By 1967 the freeway is finished and sunk below grade, with Joy Road carried over it.",
+      "blurb": "In 1949 there is no freeway here. Southfield Road is an ordinary surface street with houses and shops fronting it, and the residential grid runs straight through. The State Highway Department approved converting it to a freeway in June 1957; the first segment opened on 19 December 1961 and ran from Dearborn up to W Chicago Blvd just north of Joy Road &mdash; so this crossing sits on the oldest piece of M-39. <b>Wipe 1949 against 1961 along the corridor and you catch the demolition in progress:</b> the 1961 negatives show a broad swath of bare graded earth, the buildings gone and the mainline still unpaved, with the Joy Road bridge already formed. By 1967 the freeway is finished and sunk below grade, with Joy Road carried over it.",
       "sources": [
         { "label": "Michigan Highways: M-39", "url": "https://www.michiganhighways.org/listings/M-039.html" },
         { "label": "Wikipedia: M-39", "url": "https://en.wikipedia.org/wiki/M-39_(Michigan_highway)" }
@@ -18,11 +29,11 @@
       "group": "west",
       "lat": 42.36041,
       "lon": -83.22042,
-      "title": "Cody High School & Stein Playground",
-      "blurb": "The complex that dominates this block today is Cody High School, with Stein Playground to the north. In 1949 none of it is here: the ground is open and disturbed, with a large flat-roofed building, spoil heaps and what looks like an excavation, while the streets to the south are already built solid. By 1961 the school stands on it and the open ground north has become a playfield with ball diamonds; today that field carries a running track. <i>What the 1949 building and the excavation were is still being checked.</i>",
+      "title": "Frank Cody High School",
+      "blurb": "In 1949 this ground is empty &mdash; bare, disturbed earth and unpaved lots, with the streets to the south already built solid. <b>Cody High School opened in 1952</b>, named for a former Detroit Public Schools superintendent, and stands complete in the 1961 and 1967 frames. It opened on the city's white West Side as a new, well-equipped school at a time when the schools serving Black children on the east and central sides were overcrowded and decaying, and it became an emblem of that inequality. Stein Playground, the open field to the north, carries a running track today.",
       "sources": [
-        { "label": "OpenStreetMap: Cody High School", "url": "https://www.openstreetmap.org/way/455591644" },
-        { "label": "OpenStreetMap: Stein Playground", "url": "https://www.openstreetmap.org/way/79583074" }
+        { "label": "The Metropole: Cody High School", "url": "https://themetropole.blog/2019/08/22/cody-high-school-from-promise-to-punishment/" },
+        { "label": "Wikipedia: Frank Cody High School", "url": "https://en.wikipedia.org/wiki/Frank_Cody_High_School" }
       ]
     }
   ]
