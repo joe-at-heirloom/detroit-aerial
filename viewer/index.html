@@ -61,6 +61,30 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .cell .k{font-size:9px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;font-family:var(--sans)}
 .cell .v{color:var(--ink)}
 .cell.grow{flex:1;border-right:0}
+.pmark{cursor:pointer}
+.ptip{background:var(--panel);border:1px solid var(--rule);color:var(--ink);font-family:var(--mono);
+  font-size:11px;box-shadow:none;padding:3px 7px}
+.ptip::before{border-top-color:var(--rule)}
+#probe{position:absolute;right:14px;bottom:14px;z-index:603;background:rgba(11,15,18,.96);
+  border:1px solid var(--rule);padding:9px 10px 10px;max-width:calc(100% - 28px);
+  font-family:var(--mono);font-size:11px}
+#probe[hidden]{display:none}
+.phead{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--ink-dim)}
+.phead b{color:var(--amber);font-weight:600;font-family:var(--sans);font-size:12.5px}
+.pspacer{flex:1}
+.pz,.pclose{border:1px solid var(--rule);width:21px;height:21px;line-height:1;color:var(--ink-dim);flex:0 0 auto}
+.pz:hover,.pclose:hover{background:var(--panel-hi);color:var(--ink)}
+.pzl{color:var(--ink-faint);min-width:22px;text-align:center}
+.prow{display:flex;gap:6px;flex-wrap:wrap}
+.pcell{display:flex;flex-direction:column;gap:4px}
+.pcell i{font-style:normal;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-faint);font-family:var(--sans)}
+.pmap{width:148px;height:148px;background:var(--ground);border:1px solid var(--rule)}
+.pmap.nocov{display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:10px}
+.pblurb{margin-top:9px;max-width:700px;font-family:var(--sans);font-size:12px;line-height:1.5;color:var(--ink-dim)}
+.pblurb b{color:var(--ink)}
+.psrc a{color:var(--cyan);text-decoration:none}
+.psrc a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -72,6 +96,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <div class="tools">
       <label><input type="checkbox" id="streets"> STREET MAP</label>
       <label><input type="checkbox" id="roads"> CENTRELINES <span style="color:var(--ink-faint)">(z14+)</span></label>
+      <label><input type="checkbox" id="places" checked> PLACES</label>
       <label class="op">OPACITY <input type="range" id="opa" min="20" max="100" value="75"></label>
       <button id="fit">RESET</button>
     </div>
@@ -79,7 +104,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   <div class="rail">
     <div class="side L" id="railL"><span class="lbl">LEFT</span></div>
     <div class="side R" id="railR"><span class="lbl">RIGHT</span></div>
-    <div class="hint">drag the divider to wipe &middot; scroll to zoom &middot; native 0.63 m/px</div>
+    <div class="hint">drag the divider to wipe &middot; <b style="color:var(--amber);font-weight:500">click the map to see that spot in every year</b> &middot; native 0.63 m/px</div>
   </div>
   <div id="mapwrap">
     <div id="map"></div>
@@ -87,6 +112,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <div class="tag" id="tagL"></div>
     <div class="tag" id="tagR"></div>
     <div class="note" id="note"></div>
+    <div id="probe" hidden></div>
   </div>
   <div class="marg">
     <div class="cell"><span class="k">Comparing</span><span class="v" id="mCmp">&mdash;</span></div>
@@ -99,6 +125,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 let MAN, map, left, right, roadsLayer, streetLayer, split = 0.5, cur = null, L_ = 0, R_ = 1;
+let curId = null, PLACES = [], placeLayer = null, probeMaps = [], probePt = null,
+    probePlace = null, probeZoom = 17, probeToken = 0;
 
 const NOTES = {
   downtown: ["Downtown &middot; 1949 / 1956 / 1961",
@@ -111,6 +139,7 @@ const NOTES = {
 
 async function boot() {
   MAN = await (await fetch('/data/manifest.json?t=' + Date.now(), {cache: 'no-store'})).json();
+  await loadPlaces();
   const tabs = document.getElementById('tabs');
   Object.entries(MAN.groups).forEach(([id, g], i) => {
     const b = document.createElement('button');
@@ -152,8 +181,146 @@ async function boot() {
     if (e.target.checked) { streetLayer.addTo(map); streetLayer.bringToFront(); }
     else map.removeLayer(streetLayer);
   };
+  document.getElementById('places').onchange = () => { drawPlaces(); };
+  // Click anywhere to ask what was on that ground in every year we hold. This is
+  // the question the wipe cannot answer: the wipe shows two years, and only along
+  // the divider.
+  map.on('click', e => openProbe(e.latlng, null));
   wireSwipe();
   show(Object.keys(MAN.groups)[0]);
+}
+
+
+// -------------------------------------------------------------- places + probe
+// Two related things. PLACES are researched pins: somewhere worth knowing about,
+// with a note and its sources. The PROBE is the general case -- click any ground
+// at all and see it in every year the survey covers, which is how you find out
+// what used to be where a new building is.
+
+async function loadPlaces() {
+  try {
+    const r = await fetch('/data/places.json?t=' + Date.now(), { cache: 'no-store' });
+    PLACES = r.ok ? ((await r.json()).places || []) : [];
+  } catch (e) { PLACES = []; }
+}
+
+function drawPlaces() {
+  if (placeLayer) { map.removeLayer(placeLayer); placeLayer = null; }
+  const on = document.getElementById('places').checked;
+  const mine = PLACES.filter(p => (p.group || 'west') === curId);
+  if (!on || !mine.length) return;
+  const g = L.layerGroup();
+  mine.forEach(p => {
+    const m = L.circleMarker([p.lat, p.lon], {
+      radius: 6, weight: 2, color: '#E0A94A', fillColor: '#0B0F12', fillOpacity: .9,
+      className: 'pmark'
+    });
+    m.bindTooltip(p.title, { direction: 'top', className: 'ptip', offset: [0, -6] });
+    m.on('click', ev => { L.DomEvent.stopPropagation(ev); openProbe(L.latLng(p.lat, p.lon), p); });
+    g.addLayer(m);
+  });
+  g.addTo(map);
+  placeLayer = g;
+}
+
+function covers(lid, ll) {
+  const l = MAN.layers.find(x => x.id === lid);
+  if (!l || !l.bbox) return true;
+  return ll.lat >= l.bbox[0] && ll.lat <= l.bbox[2] && ll.lng >= l.bbox[1] && ll.lng <= l.bbox[3];
+}
+
+// A block's bounding box is a rectangle; its actual film coverage is a ragged
+// shape inside it, and 1956 in particular is missing whole corners. Rather than
+// show a black square under a confident year label, read the alpha of the tile
+// that holds the point: nodata is transparent, so this is exact.
+function flown(lid, ll, z) {
+  return new Promise(resolve => {
+    const n = Math.pow(2, z);
+    const fx = (ll.lng + 180) / 360 * n;
+    const fy = (1 - Math.asinh(Math.tan(ll.lat * Math.PI / 180)) / Math.PI) / 2 * n;
+    const x = Math.floor(fx), y = Math.floor(fy);
+    const px = Math.min(255, Math.max(0, Math.floor((fx - x) * 256)));
+    const py = Math.min(255, Math.max(0, Math.floor((fy - y) * 256)));
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        g.drawImage(img, 0, 0);
+        const x0 = Math.min(247, Math.max(0, px - 4)), y0 = Math.min(247, Math.max(0, py - 4));
+        const d = g.getImageData(x0, y0, 9, 9).data;
+        let a = 0;
+        for (let i = 3; i < d.length; i += 4) a += d[i];
+        resolve(a > 0);
+      } catch (e) { resolve(true); }      // unreadable: assume flown
+    };
+    img.onerror = () => resolve(true);
+    img.src = layerUrl(lid).replace('{z}', z).replace('{x}', x).replace('{y}', y);
+  });
+}
+
+function closeProbe() {
+  probeMaps.forEach(m => m.remove());
+  probeMaps = []; probePt = null; probePlace = null;
+  const box = document.getElementById('probe');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+}
+
+function openProbe(ll, place) {
+  probeMaps.forEach(m => m.remove());
+  probeMaps = [];
+  probePt = ll; probePlace = place || null;
+  const box = document.getElementById('probe');
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const cells = cur.layers.map((lid, i) => {
+    const l = MAN.layers.find(x => x.id === lid);
+    return '<div class="pcell"><i>' + esc(l.label) + '</i><div class="pmap" id="pm' + i + '"></div></div>';
+  }).join('');
+  let blurb = '';
+  if (place) {
+    const src = (place.sources || []).map(s =>
+      '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.label) + '</a>').join(' &middot; ');
+    blurb = '<div class="pblurb">' + place.blurb + (src ? '<div class="psrc" style="margin-top:5px">' + src + '</div>' : '') + '</div>';
+  }
+  box.innerHTML =
+    '<div class="phead">' +
+      '<span>' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5) + '</span>' +
+      (place ? '<b>' + esc(place.title) + '</b>' : '') +
+      '<span class="pspacer"></span>' +
+      '<button class="pz" data-d="-1" title="zoom out">&minus;</button>' +
+      '<span class="pzl">z' + probeZoom + '</span>' +
+      '<button class="pz" data-d="1" title="zoom in">+</button>' +
+      '<button class="pclose" title="close">&times;</button>' +
+    '</div>' +
+    '<div class="prow">' + cells + '</div>' + blurb;
+  box.hidden = false;
+  const token = ++probeToken, cellMaps = [];
+  cur.layers.forEach((lid, i) => {
+    const el = document.getElementById('pm' + i);
+    if (!covers(lid, ll)) { el.classList.add('nocov'); el.textContent = 'not flown'; return; }
+    flown(lid, ll, probeZoom).then(ok => {
+      if (token !== probeToken || ok) return;
+      const j = probeMaps.indexOf(cellMaps[i]);
+      if (j >= 0) probeMaps.splice(j, 1);
+      if (cellMaps[i]) cellMaps[i].remove();
+      el.classList.add('nocov'); el.textContent = 'not flown';
+    });
+    const m = L.map(el, {
+      zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false,
+      doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false,
+      fadeAnimation: false, maxZoom: 21
+    }).setView(ll, probeZoom);
+    L.tileLayer(layerUrl(lid), { maxZoom: 21, maxNativeZoom: 21, className: 'nofade' }).addTo(m);
+    L.circleMarker(ll, { radius: 5, weight: 2, color: '#E0A94A', fill: false }).addTo(m);
+    probeMaps.push(m); cellMaps[i] = m;
+  });
+  box.querySelectorAll('.pz').forEach(b => {
+    b.onclick = () => {
+      probeZoom = Math.max(13, Math.min(20, probeZoom + Number(b.dataset.d)));
+      openProbe(probePt, probePlace);
+    };
+  });
+  box.querySelector('.pclose').onclick = closeProbe;
 }
 
 function layerUrl(lid) {
@@ -163,12 +330,13 @@ function layerUrl(lid) {
 }
 
 function show(gid) {
-  cur = MAN.groups[gid];
+  cur = MAN.groups[gid]; curId = gid;
+  closeProbe();
   L_ = 0; R_ = cur.layers.length - 1;
   const n = NOTES[gid] || ['', ''];
   document.getElementById('note').innerHTML =
     '<h3>' + n[0] + '</h3>' + n.slice(1).map(p => '<p style="margin:6px 0 0">' + p + '</p>').join('');
-  paint(); fit();
+  paint(); fit(); drawPlaces();
 }
 
 function chips(el, sel, cb) {

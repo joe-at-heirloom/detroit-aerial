@@ -1,0 +1,14 @@
+{
+  "_note": "Researched pins for the viewer. Each is a place where the change between 1949 and today is legible in the imagery. blurb is HTML; sources are {label, url}.",
+  "places": [
+    {
+      "id": "joy-southfield",
+      "group": "west",
+      "lat": 42.3598,
+      "lon": -83.2225,
+      "title": "Joy & Southfield",
+      "blurb": "Being researched. In 1949 this ground is open and disturbed &mdash; a large flat-roofed building, spoil heaps and what looks like an excavation &mdash; while the streets south of it are already built solid. By 1961 a large institution stands here with a playfield to the north.",
+      "sources": []
+    }
+  ]
+}
