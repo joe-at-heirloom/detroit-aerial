@@ -65,6 +65,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   font-family:var(--mono);font-size:11px;padding:3px 6px;max-width:210px}
 .tools select:hover{border-color:var(--amber)}
 .pmark{cursor:pointer}
+.pclus{background:var(--amber);color:var(--ground);border-radius:50%;font-family:var(--mono);
+  font-size:12px;font-weight:600;text-align:center;line-height:22px;border:2px solid var(--ground);
+  box-shadow:0 0 0 1px var(--amber);cursor:pointer}
+.ptip.perm{background:rgba(11,15,18,.9);border-color:var(--amber);color:var(--ink)}
 .ptip{background:var(--panel);border:1px solid var(--rule);color:var(--ink);font-family:var(--mono);
   font-size:11px;box-shadow:none;padding:3px 7px}
 .ptip::before{border-top-color:var(--rule)}
@@ -187,6 +191,7 @@ async function boot() {
     else map.removeLayer(streetLayer);
   };
   document.getElementById('places').onchange = () => { drawPlaces(); };
+  map.on('zoomend', renderPins);
   // Click anywhere to ask what was on that ground in every year we hold. This is
   // the question the wipe cannot answer: the wipe shows two years, and only along
   // the divider.
@@ -215,18 +220,56 @@ function drawPlaces() {
   const on = document.getElementById('places').checked;
   const mine = PLACES.filter(p => (p.group || 'west') === curId);
   if (!on || !mine.length) return;
-  const g = L.layerGroup();
-  mine.forEach(p => {
-    const m = L.circleMarker([p.lat, p.lon], {
-      radius: 6, weight: 2, color: '#E0A94A', fillColor: '#0B0F12', fillOpacity: .9,
-      className: 'pmark'
-    });
-    m.bindTooltip(p.title, { direction: 'top', className: 'ptip', offset: [0, -6] });
-    m.on('click', ev => { L.DomEvent.stopPropagation(ev); openProbe(L.latLng(p.lat, p.lon), p); });
-    g.addLayer(m);
+  placeLayer = L.layerGroup().addTo(map);
+  renderPins();
+}
+
+// At the zoom that fits a whole block, pins a few hundred metres apart land within
+// ten pixels of each other and read as one dot -- which is how three places looked
+// like one. So group whatever overlaps on screen into a counted badge that zooms
+// to its members, and name the pins outright once there is room.
+function renderPins() {
+  if (!placeLayer) return;
+  placeLayer.clearLayers();
+  const mine = PLACES.filter(p => (p.group || 'west') === curId);
+  if (!mine.length) return;
+  const z = map.getZoom();
+  const pts = mine.map(p => ({ p: p, pt: map.latLngToLayerPoint([p.lat, p.lon]) }));
+  const used = pts.map(() => false), groups = [];
+  for (let i = 0; i < pts.length; i++) {
+    if (used[i]) continue;
+    const grp = [pts[i]]; used[i] = true;
+    for (let j = i + 1; j < pts.length; j++) {
+      if (!used[j] && pts[i].pt.distanceTo(pts[j].pt) < 38) { grp.push(pts[j]); used[j] = true; }
+    }
+    groups.push(grp);
+  }
+  groups.forEach(grp => {
+    if (grp.length === 1) {
+      const p = grp[0].p;
+      const m = L.circleMarker([p.lat, p.lon], {
+        radius: 7, weight: 2, color: '#E0A94A', fillColor: '#0B0F12', fillOpacity: .9,
+        className: 'pmark'
+      });
+      m.on('click', ev => { L.DomEvent.stopPropagation(ev); openProbe(L.latLng(p.lat, p.lon), p); });
+      if (z >= 14.5) m.bindTooltip(p.title, { permanent: true, direction: 'right',
+                                              className: 'ptip perm', offset: [9, 0] });
+      else m.bindTooltip(p.title, { direction: 'top', className: 'ptip', offset: [0, -7] });
+      placeLayer.addLayer(m);
+    } else {
+      const lat = grp.reduce((a, x) => a + x.p.lat, 0) / grp.length;
+      const lon = grp.reduce((a, x) => a + x.p.lon, 0) / grp.length;
+      const m = L.marker([lat, lon], { icon: L.divIcon({
+        className: 'pclus', html: String(grp.length), iconSize: [26, 26], iconAnchor: [13, 13] }) });
+      m.bindTooltip(grp.map(x => x.p.title).join(' \u00b7 '), { direction: 'top', className: 'ptip' });
+      m.on('click', ev => {
+        L.DomEvent.stopPropagation(ev);
+        map.fitBounds(L.latLngBounds(grp.map(x => [x.p.lat, x.p.lon])),
+                     { padding: [70, 70], maxZoom: 17 });
+      });
+      placeLayer.addLayer(m);
+    }
   });
-  g.addTo(map);
-  placeLayer = g;
 }
 
 function fillPlaceList() {
@@ -235,6 +278,10 @@ function fillPlaceList() {
   sel.innerHTML = '<option value="">PLACES\u2026</option>' +
     mine.map(p => '<option value="' + p.id + '">' + p.title.replace(/</g, '&lt;') + '</option>').join('');
   sel.style.display = mine.length ? '' : 'none';
+  const lab = document.querySelector('label[for-places], #places');
+  if (lab && lab.parentElement) {
+    lab.parentElement.lastChild.textContent = mine.length ? ' PLACES (' + mine.length + ')' : ' PLACES';
+  }
   sel.onchange = () => {
     const p = mine.find(x => x.id === sel.value);
     sel.value = '';
