@@ -109,12 +109,21 @@ USGS NAIP on 1.5 km windows, three registration implementations put it at
 
 **1949** (50 negatives, three flight lines) -- complete and in the viewer. Its
 catalogue positions were poor, so the block's heading was refined against 1961's
-verified build before placement; the absolute figures below are against modern
-imagery, which it was not placed against:
+verified build before placement. The placement itself is fitted directly against
+modern imagery with a cubic model:
 
 | | along-track seams | cross-line seams | absolute, 3.6 km cells | absolute, 1.8 km cells |
 |---|---|---|---|---|
-| COLMAP + surface | **2.0 m** (p90 4.0) | **2.0 m** (p90 4.0) | **4.2 m** (p90 9.9) | **4.7 m** (p90 11.9) |
+| COLMAP + surface | **2.0 m** (p90 4.0) | **2.0 m** (p90 4.0) | **4.2 m** (p90 7.1) | **4.1 m** (p90 8.4) |
+
+It was first placed by chaining through 1961, on the reasoning that a 12-year gap
+matches far more easily than a 75-year one. That was wrong here: chaining
+inherits 1961's own 2.6 m, and once the heading refinement had removed the gross
+error there was enough signal to fit against modern imagery directly. Fitting
+direct, and with a cubic rather than a quadratic, halved the error against an
+independent reference -- USGS NAIP, which no build is fitted to -- from
+**8.0-8.4 m** to **4.4-5.3 m**, with the worst of twelve windows going from
+14.9 m to 7.5 m.
 
 Independently, against USGS NAIP on 1.5 km windows, the three implementations
 agree at **8.0 / 8.2 / 8.4 m** (scikit-image / OpenCV / ours) with no systematic

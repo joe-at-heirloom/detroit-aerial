@@ -867,3 +867,29 @@ Applied (cubic): seams unchanged 2.0 / 4.0 m; against modern 5.6 m median at
 Against USGS NAIP (`crosscheck.py --block 1956 --suffix placedC --n 12 --span 1500
 --mpp 1.0 --bound 60 --ridge`): ours 5.90 m (p90 31.2), scikit-image 4.47 (p90 29.3),
 OpenCV 4.59 (p90 21.2); bias dE -2.6 dN +1.0. Agrees with our own 5.6 m / p90 21.6.
+
+## 1949 re-placed: direct to modern, cubic (2026-09-02)
+
+"1949 is slightly off kilter from modern map." It was not rotated -- five
+independent instruments put the block rotation at 0.01-0.09 deg against a 1961
+control in the same range. What was real was a LOCAL bearing warp varying with
+latitude (about -0.24 deg at Joy and Plymouth, nil at Fenkell and McNichols),
+which no rigid measurement sees.
+
+Fixed by two changes: fit the placement with the `cubic` model (added for 1956,
+after 1949 had already been placed), and measure the field against modern
+imagery directly instead of chaining through 1961:
+
+    fieldmeasure.py 1949 colmap --label-out colmapM     # vs modern, not 1961
+    fieldfit.py 1949 colmapM --use cells                # cubic wins, LOO 4.9 m
+    fieldapply.py 1949 colmap --fits colmapM --out placedE
+
+Independent arbiter (USGS NAIP, which nothing is fitted to), ours/skimage/opencv:
+
+    placedC (was served)  8.39 / 8.03 / 8.20 m   p90 9.7-10.7   max 13.2-14.9
+    placedD (cubic vs 1961) 4.46 / 4.04 / 4.30   p90 8.3-9.2    max 10.3-12.4
+    placedE (cubic vs modern) 4.44 / 5.05 / 5.32 p90 6.6-7.1    max 7.3-7.5
+
+Seams unchanged at 2.0/2.0 m through the warp. Served as `1949:placedE`;
+placedD deleted. The same "fit direct to modern with a cubic" question is open
+for 1956, which is still chained through 1961.

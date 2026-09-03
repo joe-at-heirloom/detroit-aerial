@@ -60,7 +60,7 @@
    "id": "b1949",
    "group": "west",
    "label": "1949",
-   "file": "mosaics/detroit_1949_placedC.tif",
+   "file": "mosaics/detroit_1949_placedE.tif",
    "bbox": [
     42.19034670176887,
     -83.30714736448378,
@@ -68,7 +68,7 @@
     -83.18021655890128
    ],
    "gray": true,
-   "ver": 1788323307
+   "ver": 1788394633
   },
   {
    "id": "b1956",
