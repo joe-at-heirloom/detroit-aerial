@@ -18,11 +18,42 @@ from rasterio.windows import from_bounds
 from PIL import Image, ImageDraw
 from validate import P, modern_for
 
-# Detroit's mile roads on the west side (WGS84), so the crossings are real ones.
-EW = {'Ford Rd': 42.3325, 'Warren Ave': 42.3468, 'Joy Rd': 42.3598, 'Plymouth Rd': 42.3737,
-      'Schoolcraft Rd': 42.3875, 'Fenkell Ave': 42.4008, 'McNichols Rd': 42.4155, 'Seven Mile Rd': 42.4295}
-NS = {'Telegraph Rd': -83.2735, 'Evergreen Rd': -83.2445, 'Southfield Fwy': -83.2225,
-      'Greenfield Rd': -83.2010, 'Outer Dr': -83.2300, 'Wyoming Ave': -83.1650}
+# Real arterial crossings, computed from OpenStreetMap way geometry rather than
+# guessed: an earlier hand-typed table was up to 900 m out, which put the label on
+# a picture of the wrong junction. (scripts/roadcross.py regenerates this.)
+CROSSINGS = [
+    ('Ford Rd x Telegraph Rd', 42.32697, -83.27261),
+    ('Ford Rd x Outer Dr', 42.32691, -83.26155),
+    ('Ford Rd x Evergreen Rd', 42.32866, -83.23463),
+    ('Ford Rd x Southfield Fwy', 42.32903, -83.21567),
+    ('Ford Rd x Greenfield Rd', 42.32925, -83.19570),
+    ('Warren Ave x Telegraph Rd', 42.34144, -83.27312),
+    ('Warren Ave x Outer Dr', 42.34203, -83.25217),
+    ('Warren Ave x Evergreen Rd', 42.34313, -83.23539),
+    ('Warren Ave x Southfield Fwy', 42.34337, -83.21614),
+    ('Warren Ave x Greenfield Rd', 42.34367, -83.19629),
+    ('Joy Rd x Telegraph Rd', 42.35688, -83.27455),
+    ('Joy Rd x Outer Dr', 42.35713, -83.26180),
+    ('Joy Rd x Evergreen Rd', 42.35757, -83.23595),
+    ('Joy Rd x Southfield Fwy', 42.35785, -83.21649),
+    ('Joy Rd x Greenfield Rd', 42.35813, -83.19700),
+    ('Plymouth Rd x Telegraph Rd', 42.37125, -83.27566),
+    ('Plymouth Rd x Outer Dr', 42.37160, -83.26087),
+    ('Plymouth Rd x Evergreen Rd', 42.37189, -83.23626),
+    ('Plymouth Rd x Southfield Fwy', 42.37226, -83.21668),
+    ('Plymouth Rd x Greenfield Rd', 42.37256, -83.19756),
+    ('Schoolcraft Rd x Telegraph Rd', 42.38535, -83.27616),
+    ('Schoolcraft Rd x Outer Dr', 42.38504, -83.25630),
+    ('Fenkell Ave x Outer Dr', 42.40077, -83.23259),
+    ('Fenkell Ave x Southfield Fwy', 42.40114, -83.21829),
+    ('Fenkell Ave x Greenfield Rd', 42.40151, -83.19870),
+    ('McNichols Rd x Telegraph Rd', 42.41454, -83.27717),
+    ('McNichols Rd x Outer Dr', 42.41530, -83.23184),
+    ('McNichols Rd x Southfield Fwy', 42.41555, -83.21881),
+    ('McNichols Rd x Greenfield Rd', 42.41599, -83.19929),
+    ('Grand River x Outer Dr', 42.40642, -83.23253),
+    ('Grand River x Telegraph Rd', 42.42447, -83.27761),
+]
 
 
 def tile(tag, label, lat, lon, span, px):
@@ -42,28 +73,27 @@ def main():
     g = json.load(open(P('data', f'{tag}_{label}_geo.json'))); S, W, N, E = g['bbox']
     px = 420
     cands = []
-    for en, lat in EW.items():
-        for nn, lon in NS.items():
-            if S + 0.01 < lat < N - 0.01 and W + 0.01 < lon < E - 0.01:
-                a, _ = tile(tag, label, lat, lon, span, 60)
-                if (a > 0).mean() > 0.9:
-                    cands.append((en, nn, lat, lon))
+    for name, lat, lon in CROSSINGS:
+        if S + 0.005 < lat < N - 0.005 and W + 0.005 < lon < E - 0.005:
+            a, _ = tile(tag, label, lat, lon, span, 60)
+            if (a > 0).mean() > 0.9:
+                cands.append((name, lat, lon))
     # spread the picks over the block: sort by latitude then take evenly spaced
-    cands.sort(key=lambda c: (c[2], c[3]))
+    cands.sort(key=lambda c: (c[1], c[2]))
     k = min(6, len(cands)); picks = [cands[int(i * (len(cands) - 1) / max(k - 1, 1))] for i in range(k)]
     cols = 3; rows = math.ceil(len(picks) / cols)
     pad = 26
     canvas = Image.new('RGB', (cols * (px + 8) + 8, rows * (px + pad + 8) + 40), (18, 18, 18))
     d = ImageDraw.Draw(canvas)
     d.text((10, 10), f'{tag} {label}  |  left half {tag}, right half today, seam through the crossing  |  tile {span} m', fill=(240, 200, 80))
-    for i, (en, nn, lat, lon) in enumerate(picks):
+    for i, (name, lat, lon) in enumerate(picks):
         a, m = tile(tag, label, lat, lon, span, px)
         img = np.zeros((px, px), np.uint8); img[:, :px // 2] = a[:, :px // 2]; img[:, px // 2:] = m[:, px // 2:]
         im = Image.fromarray(img).convert('RGB'); dd = ImageDraw.Draw(im)
         dd.line([(px // 2, 0), (px // 2, px)], fill=(255, 170, 0), width=1)
         bar = int(px * 50 / span); dd.line([(10, px - 12), (10 + bar, px - 12)], fill=(255, 255, 255), width=3); dd.text((12, px - 26), '50 m', fill=(255, 255, 255))
         x = 8 + (i % cols) * (px + 8); y = 40 + (i // cols) * (px + pad + 8)
-        canvas.paste(im, (x, y + pad)); d.text((x, y + 6), f'{en} x {nn}', fill=(230, 230, 230))
+        canvas.paste(im, (x, y + pad)); d.text((x, y + 6), name, fill=(230, 230, 230))
     fn = os.path.join(out, f'wipe_{tag}_{label}.png'); canvas.save(fn); print('wrote', fn, len(picks), 'crossings')
 
 

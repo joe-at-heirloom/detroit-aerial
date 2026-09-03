@@ -4,11 +4,26 @@
     {
       "id": "joy-southfield",
       "group": "west",
-      "lat": 42.3598,
-      "lon": -83.2225,
-      "title": "Joy & Southfield",
-      "blurb": "Being researched. In 1949 this ground is open and disturbed &mdash; a large flat-roofed building, spoil heaps and what looks like an excavation &mdash; while the streets south of it are already built solid. By 1961 a large institution stands here with a playfield to the north.",
-      "sources": []
+      "lat": 42.35785,
+      "lon": -83.21649,
+      "title": "Joy Rd & Southfield Freeway",
+      "blurb": "In 1949 there is no freeway here. Southfield Road is an ordinary surface street with houses and shops fronting it, and the residential grid runs straight through. The State Highway Department approved converting it to a freeway in June 1957; the first segment opened on 19 December 1961 and ran from Dearborn up to W Chicago Blvd, just north of Joy Road &mdash; so this crossing sits on the oldest piece of M-39. <b>Wipe 1949 against 1961 along the corridor and you catch the demolition in progress:</b> the 1961 negatives show a broad swath of bare graded earth, the buildings gone and the mainline still unpaved, with the Joy Road bridge already formed. By 1967 the freeway is finished and sunk below grade, with Joy Road carried over it.",
+      "sources": [
+        { "label": "Michigan Highways: M-39", "url": "https://www.michiganhighways.org/listings/M-039.html" },
+        { "label": "Wikipedia: M-39", "url": "https://en.wikipedia.org/wiki/M-39_(Michigan_highway)" }
+      ]
+    },
+    {
+      "id": "cody-stein",
+      "group": "west",
+      "lat": 42.36041,
+      "lon": -83.22042,
+      "title": "Cody High School & Stein Playground",
+      "blurb": "The complex that dominates this block today is Cody High School, with Stein Playground to the north. In 1949 none of it is here: the ground is open and disturbed, with a large flat-roofed building, spoil heaps and what looks like an excavation, while the streets to the south are already built solid. By 1961 the school stands on it and the open ground north has become a playfield with ball diamonds; today that field carries a running track. <i>What the 1949 building and the excavation were is still being checked.</i>",
+      "sources": [
+        { "label": "OpenStreetMap: Cody High School", "url": "https://www.openstreetmap.org/way/455591644" },
+        { "label": "OpenStreetMap: Stein Playground", "url": "https://www.openstreetmap.org/way/79583074" }
+      ]
     }
   ]
 }
