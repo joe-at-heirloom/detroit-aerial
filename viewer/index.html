@@ -138,6 +138,7 @@ const NOTES = {
 };
 
 async function boot() {
+  const hash = location.hash;          // show() clears it; read it first
   MAN = await (await fetch('/data/manifest.json?t=' + Date.now(), {cache: 'no-store'})).json();
   await loadPlaces();
   const tabs = document.getElementById('tabs');
@@ -188,6 +189,7 @@ async function boot() {
   map.on('click', e => openProbe(e.latlng, null));
   wireSwipe();
   show(Object.keys(MAN.groups)[0]);
+  restoreFromHash(hash);
 }
 
 
@@ -259,7 +261,32 @@ function flown(lid, ll, z) {
   });
 }
 
+// A probe is worth linking to: #lat,lon,zoom reopens it on the same ground, so a
+// spot someone wants to ask about can be sent as a URL.
+function restoreFromHash(h) {
+  const m = /^#(-?\d+\.?\d*),(-?\d+\.?\d*)(?:,(\d+))?$/.exec(h || '');
+  if (!m) return;
+  const lat = parseFloat(m[1]), lon = parseFloat(m[2]);
+  if (m[3]) probeZoom = Math.max(13, Math.min(20, parseInt(m[3], 10)));
+  // the link may be for a scene other than the one that opens by default
+  const gid = Object.keys(MAN.groups).find(g => {
+    const b = MAN.groups[g].bbox;
+    return b && lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3];
+  });
+  if (gid && gid !== curId) {
+    [...document.getElementById('tabs').children].forEach(t =>
+      t.setAttribute('aria-selected', String(t.dataset.g === gid)));
+    show(gid);
+  }
+  const ll = L.latLng(lat, lon);
+  const near = PLACES.filter(p => (p.group || 'west') === curId)
+    .find(p => Math.abs(p.lat - lat) < 3e-4 && Math.abs(p.lon - lon) < 3e-4);
+  map.setView(ll, Math.min(probeZoom, 18));
+  openProbe(ll, near || null);
+}
+
 function closeProbe() {
+  history.replaceState(null, '', location.pathname);
   probeMaps.forEach(m => m.remove());
   probeMaps = []; probePt = null; probePlace = null;
   const box = document.getElementById('probe');
@@ -270,6 +297,7 @@ function openProbe(ll, place) {
   probeMaps.forEach(m => m.remove());
   probeMaps = [];
   probePt = ll; probePlace = place || null;
+  history.replaceState(null, '', '#' + ll.lat.toFixed(5) + ',' + ll.lng.toFixed(5) + ',' + probeZoom);
   const box = document.getElementById('probe');
   const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const cells = cur.layers.map((lid, i) => {
