@@ -61,6 +61,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .cell .k{font-size:9px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;font-family:var(--sans)}
 .cell .v{color:var(--ink)}
 .cell.grow{flex:1;border-right:0}
+.tools select{background:var(--panel-hi);color:var(--ink);border:1px solid var(--rule);
+  font-family:var(--mono);font-size:11px;padding:3px 6px;max-width:210px}
+.tools select:hover{border-color:var(--amber)}
 .pmark{cursor:pointer}
 .ptip{background:var(--panel);border:1px solid var(--rule);color:var(--ink);font-family:var(--mono);
   font-size:11px;box-shadow:none;padding:3px 7px}
@@ -97,6 +100,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <label><input type="checkbox" id="streets"> STREET MAP</label>
       <label><input type="checkbox" id="roads"> CENTRELINES <span style="color:var(--ink-faint)">(z14+)</span></label>
       <label><input type="checkbox" id="places" checked> PLACES</label>
+      <select id="placesel" title="researched places"><option value="">PLACES…</option></select>
       <label class="op">OPACITY <input type="range" id="opa" min="20" max="100" value="75"></label>
       <button id="fit">RESET</button>
     </div>
@@ -223,6 +227,22 @@ function drawPlaces() {
   });
   g.addTo(map);
   placeLayer = g;
+}
+
+function fillPlaceList() {
+  const sel = document.getElementById('placesel');
+  const mine = PLACES.filter(p => (p.group || 'west') === curId);
+  sel.innerHTML = '<option value="">PLACES\u2026</option>' +
+    mine.map(p => '<option value="' + p.id + '">' + p.title.replace(/</g, '&lt;') + '</option>').join('');
+  sel.style.display = mine.length ? '' : 'none';
+  sel.onchange = () => {
+    const p = mine.find(x => x.id === sel.value);
+    sel.value = '';
+    if (!p) return;
+    const ll = L.latLng(p.lat, p.lon);
+    map.setView(ll, Math.min(probeZoom, 18));
+    openProbe(ll, p);
+  };
 }
 
 function covers(lid, ll) {
@@ -364,7 +384,7 @@ function show(gid) {
   const n = NOTES[gid] || ['', ''];
   document.getElementById('note').innerHTML =
     '<h3>' + n[0] + '</h3>' + n.slice(1).map(p => '<p style="margin:6px 0 0">' + p + '</p>').join('');
-  paint(); fit(); drawPlaces();
+  paint(); fit(); drawPlaces(); fillPlaceList();
 }
 
 function chips(el, sel, cb) {
