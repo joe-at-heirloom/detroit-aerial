@@ -893,3 +893,44 @@ Independent arbiter (USGS NAIP, which nothing is fitted to), ours/skimage/opencv
 Seams unchanged at 2.0/2.0 m through the warp. Served as `1949:placedE`;
 placedD deleted. The same "fit direct to modern with a cubic" question is open
 for 1956, which is still chained through 1961.
+
+## Extending a block: what worked and what did not (2026-09-04)
+
+Wayne County holds exactly four years, so "more years" for Detroit is not
+available in this collection; more coverage in those four years is. The whole
+1949 roll ha-17 was fetched (118 frames, against 50 in the served build) and
+solved.
+
+**What worked.**
+- `fetchscans.py` at native resolution. A fixed width fails with HTTP 501 on any
+  negative scanned narrower than it (IIIF level1 will not upscale) and these run
+  5352-5400 wide, so the original store was silently missing frames.
+- `rollplan.py`: consecutive exposure numbers are consecutive shots along a line
+  and overlap ~60%, which pairs them with no position at all; within a run,
+  position is near-linear in number (1200-1400 m a frame), so frames a few
+  numbers off a solved run extrapolate to a few hundred metres.
+- Bootstrapping. The first solve registered 84 frames but the new ones had only
+  along-track pairs, leaving the four lines wanting -24/-11/+3/+24 m in E -- a
+  0.9% cross-block scale error. Re-pairing from the solved positions took
+  cross-line pairs 250 -> 352, cross seams p90 6.3 -> 4.5 m, and placement
+  7.1 -> 5.1 m.
+
+**What did not.** The 92-frame build is still not better than the served 50-frame
+one on the same ground: median 4.3 m against 4.2, but p90 13.4 against 7.1. The
+new ground it reaches (south to lat 42.06) is only 2-3 flight lines wide, so it
+carries almost no measurable control -- 2 usable cells at 3.6 km, none at 1.8 km.
+Lengthening a narrow block does not pay; widening it would.
+
+**Widening is blocked on locating rolls.** ha-16 and ha-18 were fetched (172
+frames) and locate nowhere on the block: rolls cover different regions, not
+adjacent strips. `locate.py` places a raw negative by FFT cross-correlation
+against a placed mosaic and works well there (3 of 4 known frames within 45 m,
+the fourth correctly refused), but against modern imagery over the whole county
+it fails outright -- 75 years of change plus a grid that repeats every 97.5 m.
+The route that should work is matching to the ROAD NETWORK rather than to
+imagery, which is how the original catalogue was built; `data/overlay_segs.npy`
+covers Detroit city (30 x 49 km) but not Downriver, so it would need extending
+from OSM first.
+
+Served builds are unchanged. `1949x` (84 frames) and `1949y` (92 frames) are kept
+as evidence and are not in the manifest.

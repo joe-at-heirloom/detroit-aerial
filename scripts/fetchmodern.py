@@ -72,6 +72,13 @@ def fetch(z, x, y, tries=4):
 def main():
     z = int(arg('--z', 16))
     name = arg('--out', 'modern_west_hi')
+    # --bbox S,W,N,E covers ground no block reaches yet. Locating a roll of film
+    # that overlaps nothing already solved needs a reference wider than the blocks,
+    # and the collection holds ten 1949 rolls over the whole county.
+    if '--bbox' in sys.argv:
+        S, W, N, E = [float(x) for x in arg('--bbox', '').split(',')]
+        print(f"bbox {S:.4f}..{N:.4f} N, {W:.4f}..{E:.4f} W", flush=True)
+        return _build(z, name, S, W, N, E)
     # union of every block's extent, padded
     boxes = []
     for t in ('1949', '1956', '1961', '1967'):
@@ -83,7 +90,10 @@ def main():
     S = min(b[0] for b in boxes) - pad; W = min(b[1] for b in boxes) - pad
     N = max(b[2] for b in boxes) + pad; E = max(b[3] for b in boxes) + pad
     print(f"union {S:.4f}..{N:.4f} N, {W:.4f}..{E:.4f} W", flush=True)
+    return _build(z, name, S, W, N, E)
 
+
+def _build(z, name, S, W, N, E):
     tx0 = int(math.floor(lon2x(W, z))); tx1 = int(math.ceil(lon2x(E, z)))
     ty0 = int(math.floor(lat2y(N, z))); ty1 = int(math.ceil(lat2y(S, z)))
     nx, ny = tx1 - tx0, ty1 - ty0

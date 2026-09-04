@@ -43,10 +43,16 @@ def hp(a, k=9):
 
 
 def load_ref(ref):
-    tag, suf = (ref.split(':', 1) + ['placedE'])[:2]
-    ds = rasterio.open(P('mosaics', f'detroit_{tag}_{suf}.tif'))
-    g = json.load(open(P('data', f'{tag}_{suf}_geo.json')))
-    S, W, N, E = g['bbox']
+    # 'modern:<name>' is a plain reference raster, which is what you need to place a
+    # roll that overlaps nothing solved yet; 'tag:suffix' is one of our own blocks.
+    if ref.startswith('modern:'):
+        name = ref.split(':', 1)[1]
+        ds = rasterio.open(P('mosaics', f'{name}.tif'))
+        S, W, N, E = json.load(open(P('data', f'{name}_geo.json')))['bbox']
+    else:
+        tag, suf = (ref.split(':', 1) + ['placedE'])[:2]
+        ds = rasterio.open(P('mosaics', f'detroit_{tag}_{suf}.tif'))
+        S, W, N, E = json.load(open(P('data', f'{tag}_{suf}_geo.json')))['bbox']
     wm = (E - W) * dtmap.MLON; hm = (N - S) * dtmap.MLAT
     w = int(wm / MPP); h = int(hm / MPP)
     a = ds.read(1, out_shape=(h, w), resampling=rasterio.enums.Resampling.average)
