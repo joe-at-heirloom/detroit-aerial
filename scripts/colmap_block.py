@@ -54,6 +54,33 @@ def main():
     log = f"{work}/colmap.log"
     sol, ppm = placements(tag)
     recs = sorted(r for r in sol if sol[r].get('ok'))
+    # --plan FILE: solve an explicit set of negatives rather than whatever the old
+    # catalogue happens to hold. {"recs": [...], "pos": {rec: [E, N]}, "pairs": [[a,b]]}.
+    # A frame may appear with NO position -- the catalogue only ever covered the
+    # frames someone had already located -- in which case it is still extracted and
+    # matched, through `pairs`, and the reconstruction places it. E0/N0, the priors
+    # file and the distance-plausible pair rule all use the positioned subset only.
+    if arg('--plan'):
+        pl = json.load(open(arg('--plan')))
+        have = [r for r in sol if sol[r].get('ok')]
+        gw = float(np.median([sol[r]['gw'] for r in have])) if have else 3200.0
+        gh = float(np.median([sol[r]['gh'] for r in have])) if have else 3200.0
+        pos = {str(k): v for k, v in (pl.get('pos') or {}).items()}
+        newsol = {}
+        for r in [str(x) for x in pl['recs']]:
+            if r in sol and sol[r].get('ok'):
+                newsol[r] = sol[r]
+            else:
+                p_ = pos.get(r)
+                newsol[r] = dict(ok=True, e=(p_[0] if p_ else None), n=(p_[1] if p_ else None),
+                                 rot=0.0, dE=0.0, dN=0.0, gw=gw, gh=gh, ratio=2.0)
+        sol = newsol
+        recs = [r for r in sorted(newsol, key=lambda x: int(x))
+                if os.path.exists(f"{SP}/fullres/{r}.jpg")]
+        miss = len(newsol) - len(recs)
+        npos = sum(1 for r in recs if sol[r]['e'] is not None)
+        print(f"  plan: {len(recs)} frames on disk ({miss} missing a scan), "
+              f"{npos} with a position prior, {len(recs)-npos} without", flush=True)
     # --first N: a pilot on N consecutive frames of one flight line, to learn in
     # minutes whether COLMAP registers this film at all before spending an hour
     first = arg('--first')
@@ -65,7 +92,10 @@ def main():
     print(f"{tag}: {len(recs)} frames -> {work}", flush=True)
 
     # 1. crop the film edge; 2. position priors in a local metric frame (E, N, up)
-    E0 = np.mean([sol[r]['e'] for r in recs]); N0 = np.mean([sol[r]['n'] for r in recs])
+    posrecs = [r for r in recs if sol[r].get('e') is not None]
+    if not posrecs:
+        raise SystemExit('no frame has a position prior; the block has nothing to anchor to')
+    E0 = np.mean([sol[r]['e'] for r in posrecs]); N0 = np.mean([sol[r]['n'] for r in posrecs])
     # Crop the film edge, then PAD every crop to one common canvas, centred. The
     # scans come in five slightly different widths (5034-5088 px on 1961) at the
     # same resolution, and COLMAP with a single shared camera silently skips any
@@ -109,7 +139,8 @@ def main():
                     canvas = Image.new('L', (W_, H_), 0)
                     canvas.paste(im, ((W_ - im.size[0]) // 2, (H_ - im.size[1]) // 2)); im = canvas
                 im.save(dst, quality=95)
-            pf.write(f"{r}.jpg {sol[r]['e']-E0:.2f} {sol[r]['n']-N0:.2f} 0.0\n")
+            if sol[r].get('e') is not None:
+                pf.write(f"{r}.jpg {sol[r]['e']-E0:.2f} {sol[r]['n']-N0:.2f} 0.0\n")
     del crops
     im = Image.open(f"{work}/images/{recs[0]}.jpg"); w, h = im.size
     # Camera: fixed. On flat ground focal and flying height trade off, so
@@ -122,14 +153,28 @@ def main():
     # matching on a street grid that repeats every 97.5 m matched non-overlapping
     # negatives confidently and split the block.
     rad = {r: math.hypot(sol[r]['gw'], sol[r]['gh']) / 2 for r in recs}
-    pairs = []
-    for i, a in enumerate(recs):
-        for b in recs[i + 1:]:
+    seen, pairs = set(), []
+
+    def add(a, b):
+        k = (a, b) if a < b else (b, a)
+        if a != b and k not in seen and a in rad and b in rad:
+            seen.add(k); pairs.append(f"{k[0]}.jpg {k[1]}.jpg")
+
+    for i, a in enumerate(posrecs):
+        for b in posrecs[i + 1:]:
             d = math.hypot(sol[a]['e'] - sol[b]['e'], sol[a]['n'] - sol[b]['n'])
             if 1.0 < d < 0.75 * (rad[a] + rad[b]):
-                pairs.append(f"{a}.jpg {b}.jpg")
+                add(a, b)
+    n_dist = len(pairs)
+    # Pairs the plan forces. For a roll of film, consecutive exposure numbers are
+    # consecutive shots along a flight line and overlap about 60%, which is a
+    # reliable pairing for frames no catalogue has ever placed.
+    if arg('--plan'):
+        for a, b in (json.load(open(arg('--plan'))).get('pairs') or []):
+            add(str(a), str(b))
     open(f"{work}/pairs.txt", 'w').write("\n".join(pairs) + "\n")
-    print(f"  {len(pairs)} plausible pairs (of {len(recs)*(len(recs)-1)//2})", flush=True)
+    print(f"  {len(pairs)} pairs ({n_dist} by position, {len(pairs)-n_dist} forced) "
+          f"of {len(recs)*(len(recs)-1)//2} possible", flush=True)
     json.dump(dict(E0=E0, N0=N0, focal_px=focal_px, w=w, h=h, margin=margin, recs=recs),
               open(f"{work}/meta.json", 'w'))
 

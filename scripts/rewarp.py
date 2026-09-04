@@ -24,8 +24,24 @@ from rasterio.transform import from_origin
 from validate import load, modern_for, report, MPP, P
 Image.MAX_IMAGE_PIXELS = None
 
-SP = ('/private/tmp/claude-501/-Users-joelint-Documents-Apps/'
-      'b1877f49-3048-4d7e-83b9-c2a051af5bc9/scratchpad/detroit')
+# Where the scanned negatives live. They were once kept in a session scratchpad
+# under /tmp and were lost when the machine cleared it, taking every solve with
+# them; scans/ beside the repo is the store now (gitignored, refilled by
+# scripts/fetchscans.py). DAS_SCANS overrides, and the old path is still honoured
+# if it happens to exist, so nothing breaks on a machine that still has it.
+def _scanpath():
+    import os as _os
+    here = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    env = _os.environ.get('DAS_SCANS')
+    old = ('/private/tmp/claude-501/-Users-joelint-Documents-Apps/'
+           'b1877f49-3048-4d7e-83b9-c2a051af5bc9/scratchpad/detroit')
+    for c in ([env] if env else []) + [_os.path.join(here, 'scans'), old]:
+        if c and _os.path.isdir(_os.path.join(c, 'fullres')):
+            return c
+    return _os.path.join(here, 'scans')
+
+
+SP = _scanpath()
 NATIVE = {'1961': 'native.json', '1967': 'native1967.json',
           '1949': 'native1949.json', '1956': 'native1956.json'}
 BUNDLE = {'1961': ('sim_bundle.json', 'sim_anchor.json'),
