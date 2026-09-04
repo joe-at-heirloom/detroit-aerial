@@ -4,3 +4,4 @@ tiles/
 *.raw
 __pycache__/
 .venv/
+scans/
