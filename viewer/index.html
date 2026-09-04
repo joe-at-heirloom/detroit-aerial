@@ -230,6 +230,10 @@ function drawPlaces() {
 // to its members, and name the pins outright once there is room.
 function renderPins() {
   if (!placeLayer) return;
+  // Leaflet throws from latLngToLayerPoint until the map has a centre and zoom,
+  // and show() can reach here before fit() has set one.
+  try { map.getZoom(); map.latLngToLayerPoint([42.35, -83.22]); }
+  catch (e) { map.whenReady(renderPins); return; }
   placeLayer.clearLayers();
   const mine = PLACES.filter(p => (p.group || 'west') === curId);
   if (!mine.length) return;
