@@ -143,6 +143,7 @@ def refine_against(work, meta, cams, imgs, ref, mpp=5.0, search_m=600.0, log=pri
     E0, N0 = meta['E0'], meta['N0']
     ims = {n: np.asarray(Image.open(f"{work}/images/{n}").convert('L')) for n in imgs}
     search = float(search_m); it = 0; widened = False
+    prev_off, last = None, None
     while it < max_pass:
         comp, bbox, minE, maxN, W, H = _render_coarse(meta, cams, imgs, ims, mpp)
         refr = reference_for(bbox, W, H, ref)
@@ -154,23 +155,38 @@ def refine_against(work, meta, cams, imgs, ref, mpp=5.0, search_m=600.0, log=pri
                 f"widening the search to 1500 m", flush=True)
             search = 1500.0; widened = True; continue
         if len(pts) < 8:
-            log(f"  refine-against {ref}: only {len(pts)} windows locked; leaving the alignment as it is", flush=True)
+            log(f"  refine-against {ref}: only {len(pts)} windows locked; "
+                f"{'keeping the correction so far' if last else 'leaving the alignment as it is'}", flush=True)
             return 0.0
+        D = np.array([[p['dE'], p['dN']] for p in pts])
+        off = float(np.median(np.hypot(D[:, 0], D[:, 1])))
+        # Judge a correction by what it did, not by the residual of its own fit. A
+        # first pass on a badly placed block legitimately fits with a large residual
+        # -- refusing on that alone once left a block sitting 231 m off 1961 -- but a
+        # correction that does not actually reduce the offset is not one to keep.
+        if prev_off is not None:
+            if off > 0.9 * prev_off:
+                if last is not None:
+                    sc_, R_, t_ = last
+                    Rin = R_.T; scin = 1.0 / sc_; tin = -scin * (Rin @ t_)
+                    _apply_similarity(imgs, scin, Rin, tin, E0, N0)
+                    log(f"  refine-against {ref}: pass {it} left the offset at {off:.0f} m "
+                        f"(was {prev_off:.0f} m); rolled it back", flush=True)
+                return 0.0
+            log(f"  refine-against {ref}: offset now {off:.0f} m (was {prev_off:.0f} m)", flush=True)
+        prev_off = off
         it += 1
         Pw = np.array([[minE + p['x'] * mpp, maxN - p['y'] * mpp] for p in pts])
-        D = np.array([[p['dE'], p['dN']] for p in pts])
-        # content sits +d from the reference, so the block must move by -d
         sc, R2, t2, keep, res = _fit_similarity(Pw, Pw - D)
         th = math.degrees(math.atan2(R2[1, 0], R2[0, 0])); rmed = float(np.median(res[keep]))
-        off = float(np.median(np.hypot(D[:, 0], D[:, 1])))
         log(f"  refine-against {ref} pass {it}: {len(pts)}/{n_win} windows, {int(keep.sum())} kept; offset before "
             f"{off:.0f} m; similarity shift {t2[0]:+.0f},{t2[1]:+.0f} m (about origin), scale {(sc-1)*1e2:+.3f}%, "
             f"rotation {th:+.3f} deg; residual median {rmed:.1f} m", flush=True)
-        if rmed > 60.0 or keep.sum() < 8:
-            log(f"  refine-against {ref}: fit not trusted (residual {rmed:.1f} m, {int(keep.sum())} kept); "
-                f"not applied", flush=True)
+        if keep.sum() < 8:
+            log(f"  refine-against {ref}: only {int(keep.sum())} windows survived the fit; not applied", flush=True)
             return 0.0
         _apply_similarity(imgs, sc, R2, t2, E0, N0)
+        last = (sc, R2, t2)
         if abs(th) < 0.02 and off < 10.0 and abs(sc - 1) < 1e-4:
             break
         search = min(search, 600.0)
