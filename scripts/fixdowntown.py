@@ -19,7 +19,13 @@ Two distinct things are mixed into that number and only one is fixable here:
 So this corrects the ground and reports the roofs as the known limit.
 
 Usage:  ./.venv/bin/python scripts/fixdowntown.py [1949 1956 1961] [--dry]
-                                                  [--ref 1961]
+                                                  [--ref 1961] [--src]
+
+`--src` re-runs from `downtown_<tag>_src.tif`, the uncorrected raster this script
+wrote the first time. Without it a second run reads whatever the manifest points
+at -- which, once a correction exists, is the CORRECTED mosaic, so the new warp
+lands on top of the old one and the reported "before" is the previous run's
+"after". Always pass it when redoing an epoch.
 """
 import sys, os, json, math, time
 import numpy as np
@@ -42,6 +48,18 @@ def layer(tag):
         if l['id'] == f'dt{tag}':
             return l
     return None
+
+
+def from_src(tag, mpp=MPP):
+    """The uncorrected raster on the shared grid, with the geometry it was cut on."""
+    src = P('mosaics', f'downtown_{tag}_src.tif')
+    geo = P('data', f'dt{tag}_fix_geo.json')
+    if not (os.path.exists(src) and os.path.exists(geo)):
+        raise SystemExit(f'--src needs downtown_{tag}_src.tif and dt{tag}_fix_geo.json')
+    g = json.load(open(geo))
+    if abs(g['mpp'] - mpp) > 1e-9:
+        raise SystemExit(f"src grid is {g['mpp']} m/px, this run wants {mpp}")
+    return rasterio.open(src).read(1), g
 
 
 def as_grid(l, mpp=MPP):
@@ -95,13 +113,59 @@ def reference(geo, ref):
     return np.where(a > 0, a, nap).astype(np.uint8)
 
 
-def run(tag, dry=False, ref='naip'):
+class Constant:
+    """A Prior that returns the same shift everywhere."""
+
+    def __init__(self, dE, dN):
+        self.v = (float(dE), float(dN))
+
+    def at(self, y, x):
+        return self.v
+
+
+def global_prior(t, search_m=250.0, min_ratio=1.30, min_mag=30.0, log=print):
+    """One rigid shift for the whole scene, solved before the residual field.
+
+    The fine search is capped at +/-40 m and walks about 120 m over three
+    re-centrings. A mosaic further out than that cannot be reached -- and it does
+    not fail loudly. Detroit's street lattice repeats every ~97.5 m, so the search
+    locks onto the wrong member of it and returns a confident small number.
+    Downtown 1956 has been reported at ~32 m for exactly that reason. Solved on
+    the whole raster with a 250 m search it is **170 m** out, and all sixteen
+    cells of a 4x4 grid then agree with that to within +/-20 m.
+
+    A coarse *field* has no room downtown -- the scene is 3.4 km across and the
+    field wants 6 km windows of mile-grid arterials, which is why `run` disables
+    it. One global shift is a different question, and the whole raster is a single
+    window with plenty of structure to answer it.
+
+    Returns None when the peak is not convincing or the scene is already inside
+    the fine search's reach, in which case a zero prior is the right answer.
+    """
+    H, W = t['shape']
+    r = match_whole(t, search_m)
+    if r is None:
+        log("  global: no peak"); return None
+    mag = math.hypot(r['dE'], r['dN'])
+    ok = r['coarse_ratio'] >= min_ratio and mag >= min_mag
+    log(f"  global: dE {r['dE']:+.1f} dN {r['dN']:+.1f} ({mag:.0f} m) "
+        f"coarse ratio {r['coarse_ratio']:.2f} -> {'using it' if ok else 'ignored'}")
+    return Constant(r['dE'], r['dN']) if ok else None
+
+
+def match_whole(t, search_m):
+    H, W = t['shape']
+    return gridval.match_hier_prep(t, 0, H, 0, W, coarse_search=search_m)
+
+
+def run(tag, dry=False, ref='naip', use_src=False):
     t0 = time.time()
     l = layer(tag)
     if l is None:
         print(f"  no downtown layer for {tag}"); return
-    print(f"\n===== downtown {tag} (reference: {ref}) =====", flush=True)
-    arr, geo = as_grid(l)
+    print(f"\n===== downtown {tag} (reference: {ref}"
+          f"{', from src' if use_src else ''}) =====", flush=True)
+    arr, geo = from_src(tag) if use_src else as_grid(l)
     # Downtown sits east of the modern reference raster, which was fetched for the
     # four West Detroit flight blocks and stops at -83.11; downtown runs -83.06 to
     # -83.02. Handing it that reference gives an all-zero modern side, which is
@@ -113,14 +177,18 @@ def run(tag, dry=False, ref='naip'):
         print("  no reference imagery available over downtown"); return
     print(f"  {geo['W']}x{geo['H']} @ {MPP} m/px  coverage {(arr>0).mean():.2f}", flush=True)
     src = P('mosaics', f'downtown_{tag}_src.tif')
-    write_tif(src, arr, geo)
+    if not use_src:
+        write_tif(src, arr, geo)
     t = gridval.prepare_cached(arr, mod, MPP, f'dt{tag}_src_{ref}')
     # No coarse stage downtown. The regional coarse field is built on 6 km windows
     # of mile-grid arterials; the whole downtown raster is 3.4 km across, so there
     # is no room for one, and every attempt pegs at its search edge. It is not
     # needed either -- downtown is already within about 25 m, comfortably inside a
     # +/-40 m fine search, which is what the coarse stage exists to deliver.
-    pz = prior = gridval.Prior([], MPP)
+    # A coarse field has no room here, but one rigid shift for the whole scene
+    # does -- and without it an epoch further out than ~120 m is measured against
+    # the wrong street lattice rather than reported as unreachable.
+    pz = prior = global_prior(t) or gridval.Prior([], MPP)
     before = gridval.grid_hier_prep(t, NY=4, NX=4, prior=prior, min_valid=0.4)
     report(before, f'downtown {tag} before')
     kept, tr, R, warp_at, held_out = warpsolve.solve(t, geo['bbox'], dtmap.MLAT, dtmap.MLON,
@@ -140,6 +208,7 @@ def run(tag, dry=False, ref='naip'):
     geo2 = dict(geo); json.dump(geo2, open(P('data', f'dt{tag}_fix_geo.json'), 'w'))
     arr2 = rasterio.open(out).read(1)
     t2 = gridval.prepare_cached(arr2, mod, MPP, f'dt{tag}_fix_{ref}_{int(t0)}')
+    # the corrected raster should need no prior; if it still does, the fix did not take
     prior2 = gridval.Prior([], MPP)
     after = gridval.grid_hier_prep(t2, NY=4, NX=4, prior=prior2, min_valid=0.4)
     report(before, f'downtown {tag} before')
@@ -149,8 +218,9 @@ def run(tag, dry=False, ref='naip'):
 
 if __name__ == '__main__':
     dry = '--dry' in sys.argv
+    use_src = '--src' in sys.argv
     ref = sys.argv[sys.argv.index('--ref') + 1] if '--ref' in sys.argv else 'naip'
     tags = [a for a in sys.argv[1:] if not a.startswith('--') and a != ref] \
         or ['1949', '1956', '1961']
     for tg in tags:
-        run(tg, dry, ref)
+        run(tg, dry, ref, use_src)
