@@ -26,7 +26,7 @@
     -83.02027921892557
    ],
    "gray": true,
-   "ver": 1788147949
+   "ver": 1788567572
   },
   {
    "id": "dt1961",
@@ -113,6 +113,132 @@
    "ver": 1788320994
   },
   {
+   "id": "l1998",
+   "group": "west",
+   "label": "1998",
+   "file": "mosaics/layer_1998.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788565252
+  },
+  {
+   "id": "l2005",
+   "group": "west",
+   "label": "2005",
+   "file": "mosaics/layer_2005.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788566162
+  },
+  {
+   "id": "l2010",
+   "group": "west",
+   "label": "2010",
+   "file": "mosaics/layer_2010.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788566673
+  },
+  {
+   "id": "l2012",
+   "group": "west",
+   "label": "2012",
+   "file": "mosaics/layer_2012.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788568030
+  },
+  {
+   "id": "l2014",
+   "group": "west",
+   "label": "2014",
+   "file": "mosaics/layer_2014.tif",
+   "bbox": [
+    42.18454139014705,
+    -83.3927502934717,
+    42.48932884971699,
+    -83.11469794076982
+   ],
+   "gray": false,
+   "ver": 1788568514
+  },
+  {
+   "id": "l2016",
+   "group": "west",
+   "label": "2016",
+   "file": "mosaics/layer_2016.tif",
+   "bbox": [
+    42.18454139014705,
+    -83.3927502934717,
+    42.48932884971699,
+    -83.11469794076982
+   ],
+   "gray": false,
+   "ver": 1788569828
+  },
+  {
+   "id": "l2018",
+   "group": "west",
+   "label": "2018",
+   "file": "mosaics/layer_2018.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788571128
+  },
+  {
+   "id": "l2020",
+   "group": "west",
+   "label": "2020",
+   "file": "mosaics/layer_2020.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788572402
+  },
+  {
+   "id": "l2022",
+   "group": "west",
+   "label": "2022",
+   "file": "mosaics/layer_2022.tif",
+   "bbox": [
+    42.18454139014705,
+    -83.3927502934717,
+    42.48932884971699,
+    -83.11469794076982
+   ],
+   "gray": false,
+   "ver": 1788569250
+  },
+  {
    "id": "modwest",
    "group": "west",
    "label": "Today",
@@ -150,6 +276,15 @@
     "b1956",
     "b1961",
     "b1967",
+    "l1998",
+    "l2005",
+    "l2010",
+    "l2012",
+    "l2014",
+    "l2016",
+    "l2018",
+    "l2020",
+    "l2022",
     "modwest"
    ],
    "bbox": [
@@ -158,7 +293,13 @@
     42.48569154451726,
     -83.10653737443461
    ],
-   "note": "1949, 1956, 1961 and 1967 blocks. Each block closed by a tie-point bundle adjustment -- a translation, scale and rotation per negative from thousands of phase-correlation windows, along-track and across flight lines -- then placed by one continuous low-order warp against modern imagery."
+   "note": "1949, 1956, 1961 and 1967 blocks. Each block closed by a tie-point bundle adjustment -- a translation, scale and rotation per negative from thousands of phase-correlation windows, along-track and across flight lines -- then placed by one continuous low-order warp against modern imagery. 1998, 2005 and 2010 are the City of Detroit's orthophotos and 2012-2022 are USDA NAIP, served as published; their georeferencing is theirs."
   }
+ },
+ "serve": {
+  "1949": "placedE",
+  "1956": "placedC",
+  "1961": "placedC",
+  "1967": "placedC"
  }
 }

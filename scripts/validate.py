@@ -107,11 +107,22 @@ def reference_for(bbox, W, H, ref='modern'):
 
 
 def load(tag, suffix='rbf', ref='modern'):
-    geo = json.load(open(P('data', f'{tag}_{suffix}_geo.json')))
+    if tag.startswith('layer_'):
+        # a fetched third-party ortho (fetchlayer.py): somebody else's
+        # georeferencing, measured here the same way as our own, on its luminance
+        geo = json.load(open(P('data', f'{tag}_geo.json')))
+        tif = P('mosaics', f'{tag}.tif')
+    else:
+        geo = json.load(open(P('data', f'{tag}_{suffix}_geo.json')))
+        tif = P('mosaics', f'detroit_{tag}_{suffix}.tif')
     bbox = geo['bbox']
     Wp = int((bbox[3] - bbox[1]) * dtmap.MLON / MPP)
     Hp = int((bbox[2] - bbox[0]) * dtmap.MLAT / MPP)
-    arr = rasterio.open(P('mosaics', f'detroit_{tag}_{suffix}.tif')).read(1, out_shape=(Hp, Wp))
+    ds = rasterio.open(tif)
+    if ds.count >= 3:
+        arr = ds.read([1, 2, 3], out_shape=(3, Hp, Wp)).mean(axis=0).astype(np.uint8)
+    else:
+        arr = ds.read(1, out_shape=(Hp, Wp))
     return arr, reference_for(bbox, Wp, Hp, ref), bbox
 
 
