@@ -1,0 +1,182 @@
+{
+ "layers": [
+  {
+   "id": "dt1949",
+   "group": "downtown",
+   "label": "1949",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": true,
+   "ver": 1788148029,
+   "maxNativeZoom": 18,
+   "minNativeZoom": 8
+  },
+  {
+   "id": "dt1956",
+   "group": "downtown",
+   "label": "1956",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": true,
+   "ver": 1788567572,
+   "maxNativeZoom": 18,
+   "minNativeZoom": 8
+  },
+  {
+   "id": "dt1961",
+   "group": "downtown",
+   "label": "1961",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": true,
+   "ver": 1788147794,
+   "maxNativeZoom": 18,
+   "minNativeZoom": 8
+  },
+  {
+   "id": "dtnow",
+   "group": "downtown",
+   "label": "Today",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": false,
+   "ver": 1788126938,
+   "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+   "maxNativeZoom": 19
+  },
+  {
+   "id": "b1949",
+   "group": "west",
+   "label": "1949",
+   "bbox": [
+    42.19034670176887,
+    -83.30714736448378,
+    42.475248242990006,
+    -83.18021655890128
+   ],
+   "gray": true,
+   "ver": 1788394633,
+   "maxNativeZoom": 18,
+   "minNativeZoom": 8
+  },
+  {
+   "id": "b1956",
+   "group": "west",
+   "label": "1956",
+   "bbox": [
+    42.189299339339875,
+    -83.38204641171188,
+    42.48569154451726,
+    -83.22073994622545
+   ],
+   "gray": true,
+   "ver": 1788331788,
+   "maxNativeZoom": 18,
+   "minNativeZoom": 8
+  },
+  {
+   "id": "b1961",
+   "group": "west",
+   "label": "1961",
+   "bbox": [
+    42.228977768351314,
+    -83.33733976788429,
+    42.46405429335547,
+    -83.18321878612251
+   ],
+   "gray": true,
+   "ver": 1788318877,
+   "maxNativeZoom": 18,
+   "minNativeZoom": 8
+  },
+  {
+   "id": "b1967",
+   "group": "west",
+   "label": "1967",
+   "bbox": [
+    42.22979586910584,
+    -83.27341937589082,
+    42.46967056869389,
+    -83.1191149349701
+   ],
+   "gray": true,
+   "ver": 1788320994,
+   "maxNativeZoom": 18,
+   "minNativeZoom": 8
+  },
+  {
+   "id": "modwest",
+   "group": "west",
+   "label": "Today",
+   "bbox": [
+    42.2176093167972,
+    -83.3491931333485,
+    42.482699683556724,
+    -83.10653737443461
+   ],
+   "gray": true,
+   "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+   "maxNativeZoom": 19
+  }
+ ],
+ "groups": {
+  "downtown": {
+   "label": "Downtown",
+   "layers": [
+    "dt1949",
+    "dt1956",
+    "dt1961",
+    "dtnow"
+   ],
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "note": "1949 / 1956 / 1961 downtown negatives, each georeferenced independently and warped onto one 0.60 m/px grid."
+  },
+  "west": {
+   "label": "West Detroit",
+   "layers": [
+    "b1949",
+    "b1956",
+    "b1961",
+    "b1967",
+    "modwest"
+   ],
+   "bbox": [
+    42.189299339339875,
+    -83.38204641171188,
+    42.48569154451726,
+    -83.10653737443461
+   ],
+   "note": "1949, 1956, 1961 and 1967 blocks. Each block closed by a tie-point bundle adjustment -- a translation, scale and rotation per negative from thousands of phase-correlation windows, along-track and across flight lines -- then placed by one continuous low-order warp against modern imagery. 1998, 2005 and 2010 are the City of Detroit's orthophotos and 2012-2022 are USDA NAIP, served as published; their georeferencing is theirs."
+  }
+ },
+ "static": true,
+ "roads_max": 17,
+ "serve": {
+  "1949": "placedE",
+  "1956": "placedC",
+  "1961": "placedC",
+  "1967": "placedC"
+ },
+ "built": "2026-09-05 07:49"
+}

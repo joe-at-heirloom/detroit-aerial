@@ -1,0 +1,1021 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Detroit Air Survey</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#0B0F12; --panel:#141B20; --panel-hi:#1C262C;
+  --rule:#24313A; --ink:#DCE6EB; --ink-dim:#7C8F9B; --ink-faint:#546570;
+  --cyan:#35D6EE; --amber:#E0A94A;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --sans:"Archivo",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);font-family:var(--sans);overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#app{display:flex;flex-direction:column;height:100%}
+.bar{display:flex;align-items:stretch;border-bottom:1px solid var(--rule);background:var(--panel);min-height:50px;flex:0 0 auto}
+.brand{display:flex;flex-direction:column;justify-content:center;padding:6px 16px;border-right:1px solid var(--rule);min-width:190px}
+.brand b{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.brand span{font-family:var(--mono);font-size:10px;color:var(--ink-faint);margin-top:2px}
+.tabs{display:flex}
+.tab{padding:0 16px;display:flex;flex-direction:column;justify-content:center;gap:2px;border-right:1px solid var(--rule)}
+.tab:hover{background:var(--panel-hi)}
+.tab em{font-style:normal;font-family:var(--mono);font-size:13px;font-weight:500}
+.tab i{font-style:normal;font-size:9.5px;color:var(--ink-faint);letter-spacing:.05em;text-transform:uppercase}
+.tab[aria-selected="true"]{background:var(--panel-hi);box-shadow:inset 0 -2px 0 var(--amber)}
+.spacer{flex:1}
+.tools{display:flex;align-items:center;gap:14px;padding:0 16px;font-family:var(--mono);font-size:11px}
+.rail{display:flex;border-bottom:1px solid var(--rule);background:var(--panel);font-family:var(--mono);font-size:11px;flex:0 0 auto;overflow-x:auto}
+.side{display:flex;align-items:center;border-right:1px solid var(--rule)}
+.lbl{padding:0 11px;color:var(--ink-faint);font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.13em}
+.chip{padding:6px 13px;color:var(--ink-dim)}
+.chip:hover{background:var(--panel-hi);color:var(--ink)}
+.chip[aria-pressed="true"]{color:var(--ground);font-weight:500}
+.side.L .chip[aria-pressed="true"]{background:var(--amber)}
+.side.R .chip[aria-pressed="true"]{background:var(--cyan)}
+.op{display:flex;align-items:center;gap:6px}
+.op input[type=range]{width:74px;accent-color:var(--cyan)}
+.hint{padding:0 14px;color:var(--ink-faint);display:flex;align-items:center;white-space:nowrap}
+#mapwrap{position:relative;flex:1;min-height:0}
+#map{position:absolute;inset:0;background:var(--ground)}
+.leaflet-container{background:var(--ground)}
+.leaflet-tile.nofade{opacity:1 !important;transition:none !important}
+#swipe{position:absolute;top:0;bottom:0;width:2px;background:var(--amber);z-index:600;cursor:ew-resize}
+#swipe::after{content:"\2194";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:28px;height:28px;border-radius:50%;background:var(--panel);border:1px solid var(--amber);
+  display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--amber)}
+.tag{position:absolute;top:10px;z-index:601;font-family:var(--mono);font-size:12px;padding:3px 9px;
+  background:rgba(11,15,18,.85);border:1px solid var(--rule)}
+.note{position:absolute;left:14px;top:52px;max-width:330px;z-index:602;background:rgba(11,15,18,.93);
+  border:1px solid var(--rule);padding:12px 14px;font-size:12px;line-height:1.5;color:var(--ink-dim)}
+.note h3{margin:0 0 7px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);font-weight:600}
+.note b{color:var(--ink);font-weight:600}
+.marg{display:flex;border-top:1px solid var(--rule);background:var(--panel);font-family:var(--mono);font-size:11px;flex:0 0 auto}
+.cell{padding:7px 15px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:2px}
+.cell .k{font-size:9px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;font-family:var(--sans)}
+.cell .v{color:var(--ink)}
+.cell.grow{flex:1;border-right:0}
+.tools select{background:var(--panel-hi);color:var(--ink);border:1px solid var(--rule);
+  font-family:var(--mono);font-size:11px;padding:3px 6px;max-width:210px}
+.tools select:hover{border-color:var(--amber)}
+.pmark{cursor:pointer}
+.pclus{background:var(--amber);color:var(--ground);border-radius:50%;font-family:var(--mono);
+  font-size:12px;font-weight:600;text-align:center;line-height:22px;border:2px solid var(--ground);
+  box-shadow:0 0 0 1px var(--amber);cursor:pointer}
+.ptip.perm{background:rgba(11,15,18,.9);border-color:var(--amber);color:var(--ink)}
+.ptip{background:var(--panel);border:1px solid var(--rule);color:var(--ink);font-family:var(--mono);
+  font-size:11px;box-shadow:none;padding:3px 7px}
+.ptip::before{border-top-color:var(--rule)}
+#probe{position:absolute;right:14px;bottom:14px;z-index:603;background:rgba(11,15,18,.96);
+  border:1px solid var(--rule);padding:9px 10px 10px;max-width:calc(100% - 28px);
+  font-family:var(--mono);font-size:11px}
+#probe[hidden]{display:none}
+.phead{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--ink-dim)}
+.phead b{color:var(--amber);font-weight:600;font-family:var(--sans);font-size:12.5px}
+.pspacer{flex:1}
+.pz,.pclose{border:1px solid var(--rule);width:21px;height:21px;line-height:1;color:var(--ink-dim);flex:0 0 auto}
+.pz:hover,.pclose:hover{background:var(--panel-hi);color:var(--ink)}
+.pzl{color:var(--ink-faint);min-width:22px;text-align:center}
+.prow{display:flex;gap:6px;flex-wrap:wrap}
+.pcell{display:flex;flex-direction:column;gap:4px}
+.pcell i{font-style:normal;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-faint);font-family:var(--sans)}
+.pmap{width:148px;height:148px;background:var(--ground);border:1px solid var(--rule)}
+.pmap.nocov{display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:10px}
+.pblurb{margin-top:9px;max-width:700px;font-family:var(--sans);font-size:12px;line-height:1.5;color:var(--ink-dim)}
+.pblurb b{color:var(--ink)}
+.psrc a{color:var(--cyan);text-decoration:none}
+.psrc a:hover{text-decoration:underline}
+.plife{margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--ink-faint);
+  display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
+.plife b{color:var(--amber);font-weight:500}
+.plife s{text-decoration:none;color:var(--ink-dim)}
+.padd{margin-top:9px;padding-top:9px;border-top:1px solid var(--rule);display:flex;
+  gap:5px;flex-wrap:wrap;align-items:center}
+.padd[hidden]{display:none}
+.padd input,.padd select{background:var(--panel-hi);color:var(--ink);border:1px solid var(--rule);
+  font-family:var(--mono);font-size:11px;padding:3px 5px}
+.padd input:focus,.padd select:focus{outline:0;border-color:var(--amber)}
+.padd .wide{flex:1;min-width:150px}
+.padd button{border:1px solid var(--amber);color:var(--amber);padding:3px 9px;font-family:var(--mono);font-size:11px}
+.padd button:hover{background:var(--amber);color:var(--ground)}
+.padd .msg{color:var(--ink-faint);font-family:var(--mono);font-size:10.5px}
+.pnew{border:1px solid var(--rule);height:21px;padding:0 7px;line-height:1;color:var(--ink-dim);flex:0 0 auto;
+  font-family:var(--mono);font-size:11px}
+.pnew:hover{background:var(--panel-hi);color:var(--amber)}
+#align{position:absolute;left:14px;bottom:14px;z-index:604;background:rgba(11,15,18,.96);
+  border:1px solid var(--amber);padding:10px 12px 11px;font-family:var(--mono);font-size:11px;
+  width:290px}
+#align[hidden]{display:none}
+#align h4{margin:0 0 8px;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--amber);font-weight:600;font-family:var(--sans);display:flex;align-items:center;gap:8px}
+#align h4 span{flex:1}
+.arow{display:flex;align-items:center;gap:6px;margin-top:6px}
+.arow label{width:52px;color:var(--ink-faint);font-size:10px;letter-spacing:.08em}
+.arow input[type=number]{width:74px;background:var(--panel-hi);color:var(--ink);
+  border:1px solid var(--rule);font-family:var(--mono);font-size:11px;padding:3px 5px}
+.arow input[type=range]{flex:1;accent-color:var(--amber)}
+.arow .u{color:var(--ink-faint);font-size:10px;width:20px}
+.arow select{flex:1;background:var(--panel-hi);color:var(--ink);border:1px solid var(--rule);
+  font-family:var(--mono);font-size:11px;padding:3px 5px}
+.ahint{margin-top:9px;color:var(--ink-faint);font-size:10px;line-height:1.55}
+.ahint b{color:var(--ink-dim);font-weight:500}
+.abtns{display:flex;gap:6px;margin-top:9px}
+.abtns button{flex:1;border:1px solid var(--rule);color:var(--ink-dim);padding:4px 0;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em}
+.abtns button:hover{background:var(--panel-hi);color:var(--ink)}
+.abtns button.pri{border-color:var(--amber);color:var(--amber)}
+.abtns button.pri:hover{background:var(--amber);color:var(--ground)}
+.amsg{margin-top:7px;color:var(--ink-faint);font-size:10px;min-height:12px}
+.amsg.ok{color:var(--amber)}
+#mapwrap.aligning{cursor:move}
+.leaflet-align-pane{will-change:transform}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="bar">
+    <div class="brand"><b>Detroit Air Survey</b><span>DTE AERIAL &middot; LOCAL</span></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="spacer"></div>
+    <div class="tools">
+      <label><input type="checkbox" id="streets"> STREET MAP</label>
+      <label><input type="checkbox" id="roads"> CENTRELINES <span style="color:var(--ink-faint)">(z14+)</span></label>
+      <label><input type="checkbox" id="places" checked> PLACES</label>
+      <select id="placesel" title="researched places"><option value="">PLACES…</option></select>
+      <select id="pfilter" title="filter places by what they were in the left-hand year"></select>
+      <label><input type="checkbox" id="alignon"> ALIGN</label>
+      <label class="op">OPACITY <input type="range" id="opa" min="20" max="100" value="75"></label>
+      <button id="fit">RESET</button>
+    </div>
+  </div>
+  <div class="rail">
+    <div class="side L" id="railL"><span class="lbl">LEFT</span></div>
+    <div class="side R" id="railR"><span class="lbl">RIGHT</span></div>
+    <div class="hint">drag the divider to wipe &middot; <b style="color:var(--amber);font-weight:500">click the map to see that spot in every year</b> &middot; native 0.63 m/px</div>
+  </div>
+  <div id="mapwrap">
+    <div id="map"></div>
+    <div id="swipe"></div>
+    <div class="tag" id="tagL"></div>
+    <div class="tag" id="tagR"></div>
+    <div class="note" id="note"></div>
+    <div id="probe" hidden></div>
+    <div id="align" hidden>
+      <h4><span>Hand alignment</span></h4>
+      <div class="arow"><label>LAYER</label><select id="aLayer"></select></div>
+      <div class="arow"><label>EAST</label><input type="number" id="aE" step="1"><span class="u">m</span></div>
+      <div class="arow"><label>NORTH</label><input type="number" id="aN" step="1"><span class="u">m</span></div>
+      <div class="arow"><label>ROTATE</label><input type="number" id="aR" step="0.05"><span class="u">&deg;</span></div>
+      <div class="arow"><label>SCALE</label><input type="number" id="aS" step="0.001"><span class="u"></span></div>
+      <div class="arow"><label>FADE</label><input type="range" id="aO" min="0" max="100" value="55"></div>
+      <div class="ahint">
+        <b>drag</b> move &middot; <b>shift-drag</b> rotate &middot; <b>alt-drag</b> scale<br>
+        <b>arrows</b> nudge 1 px, with shift 10 &middot; <b>space-drag</b> pan the map<br>
+        <b>hold F</b> to blink the layer off and check the fit
+      </div>
+      <div class="abtns">
+        <button id="aSave" class="pri">SAVE</button>
+        <button id="aRevert">REVERT</button>
+        <button id="aZero">ZERO</button>
+      </div>
+      <div class="amsg" id="aMsg"></div>
+    </div>
+  </div>
+  <div class="marg">
+    <div class="cell"><span class="k">Comparing</span><span class="v" id="mCmp">&mdash;</span></div>
+    <div class="cell"><span class="k">Cursor</span><span class="v" id="mPos">&mdash;</span></div>
+    <div class="cell"><span class="k">Zoom</span><span class="v" id="mZoom">&mdash;</span></div>
+    <div class="cell grow"><span class="k">Source</span><span class="v" id="mSrc">Wayne State University &middot; DTE Aerial Photo Collection</span></div>
+  </div>
+</div>
+
+<script>window.DAS = {"tiles": "tiles", "ext": "webp", "data": "data", "api": null, "static": true};</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Where things live. The local server sets nothing and gets tiles cut on demand
+// from /t and a writable /api; a static build (scripts/build_static.py) injects
+// window.DAS before this script to point at pre-rendered WebP tiles next to the
+// page, relative so it works under a repo subpath, and with no API at all.
+const DAS = Object.assign({ tiles: '/t', ext: 'png', data: '/data', api: '/api', static: false },
+                          window.DAS || {});
+let MAN, map, left, right, roadsLayer, streetLayer, split = 0.5, cur = null, L_ = 0, R_ = 1;
+let curId = null, PLACES = [], placeLayer = null, probeMaps = [], probePt = null,
+    probePlace = null, probeZoom = 17, probeToken = 0, pFilter = '';
+
+// ------------------------------------------------------------------- lifespans
+// A place's dates are what stood on the GROUND, not what an institution did:
+// `to` is the year the thing stopped being visible from the air, which is the
+// only claim a photograph can check. Either end may be null -- unknown is a state
+// worth drawing, and an invented year would be the one lie on a map otherwise
+// measured to two metres -- or a decade string ("1950s") where that is all the
+// evidence carries.
+function yrNum(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'number') return v;
+  const m = String(v).match(/(\d{4})/);
+  if (!m) return null;
+  return /\d{4}\s*s/.test(String(v)) ? Number(m[1]) + 5 : Number(m[1]);
+}
+
+function spanText(p) {
+  const a = p.from == null ? '' : String(p.from), b = p.to == null ? '' : String(p.to);
+  if (!a && !b) return '';
+  if (a && b) return a + '\u2013' + b;
+  return a ? 'from ' + a : 'until ' + b;   // a bare en dash reads as a typo
+}
+
+// The wipe shows two years; a pin needs one. Judge against the LEFT rail, which
+// is the historical side by default, and name that year in the filter so there
+// is no guessing which year the colours mean.
+function epochYear() {
+  if (!cur || !MAN) return new Date().getFullYear();
+  const l = MAN.layers.find(x => x.id === cur.layers[L_]);
+  const n = l ? parseInt(l.label, 10) : NaN;
+  return Number.isFinite(n) ? n : new Date().getFullYear();     // "Today"
+}
+
+// Wording that has to work for a year and for "today" alike.
+function stateWords() {
+  const y = epochYear(), now = y === new Date().getFullYear();
+  return { live: 'standing ' + (now ? 'today' : 'in ' + y),
+           post: 'gone by ' + (now ? 'today' : y),
+           pre:  'not yet built' + (now ? '' : ' in ' + y),
+           open: 'undated' };
+}
+
+// pre: not built yet. live: there. post: gone. open: undated, so no claim.
+function placeState(p, y) {
+  const a = yrNum(p.from), b = yrNum(p.to);
+  if (b !== null && y > b) return 'post';
+  if (a !== null && y < a) return 'pre';
+  if (a === null && b === null) return 'open';
+  return 'live';
+}
+
+// Rank 1 is the thing you would cross town for; rank 3 is a factory. Drawing all
+// three at the zoom that fits a whole block buries Hudson's under a hundred dots,
+// so the zoom decides how far down the list to go.
+const RANK_Z = { 1: 0, 2: 14, 3: 15.5 };
+
+function shownPlaces() {
+  const y = epochYear(), z = map ? map.getZoom() : 99;
+  return PLACES.filter(p => (p.group || 'west') === curId)
+               .filter(p => z >= (RANK_Z[p.rank || 2] !== undefined ? RANK_Z[p.rank || 2] : 14))
+               .filter(p => !pFilter || placeState(p, y) === pFilter);
+}
+
+const NOTES = {
+  downtown: ["Downtown &middot; 1949 / 1956 / 1961",
+    "Three separate negatives, each georeferenced independently and warped onto one <b>0.60 m/px</b> grid &mdash; native resolution of the film.",
+    "Wipe 1949 against 1961 to watch the <b>Hastings Street</b> corridor emptied for the Chrysler Freeway."],
+  west: ["West Detroit &middot; 1949 / 1956 / 1961 / 1967",
+    "Each block of negatives is solved as a photogrammetric block with <b>COLMAP</b> (a camera per negative, tied by thousands of matches along and across the flight lines), projected onto the block's own fitted ground surface, then placed on the map by one continuous warp.",
+    "Every build is judged by how far two overlapping negatives disagree about the same ground, then by how far the whole block sits from modern imagery. <b>1961:</b> 2.0 / 2.0 m seams, 2.6 m absolute. <b>1967:</b> 2.0 / 4.0 m, 2.6 m. <b>1949:</b> 2.0 / 2.0 m seams, 4.1 m absolute; its placement is fitted straight to modern imagery, and an independent check against USGS orthophotos puts it at 4.4 to 5.3 m. <b>1956:</b> 2.0 / 4.0 m, 5.6 m absolute where 1961 covers the ground; its western column and northern 3 km have no earlier epoch to check against and are less certain."]
+};
+
+async function boot() {
+  const hash = location.hash;          // show() clears it; read it first
+  MAN = await (await fetch(DAS.data + '/manifest.json?t=' + Date.now(), {cache: 'no-store'})).json();
+  await loadPlaces();
+  await loadAdjust();
+  const tabs = document.getElementById('tabs');
+  Object.entries(MAN.groups).forEach(([id, g], i) => {
+    const b = document.createElement('button');
+    b.className = 'tab'; b.dataset.g = id;
+    b.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+    b.innerHTML = '<em>' + g.label + '</em><i>' + g.layers.length + ' layers</i>';
+    b.onclick = () => { [...tabs.children].forEach(t => t.setAttribute('aria-selected', String(t === b))); show(id); };
+    tabs.appendChild(b);
+  });
+  map = L.map('map', { zoomControl: true, attributionControl: false, maxZoom: 21,
+                       zoomSnap: 0.25, fadeAnimation: false });
+  map.on('mousemove', e => {
+    document.getElementById('mPos').textContent =
+      e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
+  });
+  map.on('zoomend move', () => {
+    const z = map.getZoom();
+    const mpp = 156543.03 * Math.cos(map.getCenter().lat * Math.PI / 180) / Math.pow(2, z);
+    document.getElementById('mZoom').textContent = 'z' + z.toFixed(2) + '  ' + mpp.toFixed(2) + ' m/px';
+  });
+  document.getElementById('fit').onclick = () => fit();
+  document.getElementById('roads').onchange = e => {
+    if (e.target.checked) { roadsLayer.addTo(map); } else { map.removeLayer(roadsLayer); }
+  };
+  const ub = Object.values(MAN.groups).map(g => g.bbox).reduce((u, b) =>
+    [Math.min(u[0], b[0]), Math.min(u[1], b[1]), Math.max(u[2], b[2]), Math.max(u[3], b[3])]);
+  roadsLayer = L.tileLayer(DAS.tiles + '/__roads__/{z}/{x}/{y}.png',
+    { maxZoom: 21, minZoom: 14, minNativeZoom: 14, maxNativeZoom: MAN.roads_max || 21,
+      bounds: L.latLngBounds([ub[0], ub[1]], [ub[2], ub[3]]), errorTileUrl: BLANK_TILE,
+      opacity: .9, className: 'nofade' });
+  if (DAS.static) {
+    // nothing to write to: no hand alignment, no pinning places
+    const al = document.getElementById('alignon');
+    if (al && al.parentElement) al.parentElement.hidden = true;
+  }
+  // Esri's transparent transportation reference: modern roads + names, drawn for
+  // draping over imagery rather than as a basemap.
+  streetLayer = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+    { maxZoom: 19, maxNativeZoom: 19, opacity: .75, className: 'nofade' });
+  const opa = document.getElementById('opa');
+  opa.oninput = () => {
+    const v = opa.value / 100;
+    streetLayer.setOpacity(v);
+    roadsLayer.setOpacity(Math.min(1, v + .15));
+  };
+  document.getElementById('streets').onchange = e => {
+    if (e.target.checked) { streetLayer.addTo(map); streetLayer.bringToFront(); }
+    else map.removeLayer(streetLayer);
+  };
+  document.getElementById('places').onchange = () => { drawPlaces(); };
+  map.on('zoomend', renderPins);
+  // Click anywhere to ask what was on that ground in every year we hold. This is
+  // the question the wipe cannot answer: the wipe shows two years, and only along
+  // the divider.
+  map.on('click', e => openProbe(e.latlng, null));
+  wireSwipe();
+  wireAlign();
+  show(Object.keys(MAN.groups)[0]);
+  restoreFromHash(hash);
+}
+
+
+// -------------------------------------------------------------- places + probe
+// Two related things. PLACES are researched pins: somewhere worth knowing about,
+// with a note and its sources. The PROBE is the general case -- click any ground
+// at all and see it in every year the survey covers, which is how you find out
+// what used to be where a new building is.
+
+async function loadPlaces() {
+  try {
+    const r = await fetch(DAS.data + '/places.json?t=' + Date.now(), { cache: 'no-store' });
+    PLACES = r.ok ? ((await r.json()).places || []) : [];
+  } catch (e) { PLACES = []; }
+}
+
+function drawPlaces() {
+  if (placeLayer) { map.removeLayer(placeLayer); placeLayer = null; }
+  if (!document.getElementById('places').checked) return;
+  placeLayer = L.layerGroup().addTo(map);
+  renderPins();
+}
+
+// At the zoom that fits a whole block, pins a few hundred metres apart land within
+// ten pixels of each other and read as one dot -- which is how three places looked
+// like one. So group whatever overlaps on screen into a counted badge that zooms
+// to its members, and name the pins outright once there is room.
+function renderPins() {
+  if (!placeLayer) return;
+  // Leaflet throws from latLngToLayerPoint until the map has a centre and zoom,
+  // and show() can reach here before fit() has set one.
+  try { map.getZoom(); map.latLngToLayerPoint([42.35, -83.22]); }
+  catch (e) { map.whenReady(renderPins); return; }
+  placeLayer.clearLayers();
+  const mine = shownPlaces();
+  if (!mine.length) return;
+  const z = map.getZoom(), year = epochYear();
+  const pts = mine.map(p => ({ p: p, pt: map.latLngToLayerPoint([p.lat, p.lon]) }));
+  const used = pts.map(() => false), groups = [];
+  for (let i = 0; i < pts.length; i++) {
+    if (used[i]) continue;
+    const grp = [pts[i]]; used[i] = true;
+    for (let j = i + 1; j < pts.length; j++) {
+      if (!used[j] && pts[i].pt.distanceTo(pts[j].pt) < 38) { grp.push(pts[j]); used[j] = true; }
+    }
+    groups.push(grp);
+  }
+  groups.forEach(grp => {
+    if (grp.length === 1) {
+      const p = grp[0].p, st = placeState(p, year);
+      const m = L.circleMarker([p.lat, p.lon],
+        Object.assign({ radius: 7, fillColor: '#0B0F12', className: 'pmark' }, PIN[st]));
+      m.on('click', ev => { L.DomEvent.stopPropagation(ev); openProbe(L.latLng(p.lat, p.lon), p); });
+      const label = p.title + (spanText(p) ? '  ' + spanText(p) : '') + (STATE_TAG[st] || '');
+      if (z >= 14.5) m.bindTooltip(label, { permanent: true, direction: 'right',
+                                            className: 'ptip perm', offset: [9, 0] });
+      else m.bindTooltip(label, { direction: 'top', className: 'ptip', offset: [0, -7] });
+      placeLayer.addLayer(m);
+    } else {
+      const lat = grp.reduce((a, x) => a + x.p.lat, 0) / grp.length;
+      const lon = grp.reduce((a, x) => a + x.p.lon, 0) / grp.length;
+      const m = L.marker([lat, lon], { icon: L.divIcon({
+        className: 'pclus', html: String(grp.length), iconSize: [26, 26], iconAnchor: [13, 13] }) });
+      m.bindTooltip(grp.map(x => x.p.title).join(' \u00b7 '), { direction: 'top', className: 'ptip' });
+      m.on('click', ev => {
+        L.DomEvent.stopPropagation(ev);
+        map.fitBounds(L.latLngBounds(grp.map(x => [x.p.lat, x.p.lon])),
+                     { padding: [70, 70], maxZoom: 17 });
+      });
+      placeLayer.addLayer(m);
+    }
+  });
+}
+
+// A pin says what the ground under it was in the year on the left rail. Grey and
+// dashed is nothing here yet; a hollow amber ghost is a thing that has gone;
+// solid amber is standing, and is what the negative underneath should show.
+const PIN = {
+  live: { weight: 2,   color: '#E0A94A', fillOpacity: .9,  opacity: 1 },
+  pre:  { weight: 1.5, color: '#546570', fillOpacity: .35, opacity: .9, dashArray: '2,3' },
+  post: { weight: 1.5, color: '#E0A94A', fillOpacity: .12, opacity: .7, dashArray: '2,3' },
+  open: { weight: 2,   color: '#E0A94A', fillOpacity: .9,  opacity: 1 }
+};
+const STATE_TAG = { pre: '  \u00b7 not yet', post: '  \u00b7 gone' };
+
+function fillPlaceList() {
+  const sel = document.getElementById('placesel');
+  const mine = PLACES.filter(p => (p.group || 'west') === curId)
+                     .sort((a, b) => (a.rank || 2) - (b.rank || 2) ||
+                                     a.title.localeCompare(b.title));
+  const esc = t => String(t).replace(/</g, '&lt;');
+  sel.innerHTML = '<option value="">PLACES\u2026</option>' +
+    mine.map(p => '<option value="' + p.id + '">' + esc(p.title) +
+             (spanText(p) ? '  ' + spanText(p) : '') + '</option>').join('');
+  sel.style.display = mine.length ? '' : 'none';
+  const lab = document.querySelector('label[for-places], #places');
+  if (lab && lab.parentElement) {
+    lab.parentElement.lastChild.textContent = mine.length ? ' PLACES (' + mine.length + ')' : ' PLACES';
+  }
+  sel.onchange = () => {
+    const p = mine.find(x => x.id === sel.value);
+    sel.value = '';
+    if (!p) return;
+    const ll = L.latLng(p.lat, p.lon);
+    map.setView(ll, Math.min(probeZoom, 18));
+    openProbe(ll, p);
+  };
+}
+
+// The filter's wording carries the year, so nobody has to work out which of the
+// two rails the pin colours are answering.
+function fillFilter() {
+  const sel = document.getElementById('pfilter'), W = stateWords();
+  const opts = [['', 'ALL PLACES'], ['live', W.live], ['post', W.post], ['pre', W.pre]];
+  sel.innerHTML = opts.map(([v, t]) =>
+    '<option value="' + v + '"' + (v === pFilter ? ' selected' : '') + '>' + t + '</option>').join('');
+  sel.onchange = () => { pFilter = sel.value; renderPins(); };
+}
+
+function covers(lid, ll) {
+  const l = MAN.layers.find(x => x.id === lid);
+  if (!l || !l.bbox) return true;
+  return ll.lat >= l.bbox[0] && ll.lat <= l.bbox[2] && ll.lng >= l.bbox[1] && ll.lng <= l.bbox[3];
+}
+
+// A block's bounding box is a rectangle; its actual film coverage is a ragged
+// shape inside it, and 1956 in particular is missing whole corners. Rather than
+// show a black square under a confident year label, read the alpha of the tile
+// that holds the point: nodata is transparent, so this is exact.
+function flown(lid, ll, z) {
+  return new Promise(resolve => {
+    const n = Math.pow(2, z);
+    const fx = (ll.lng + 180) / 360 * n;
+    const fy = (1 - Math.asinh(Math.tan(ll.lat * Math.PI / 180)) / Math.PI) / 2 * n;
+    const x = Math.floor(fx), y = Math.floor(fy);
+    const px = Math.min(255, Math.max(0, Math.floor((fx - x) * 256)));
+    const py = Math.min(255, Math.max(0, Math.floor((fy - y) * 256)));
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        g.drawImage(img, 0, 0);
+        const x0 = Math.min(247, Math.max(0, px - 4)), y0 = Math.min(247, Math.max(0, py - 4));
+        const d = g.getImageData(x0, y0, 9, 9).data;
+        let a = 0;
+        for (let i = 3; i < d.length; i += 4) a += d[i];
+        resolve(a > 0);
+      } catch (e) { resolve(true); }      // unreadable: assume flown
+    };
+    img.onerror = () => resolve(true);
+    img.src = layerUrl(lid).replace('{z}', z).replace('{x}', x).replace('{y}', y);
+  });
+}
+
+// A probe is worth linking to: #lat,lon,zoom reopens it on the same ground, so a
+// spot someone wants to ask about can be sent as a URL.
+function restoreFromHash(h) {
+  const m = /^#(-?\d+\.?\d*),(-?\d+\.?\d*)(?:,(\d+))?$/.exec(h || '');
+  if (!m) return;
+  const lat = parseFloat(m[1]), lon = parseFloat(m[2]);
+  if (m[3]) probeZoom = Math.max(13, Math.min(20, parseInt(m[3], 10)));
+  // the link may be for a scene other than the one that opens by default
+  const gid = Object.keys(MAN.groups).find(g => {
+    const b = MAN.groups[g].bbox;
+    return b && lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3];
+  });
+  if (gid && gid !== curId) {
+    [...document.getElementById('tabs').children].forEach(t =>
+      t.setAttribute('aria-selected', String(t.dataset.g === gid)));
+    show(gid);
+  }
+  const ll = L.latLng(lat, lon);
+  const near = PLACES.filter(p => (p.group || 'west') === curId)
+    .find(p => Math.abs(p.lat - lat) < 3e-4 && Math.abs(p.lon - lon) < 3e-4);
+  map.setView(ll, Math.min(probeZoom, 18));
+  openProbe(ll, near || null);
+}
+
+function closeProbe() {
+  history.replaceState(null, '', location.pathname);
+  probeMaps.forEach(m => m.remove());
+  probeMaps = []; probePt = null; probePlace = null;
+  const box = document.getElementById('probe');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+}
+
+function openProbe(ll, place) {
+  probeMaps.forEach(m => m.remove());
+  probeMaps = [];
+  probePt = ll; probePlace = place || null;
+  history.replaceState(null, '', '#' + ll.lat.toFixed(5) + ',' + ll.lng.toFixed(5) + ',' + probeZoom);
+  const box = document.getElementById('probe');
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const cells = cur.layers.map((lid, i) => {
+    const l = MAN.layers.find(x => x.id === lid);
+    return '<div class="pcell"><i>' + esc(l.label) + '</i><div class="pmap" id="pm' + i + '"></div></div>';
+  }).join('');
+  let blurb = '';
+  if (place) {
+    const src = (place.sources || []).map(s =>
+      '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.label) + '</a>').join(' &middot; ');
+    blurb = '<div class="pblurb">' + place.blurb + (src ? '<div class="psrc" style="margin-top:5px">' + src + '</div>' : '') + '</div>';
+  }
+  // What this place was in the year on the left rail -- the same judgement the
+  // pin's colour is making, spelled out.
+  let life = '';
+  if (place) {
+    const y = epochYear(), st = placeState(place, y), span = spanText(place);
+    const said = st === 'pre' && place.from ? 'not built until ' + place.from
+                                            : stateWords()[st];
+    life = '<div class="plife">' +
+      (span ? '<b>' + esc(span) + '</b>' : '') +
+      (place.to_kind ? '<s>' + esc(place.to_kind) + '</s>' : '') +
+      (place.kind ? '<s>' + esc(place.kind) + '</s>' : '') +
+      '<s>&mdash;</s><span>' + esc(said) + '</span></div>';
+  }
+  box.innerHTML =
+    '<div class="phead">' +
+      '<span>' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5) + '</span>' +
+      (place ? '<b>' + esc(place.title) + '</b>' : '') +
+      '<span class="pspacer"></span>' +
+      (DAS.static ? '' : '<button class="pnew" title="pin this ground as a place">+ PLACE</button>') +
+      '<button class="pz" data-d="-1" title="zoom out">&minus;</button>' +
+      '<span class="pzl">z' + probeZoom + '</span>' +
+      '<button class="pz" data-d="1" title="zoom in">+</button>' +
+      '<button class="pclose" title="close">&times;</button>' +
+    '</div>' +
+    '<div class="prow">' + cells + '</div>' + life + blurb + addForm();
+  box.hidden = false;
+  const token = ++probeToken, cellMaps = [];
+  cur.layers.forEach((lid, i) => {
+    const el = document.getElementById('pm' + i);
+    if (!covers(lid, ll)) { el.classList.add('nocov'); el.textContent = 'not flown'; return; }
+    flown(lid, ll, probeZoom).then(ok => {
+      if (token !== probeToken || ok) return;
+      const j = probeMaps.indexOf(cellMaps[i]);
+      if (j >= 0) probeMaps.splice(j, 1);
+      if (cellMaps[i]) cellMaps[i].remove();
+      el.classList.add('nocov'); el.textContent = 'not flown';
+    });
+    const m = L.map(el, {
+      zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false,
+      doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false,
+      fadeAnimation: false, maxZoom: 21
+    }).setView(ll, probeZoom);
+    L.tileLayer(layerUrl(lid), tileOpts(lid)).addTo(m);
+    L.circleMarker(ll, { radius: 5, weight: 2, color: '#E0A94A', fill: false }).addTo(m);
+    probeMaps.push(m); cellMaps[i] = m;
+  });
+  box.querySelectorAll('.pz').forEach(b => {
+    b.onclick = () => {
+      probeZoom = Math.max(13, Math.min(20, probeZoom + Number(b.dataset.d)));
+      openProbe(probePt, probePlace);
+    };
+  });
+  box.querySelector('.pclose').onclick = closeProbe;
+  wireAdd(box);
+}
+
+// ------------------------------------------------------------- pinning a place
+// Adding a place used to mean hand-editing places.json and guessing at a
+// latitude. The probe already knows exactly which ground you are looking at, so
+// let it write the stub: the difference between twenty-four places and two
+// hundred is how long one costs. The blurb is still written by hand afterwards --
+// this captures the coordinate and the dates at the moment you know them.
+const KINDS = ['housing', 'school', 'factory', 'retail', 'office', 'civic', 'park',
+               'transport', 'street', 'leisure', 'hospital', 'worship', 'farm',
+               'landform', 'other'];
+
+function addForm() {
+  const opt = (v, t) => '<option value="' + v + '">' + (t || v) + '</option>';
+  return '<form class="padd" hidden>' +
+    '<input name="title" class="wide" placeholder="title" required>' +
+    '<input name="from" size="6" placeholder="from">' +
+    '<input name="to" size="6" placeholder="to">' +
+    '<select name="to_kind">' + ['', 'demolished', 'cleared', 'closed', 'rebuilt',
+      'filled', 'channelised'].map(v => opt(v, v || 'still there')).join('') + '</select>' +
+    '<select name="kind">' + KINDS.map(v => opt(v)).join('') + '</select>' +
+    '<select name="rank">' + [[1, 'rank 1 \u00b7 landmark'], [2, 'rank 2 \u00b7 local'],
+      [3, 'rank 3 \u00b7 minor']].map(([v, t]) => opt(v, t)).join('') + '</select>' +
+    '<input name="note" class="wide" placeholder="one-line note (optional)">' +
+    '<button type="submit">SAVE HERE</button><span class="msg"></span></form>';
+}
+
+function wireAdd(box) {
+  const btn = box.querySelector('.pnew'), form = box.querySelector('.padd');
+  if (!btn || !form) return;
+  form.querySelector('[name=rank]').value = '2';
+  btn.onclick = () => {
+    form.hidden = !form.hidden;
+    if (!form.hidden) form.querySelector('[name=title]').focus();
+  };
+  form.onsubmit = async ev => {
+    ev.preventDefault();
+    const msg = form.querySelector('.msg'), f = new FormData(form);
+    const num = v => { v = String(v || '').trim(); return v === '' ? null : (/^\d+$/.test(v) ? Number(v) : v); };
+    const body = { lat: probePt.lat, lon: probePt.lng, group: curId,
+                   title: String(f.get('title') || '').trim(),
+                   from: num(f.get('from')), to: num(f.get('to')),
+                   to_kind: f.get('to_kind') || null, kind: f.get('kind'),
+                   rank: Number(f.get('rank')), note: String(f.get('note') || '').trim() };
+    if (!body.title) { msg.textContent = 'needs a title'; return; }
+    msg.textContent = 'saving\u2026';
+    try {
+      const r = await fetch(DAS.api + '/place', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!r.ok) { msg.textContent = j.error || ('HTTP ' + r.status); return; }
+      await loadPlaces();
+      drawPlaces(); fillPlaceList();
+      openProbe(probePt, PLACES.find(x => x.id === j.id) || null);
+    } catch (e) { msg.textContent = String(e); }
+  };
+}
+
+function layerUrl(lid) {
+  const L2 = MAN.layers.find(l => l.id === lid);
+  if (L2 && L2.url) return L2.url;               // a remote basemap, e.g. Today from Esri
+  const v = (L2 && L2.ver) ? ('?v=' + L2.ver) : '?v=0';
+  // a saved alignment changes what the same tile URL returns, so the nonce is
+  // what makes the browser ask for it again (meaningless on a static build)
+  return DAS.tiles + '/' + lid + '/{z}/{x}/{y}.' + DAS.ext + v + (DAS.static ? '' : '&a=' + ADJ_NONCE);
+}
+
+// A pre-rendered pyramid stops at the film's native resolution; past that
+// Leaflet scales the last level up, which is what the on-demand server did too.
+function nativeZoom(lid) {
+  const L2 = MAN.layers.find(l => l.id === lid);
+  return (L2 && L2.maxNativeZoom) || 21;
+}
+
+// A static pyramid has no server to answer "nothing here" with a blank tile, so
+// tell Leaflet where the layer ends and what to show when a tile is missing
+// (ragged coverage inside the bbox), or the console fills with 404s.
+const BLANK_TILE = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+function tileOpts(lid, extra) {
+  const L2 = MAN.layers.find(l => l.id === lid), o = { maxZoom: 21, maxNativeZoom: nativeZoom(lid),
+                                                        className: 'nofade' };
+  if (L2 && !L2.url && L2.bbox) {
+    const b = L2.bbox; o.bounds = L.latLngBounds([b[0], b[1]], [b[2], b[3]]);
+    o.errorTileUrl = BLANK_TILE;
+    if (L2.minNativeZoom) o.minNativeZoom = L2.minNativeZoom;
+  }
+  return Object.assign(o, extra || {});
+}
+
+// ------------------------------------------------------------- hand alignment
+// Four numbers per layer -- east, north, rotation, scale -- about the layer's own
+// centre. The server owns them and applies them when it cuts tiles; this is the
+// hands-on end of it.
+//
+// Dragging cannot wait for a round trip, so the interaction is a CSS transform on
+// a pane of its own and the server is asked only on SAVE. The two have to agree
+// exactly or the picture would jump when you save: CSS rotate() turns clockwise on
+// screen, so `deg` is defined clockwise-on-screen and serve.py negates it into the
+// E/N frame. Web Mercator is conformal, so a rotation on screen is the same
+// rotation on the ground at this scale.
+// ADJ is what the server holds and already bakes into its tiles. LIVE is what the
+// hands are doing. The CSS preview therefore has to draw the DIFFERENCE between
+// them, not LIVE itself -- otherwise the moment you save, the shift is applied
+// twice: once by the server in the tile, once again by the transform on top.
+let ADJ_NONCE = 0, ADJ = {}, LIVE = {}, alignOn = false, alignLayer = null,
+    alignTarget = null, alignSplit = null, alignBlink = false, spaceDown = false,
+    alignDrag = null;
+
+const A0 = () => ({ dE: 0, dN: 0, deg: 0, scale: 1 });
+const cp = a => ({ dE: a.dE, dN: a.dN, deg: a.deg, scale: a.scale });
+const committed = () => (alignTarget && ADJ[alignTarget]) ? cp(ADJ[alignTarget]) : A0();
+
+function curAdj() {
+  if (!alignTarget) return A0();
+  if (!LIVE[alignTarget]) LIVE[alignTarget] = committed();
+  return LIVE[alignTarget];
+}
+
+// D such that LIVE = D after ADJ, both being similarities about the same pivot:
+//   theta_d = theta_l - theta_a,  s_d = s_l / s_a,  d_d = d_l - R_d s_d d_a
+function deltaAdj(live, adj) {
+  const s = live.scale / adj.scale, deg = live.deg - adj.deg;
+  const th = -deg * Math.PI / 180;            // clockwise-on-screen -> E/N angle
+  const c = Math.cos(th), si = Math.sin(th);
+  const rx = (adj.dE * c - adj.dN * si) * s, ry = (adj.dE * si + adj.dN * c) * s;
+  return { dE: live.dE - rx, dN: live.dN - ry, deg: deg, scale: s };
+}
+
+async function loadAdjust() {
+  if (!DAS.api) { ADJ = {}; return; }            // static: alignments are baked into the tiles
+  try {
+    const r = await fetch(DAS.api + '/adjust?t=' + Date.now(), { cache: 'no-store' });
+    ADJ = r.ok ? ((await r.json()).layers || {}) : {};
+  } catch (e) { ADJ = {}; }
+}
+
+function metresPerPixel() {
+  return 156543.03 * Math.cos(map.getCenter().lat * Math.PI / 180) / Math.pow(2, map.getZoom());
+}
+
+function pivotOf(lid) {
+  const b = MAN.layers.find(x => x.id === lid).bbox;
+  return L.latLng((b[0] + b[2]) / 2, (b[1] + b[3]) / 2);
+}
+
+// The pane lives inside Leaflet's map pane, so its own coordinate frame IS layer
+// points -- which is what latLngToLayerPoint returns, so the pivot needs no
+// further conversion. CSS applies the list right to left, so this is scale, then
+// rotate about the pivot, then translate: the same order serve.py composes.
+function paintAlign() {
+  const pane = map.getPane('align');
+  if (!pane) return;
+  if (!alignOn || !alignTarget) { pane.style.transform = ''; return; }
+  const a = deltaAdj(curAdj(), committed()),
+        mpp = metresPerPixel(), c = map.latLngToLayerPoint(pivotOf(alignTarget));
+  pane.style.transformOrigin = c.x + 'px ' + c.y + 'px';
+  pane.style.transform = 'translate(' + (a.dE / mpp) + 'px,' + (-a.dN / mpp) + 'px) ' +
+                         'rotate(' + a.deg + 'deg) scale(' + a.scale + ')';
+  pane.style.opacity = alignBlink ? 0 : (document.getElementById('aO').value / 100);
+}
+
+function fillAlignFields() {
+  const a = curAdj();
+  document.getElementById('aE').value = a.dE.toFixed(1);
+  document.getElementById('aN').value = a.dN.toFixed(1);
+  document.getElementById('aR').value = a.deg.toFixed(3);
+  document.getElementById('aS').value = a.scale.toFixed(4);
+}
+
+function setAdj(patch, fromFields) {
+  if (!alignTarget) return;
+  LIVE[alignTarget] = Object.assign(curAdj(), patch);
+  if (!fromFields) fillAlignFields();
+  paintAlign();
+}
+
+function msgAlign(t, ok) {
+  const el = document.getElementById('aMsg');
+  el.textContent = t; el.className = 'amsg' + (ok ? ' ok' : '');
+}
+
+function alignChoices() {
+  const sel = document.getElementById('aLayer');
+  if (!cur.layers.includes(alignTarget)) alignTarget = cur.layers[0];
+  sel.innerHTML = cur.layers.map(lid => {
+    const l = MAN.layers.find(x => x.id === lid);
+    return '<option value="' + lid + '">' + l.label + (ADJ[lid] ? '  ●' : '') + '</option>';
+  }).join('');
+  sel.value = alignTarget;
+}
+
+function mountAlignLayer() {
+  if (alignLayer) { map.removeLayer(alignLayer); alignLayer = null; }
+  if (!alignOn || !alignTarget) return;
+  alignLayer = L.tileLayer(layerUrl(alignTarget), tileOpts(alignTarget, { pane: 'align' })).addTo(map);
+  paintAlign();
+}
+
+function enterAlign(on) {
+  alignOn = on;
+  document.getElementById('align').hidden = !on;
+  document.getElementById('mapwrap').classList.toggle('aligning', on);
+  const pane = map.getPane('align');
+  if (on) {
+    alignSplit = split;
+    split = 0; applyClip();          // one reference underneath; a wipe cannot show a fit
+    map.dragging.disable();
+    alignChoices(); curAdj(); fillAlignFields(); mountAlignLayer();
+    msgAlign('');
+  } else {
+    map.dragging.enable();
+    if (alignSplit !== null) { split = alignSplit; applyClip(); alignSplit = null; }
+    if (alignLayer) { map.removeLayer(alignLayer); alignLayer = null; }
+    if (pane) { pane.style.transform = ''; pane.style.opacity = 1; }
+  }
+}
+
+function wireAlign() {
+  map.createPane('align').style.zIndex = 350;
+  const chk = document.getElementById('alignon');
+  chk.onchange = () => enterAlign(chk.checked);
+  document.getElementById('aLayer').onchange = e => {
+    alignTarget = e.target.value; curAdj(); fillAlignFields(); mountAlignLayer();
+  };
+  document.getElementById('aO').oninput = paintAlign;
+  const num = (id, key, clamp) => {
+    document.getElementById(id).oninput = e => {
+      const v = parseFloat(e.target.value);
+      if (Number.isFinite(v)) setAdj({ [key]: clamp ? clamp(v) : v }, true);
+    };
+  };
+  num('aE', 'dE'); num('aN', 'dN'); num('aR', 'deg');
+  num('aS', 'scale', v => Math.min(2, Math.max(0.5, v)));
+
+  ['move', 'zoom', 'moveend', 'zoomend', 'viewreset'].forEach(ev => map.on(ev, paintAlign));
+
+  const wrap = document.getElementById('mapwrap');
+  wrap.addEventListener('pointerdown', ev => {
+    if (!alignOn || ev.button !== 0 || ev.target.closest('#align, #probe, #swipe')) return;
+    ev.preventDefault();
+    const r = wrap.getBoundingClientRect(), c = map.latLngToContainerPoint(pivotOf(alignTarget));
+    alignDrag = {
+      id: ev.pointerId, x: ev.clientX, y: ev.clientY, start: Object.assign({}, curAdj()),
+      mode: spaceDown ? 'pan' : ev.shiftKey ? 'rot' : ev.altKey ? 'scale' : 'move',
+      cx: r.left + c.x, cy: r.top + c.y, mpp: metresPerPixel()
+    };
+    alignDrag.a0 = Math.atan2(ev.clientY - alignDrag.cy, ev.clientX - alignDrag.cx);
+    alignDrag.r0 = Math.hypot(ev.clientX - alignDrag.cx, ev.clientY - alignDrag.cy);
+    try { wrap.setPointerCapture(ev.pointerId); } catch (_) {}
+  });
+  wrap.addEventListener('pointermove', ev => {
+    if (!alignDrag || ev.pointerId !== alignDrag.id) return;
+    const d = alignDrag, dx = ev.clientX - d.x, dy = ev.clientY - d.y;
+    if (d.mode === 'pan') {
+      map.panBy([-dx, -dy], { animate: false }); d.x = ev.clientX; d.y = ev.clientY; return;
+    }
+    if (d.mode === 'move') {
+      setAdj({ dE: d.start.dE + dx * d.mpp, dN: d.start.dN - dy * d.mpp });
+    } else if (d.mode === 'rot') {
+      const a1 = Math.atan2(ev.clientY - d.cy, ev.clientX - d.cx);
+      const deg = d.start.deg + (a1 - d.a0) * 180 / Math.PI;
+      setAdj({ deg: Math.max(-180, Math.min(180, deg)) });
+    } else if (d.r0 > 20) {
+      const r1 = Math.hypot(ev.clientX - d.cx, ev.clientY - d.cy);
+      setAdj({ scale: Math.max(0.5, Math.min(2, d.start.scale * r1 / d.r0)) });
+    }
+  });
+  const stop = () => {
+    if (!alignDrag) return;
+    try { wrap.releasePointerCapture(alignDrag.id); } catch (_) {}
+    alignDrag = null;
+  };
+  wrap.addEventListener('pointerup', stop); wrap.addEventListener('pointercancel', stop);
+
+  window.addEventListener('keydown', ev => {
+    if (ev.key === ' ') spaceDown = true;
+    if (!alignOn || (ev.target.matches && ev.target.matches('input, select, textarea'))) return;
+    if ((ev.key === 'f' || ev.key === 'F') && !alignBlink) { alignBlink = true; paintAlign(); }
+    const k = { ArrowLeft: ['dE', -1], ArrowRight: ['dE', 1],
+                ArrowUp: ['dN', 1], ArrowDown: ['dN', -1] }[ev.key];
+    if (k) {
+      ev.preventDefault();
+      const step = (ev.shiftKey ? 10 : 1) * metresPerPixel();
+      setAdj({ [k[0]]: curAdj()[k[0]] + k[1] * step });
+    }
+  });
+  window.addEventListener('keyup', ev => {
+    if (ev.key === ' ') spaceDown = false;
+    if (ev.key === 'f' || ev.key === 'F') { alignBlink = false; paintAlign(); }
+  });
+
+  document.getElementById('aZero').onclick = () => {
+    setAdj(A0()); msgAlign('zeroed \u2014 not saved yet');
+  };
+  document.getElementById('aRevert').onclick = async () => {
+    await loadAdjust();
+    LIVE[alignTarget] = committed();
+    fillAlignFields(); paintAlign(); msgAlign('reloaded from disk', true);
+  };
+  document.getElementById('aSave').onclick = async () => {
+    if (!alignTarget) return;
+    msgAlign('saving…');
+    try {
+      const r = await fetch(DAS.api + '/adjust', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ layer: alignTarget }, curAdj())) });
+      const j = await r.json();
+      if (!r.ok) { msgAlign(j.error || ('HTTP ' + r.status)); return; }
+      await loadAdjust();
+      // LIVE now equals what the server holds, so the delta is the identity and
+      // the preview transform falls away on its own
+      LIVE[alignTarget] = committed();
+      ADJ_NONCE++;
+      paint(); mountAlignLayer(); alignChoices(); fillAlignFields();
+      msgAlign('saved — tiles are served this way now', true);
+    } catch (e) { msgAlign(String(e)); }
+  };
+}
+
+function show(gid) {
+  cur = MAN.groups[gid]; curId = gid;
+  closeProbe();
+  L_ = 0; R_ = cur.layers.length - 1;
+  const n = NOTES[gid] || ['', ''];
+  document.getElementById('note').innerHTML =
+    '<h3>' + n[0] + '</h3>' + n.slice(1).map(p => '<p style="margin:6px 0 0">' + p + '</p>').join('');
+  paint(); fit(); drawPlaces(); fillPlaceList(); fillFilter();
+  if (alignOn) { alignChoices(); fillAlignFields(); mountAlignLayer(); }
+}
+
+function chips(el, sel, cb) {
+  [...el.querySelectorAll('.chip')].forEach(c => c.remove());
+  cur.layers.forEach((lid, i) => {
+    const l = MAN.layers.find(x => x.id === lid);
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = l.label;
+    b.setAttribute('aria-pressed', String(i === sel));
+    b.onclick = () => cb(i);
+    el.appendChild(b);
+  });
+}
+
+function paint() {
+  if (left) map.removeLayer(left);
+  if (right) map.removeLayer(right);
+  const lid = cur.layers[L_], rid = cur.layers[R_];
+  left = L.tileLayer(layerUrl(lid), tileOpts(lid)).addTo(map);
+  right = L.tileLayer(layerUrl(rid), tileOpts(rid)).addTo(map);
+  const name = id => MAN.layers.find(x => x.id === id).label;
+  document.getElementById('tagL').textContent = name(lid);
+  document.getElementById('tagR').textContent = name(rid);
+  document.getElementById('mCmp').textContent = name(lid) + ' → ' + name(rid);
+  chips(document.getElementById('railL'), L_, i => { if (i === R_) R_ = L_; L_ = i; paint(); });
+  chips(document.getElementById('railR'), R_, i => { if (i === L_) L_ = R_; R_ = i; paint(); });
+  if (roadsLayer && document.getElementById('roads').checked) roadsLayer.bringToFront();
+  if (streetLayer && document.getElementById('streets').checked) streetLayer.bringToFront();
+  fillFilter(); renderPins();
+  applyClip();
+}
+
+function applyClip() {
+  const wrap = document.getElementById('mapwrap');
+  const w = wrap.clientWidth;
+  const x = w * split;
+  // Leaflet translates layer containers as you pan, so a clip expressed in the
+  // container's own coordinates drifts. Convert the viewport split into each
+  // container's local frame every time.
+  if (map && left && right && left.getContainer() && right.getContainer()) {
+    const nw = map.containerPointToLayerPoint([0, 0]);
+    const se = map.containerPointToLayerPoint(map.getSize());
+    const clipX = nw.x + (se.x - nw.x) * split;
+    left.getContainer().style.clip =
+      'rect(' + [nw.y, clipX, se.y, nw.x].join('px,') + 'px)';
+    right.getContainer().style.clip =
+      'rect(' + [nw.y, se.x, se.y, clipX].join('px,') + 'px)';
+    left.getContainer().style.clipPath = 'none';
+    right.getContainer().style.clipPath = 'none';
+  }
+  const sw = document.getElementById('swipe');
+  sw.style.left = x + 'px';
+  document.getElementById('tagL').style.left = Math.max(8, x - 74) + 'px';
+  document.getElementById('tagR').style.left = (x + 10) + 'px';
+}
+
+function wireSwipe() {
+  const wrap = document.getElementById('mapwrap'), sw = document.getElementById('swipe');
+  let drag = false;
+  sw.addEventListener('pointerdown', e => { drag = true; sw.setPointerCapture(e.pointerId); e.preventDefault(); });
+  wrap.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const r = wrap.getBoundingClientRect();
+    split = Math.min(.99, Math.max(.01, (e.clientX - r.left) / r.width));
+    applyClip();
+  });
+  const stop = e => { drag = false; try { sw.releasePointerCapture(e.pointerId); } catch (_) {} };
+  wrap.addEventListener('pointerup', stop); wrap.addEventListener('pointercancel', stop);
+  if (map) {
+    ['move', 'zoom', 'zoomanim', 'moveend', 'zoomend', 'viewreset', 'load'].forEach(
+      ev => map.on(ev, applyClip));
+  }
+  new ResizeObserver(applyClip).observe(wrap);
+}
+
+function fit() {
+  const wrap = document.getElementById('mapwrap');
+  if (!wrap.clientWidth || !wrap.clientHeight) { requestAnimationFrame(fit); return; }
+  map.invalidateSize({ animate: false });
+  const b = cur.bbox;
+  map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: [12, 12], animate: false });
+  setTimeout(applyClip, 60);
+}
+
+boot();
+</script>
+</body>
+</html>

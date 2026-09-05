@@ -1,0 +1,640 @@
+{
+ "_note": "Researched pins. Each is a place where the change since 1949 is legible in the imagery. Site claims were adversarially verified against the imagery and the cited record; 13 of 19 candidate claims were refuted and dropped. blurb is HTML; sources are {label, url}.",
+ "places": [
+  {
+   "id": "herman-gardens",
+   "lat": 42.3555,
+   "lon": -83.211,
+   "title": "Herman Gardens",
+   "from": 1943,
+   "to": "1990s",
+   "to_kind": "demolished",
+   "kind": "housing",
+   "rank": 1,
+   "blurb": "The long two-storey blocks set in diagonal ranks, filling every acre south of Joy Road and east of Southfield. <b>Herman Gardens</b> was public housing built in 1942&ndash;43 at the peak of Detroit's war production: 2,144 units on about 160 acres, running half a mile south from Joy Road. Laid out at 45&deg; to the street grid, it reads as a herringbone against the ordinary blocks all around it, and it is still entire in 1967. Demolition ran through the 1980s and 1990s and Gardenview Estates opened on the site in 2009. <b>Wipe 1949 against today:</b> not one block survives, and much of the ground is still empty. John DeLorean, Judge Greg Mathis and The Spinners lived here.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Herman_Gardens"
+    },
+    {
+     "label": "Historic Detroit",
+     "url": "https://historicdetroit.org/buildings/herman-school"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "joy-southfield",
+   "lat": 42.35785,
+   "lon": -83.21649,
+   "title": "Joy Rd &amp; Southfield Freeway",
+   "from": 1961,
+   "to": null,
+   "to_kind": null,
+   "kind": "transport",
+   "rank": 2,
+   "blurb": "In 1949 there is no freeway here &mdash; Southfield Road is an ordinary street with houses and shops fronting it, and the grid runs straight through. The State Highway Department approved the conversion on 24 June 1957, and the first segment opened on 19 December 1961, running from Dearborn to W Chicago Blvd just north of Joy Road: this crossing is on the oldest piece of M-39. <b>The 1961 negatives catch it mid-build</b> &mdash; the whole corridor is bare graded earth, every building gone, the mainline still unpaved, with the Joy Road bridge already formed. By 1967 it is finished and sunk below grade. The surface service drives are still called Southfield Road today.",
+   "sources": [
+    {
+     "label": "Michigan Highways",
+     "url": "https://www.michiganhighways.org/listings/M-039.html"
+    },
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/M-39_(Michigan_highway)"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "cody-high-school",
+   "lat": 42.36041,
+   "lon": -83.22042,
+   "title": "Frank Cody High School",
+   "from": 1952,
+   "to": null,
+   "to_kind": null,
+   "kind": "school",
+   "rank": 2,
+   "blurb": "In 1949 this block is a building site: raw graded earth, spoil heaps and haul tracks, with Faust, Penrod and Rosemont still running through it as platted streets, and one finished school building already standing at the south edge. <b>Cody High School</b> stands complete in the 1961 frame, named for a former Detroit Public Schools superintendent. It opened on the city's white West Side as a new, well-equipped school while the schools serving Black children on the east and central sides were overcrowded and decaying, and became an emblem of that inequality. A replacement building is under construction on the campus now.",
+   "sources": [
+    {
+     "label": "The Metropole",
+     "url": "https://themetropole.blog/2019/08/22/cody-high-school-from-promise-to-punishment/"
+    },
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Frank_Cody_High_School"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "everett-school",
+   "lat": 42.35997,
+   "lon": -83.22177,
+   "title": "Everett School",
+   "from": 1939,
+   "to": null,
+   "to_kind": null,
+   "kind": "school",
+   "rank": 3,
+   "blurb": "The one flat-roofed building standing alone on raw ground in 1949, about 58 m by 19 m, set back from Dover Ave. This is <b>Everett School</b>, built between 1939 and 1949 &mdash; and it was never demolished. Cody was built around it, and it survives as the western half of Cody's long south wing. OpenStreetMap still carries <code>old_name = Everett Elementary School</code> on the campus.",
+   "sources": [
+    {
+     "label": "OpenStreetMap",
+     "url": "https://www.openstreetmap.org/way/455591644"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "stein-fill",
+   "lat": 42.3622,
+   "lon": -83.224,
+   "title": "The hollow under Stein Playground",
+   "from": null,
+   "to": 1961,
+   "to_kind": "filled",
+   "kind": "landform",
+   "rank": 3,
+   "blurb": "The pale, smooth mass with rounded lobes pushing east into dark woodland, with haul tracks over it. There was a stream valley here &mdash; an unnamed intermittent creek mapped in 1905, and a depression still surveyed in 1939 &mdash; and in 1949 it is being filled, the lobes advancing as material is tipped in. By 1961 the hollow is gone and the ground is level. It is now <b>Stein Playground</b>, 25 acres with a track, football field and ball diamonds.",
+   "sources": [
+    {
+     "label": "City of Detroit",
+     "url": "https://detroitmi.gov/node/82776"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "stoepel-2",
+   "lat": 42.36277,
+   "lon": -83.2065,
+   "title": "Stoepel Park No. 2",
+   "from": 1928,
+   "to": null,
+   "to_kind": null,
+   "kind": "park",
+   "rank": 3,
+   "blurb": "Open mown ground with faint paths and a bright ball-diamond infield in 1949 &mdash; already a playfield, not a building site. The City of Detroit acquired these 36.65 acres in 1928. Houses stand on the north and west; the ground east and south of it is still vacant platted subdivision in 1949 and fills in by 1961.",
+   "sources": [
+    {
+     "label": "OpenStreetMap",
+     "url": "https://www.openstreetmap.org/way/79583075"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "town-drive-in-redford-township",
+   "lat": 42.362,
+   "lon": -83.2773,
+   "title": "Town Drive-In, Redford Township",
+   "from": 1949,
+   "to": 1962,
+   "to_kind": "demolished",
+   "kind": "leisure",
+   "rank": 2,
+   "blurb": "The wedge of about fifteen curved parking ramps west of Telegraph Road is the Town Drive-In, which opened on 4 May 1949 and held 1,100 cars. The screen tower is the dark structure at the north-east corner, next to the entrance drive off Telegraph; the white block in the middle is the projection and concession building. It closed on 9 December 1962 and was demolished - the ramps are now the car park of a shopping plaza.",
+   "sources": [
+    {
+     "label": "Cinema Treasures",
+     "url": "https://cinematreasures.org/theaters/29693"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "rouge-river-meanders-dearborn",
+   "lat": 42.3045,
+   "lon": -83.203,
+   "title": "Rouge River meanders, Dearborn",
+   "from": null,
+   "to": 1978,
+   "to_kind": "channelised",
+   "kind": "landform",
+   "rank": 2,
+   "blurb": "In 1949 the Rouge swings through open bottomland here in long, tree-fringed meanders, with farm fields either side. The Army Corps of Engineers' Rouge River flood-control project, finished in 1978, replaced roughly six miles of river with a four-mile lined channel serving Dearborn, Allen Park and Melvindale. Wipe to today and the river is a dead-straight cut running corner to corner; the old bends survive only as the shaped ponds of the golf course on the east bank.",
+   "sources": [
+    {
+     "label": "Alliance of Rouge Communities",
+     "url": "https://www.allianceofrougecommunities.com/concretechannelrestoration.html"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "allen-park-veterans-hospital",
+   "lat": 42.279,
+   "lon": -83.213,
+   "title": "Allen Park Veterans Hospital",
+   "from": null,
+   "to": 2004,
+   "to_kind": "demolished",
+   "kind": "hospital",
+   "rank": 2,
+   "blurb": "The big multi-wing building with the circular entrance drive, standing alone in open lawn at Southfield and Outer Drive, is the Veterans Administration hospital built on 38 acres Henry and Clara Ford donated in 1937. It grows through the 1961 and 1967 frames, by then with the new Southfield Freeway cutting past its west side. Patients were moved to the new Detroit VA on 2 June 1996 and the buildings were demolished in 2004; the crosshair now lands in the parking lot of a big-box shopping centre, with a granite memorial dedicated in 2005 as the only marker.",
+   "sources": [
+    {
+     "label": "US Dept of Veterans Affairs",
+     "url": "https://www.va.gov/detroit-health-care/about-us/history/"
+    },
+    {
+     "label": "loc.gov",
+     "url": "https://www.loc.gov/pictures/item/mi0645/"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "redford-high-school",
+   "lat": 42.4128,
+   "lon": -83.2528,
+   "title": "Redford High School",
+   "from": 1921,
+   "to": 2012,
+   "to_kind": "demolished",
+   "kind": "school",
+   "rank": 2,
+   "blurb": "The dark-roofed blocks fronting Grand River, with a cinder running track and athletic field filling the south half of the block, are Redford High School, opened in September 1921 for Old Redford, Brightmoor, Grandmont and Rosedale Park. It closed in June 2007 and was demolished in September 2012 after a fire in the gymnasium. A Meijer store opened on the site in June 2015: the store itself sits on the old track and field, and its parking lot covers the ground where the school buildings stood.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Redford_High_School"
+    },
+    {
+     "label": "DetroitUrbex",
+     "url": "https://detroiturbex.com/content/schools/redford/index.html"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "oakwood-hospital-dearborn",
+   "lat": 42.291,
+   "lon": -83.2143,
+   "title": "Oakwood Hospital, Dearborn",
+   "from": 1953,
+   "to": null,
+   "to_kind": null,
+   "kind": "hospital",
+   "rank": 3,
+   "blurb": "In 1949 this is woodland and rough open ground off Oakwood Boulevard with a dirt track across it and no buildings at all. Ground was broken for Oakwood Hospital in August 1950 and it opened on 5 January 1953: the compact building with a curved drive at the crosshair in the 1961 frame is it, and by 1967 a long wing has been added to the south. Today the whole block is a hospital campus of multi-storey wings and parking decks, renamed Beaumont Dearborn in 2014 and now Corewell Health Dearborn Hospital.",
+   "sources": [
+    {
+     "label": "Detroit Historical Museum",
+     "url": "https://thedhm.org/medical-exhibit/hospitals/oakwood/"
+    },
+    {
+     "label": "Corewell Health",
+     "url": "https://corewellhealth.org/locations/LOC0000193308/corewell-health-dearborn-hospital"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "university-of-michigan-dearborn",
+   "lat": 42.3187,
+   "lon": -83.234,
+   "title": "University of Michigan-Dearborn",
+   "from": 1959,
+   "to": null,
+   "to_kind": null,
+   "kind": "school",
+   "rank": 2,
+   "blurb": "Open fields and fence lines here in 1949, with rows of orchard trees on the west edge and farm buildings at the south, on the Ford estate land above the Rouge. Ford Motor Company gave the land and construction money to the University of Michigan in December 1956 and the Dearborn branch opened on 28 September 1959 with 34 students; the low white buildings and fresh parking lots at the crosshair in the 1961 frame are that first campus. It has been filling in ever since, and the same ground now carries a built-out university of two hundred-odd acres.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/University_of_Michigan%E2%80%93Dearborn"
+    },
+    {
+     "label": "UM-Dearborn",
+     "url": "https://umdearborn.edu/news/full-circle-moment"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "islamic-center-of-america",
+   "lat": 42.3304,
+   "lon": -83.2298,
+   "title": "Islamic Center of America",
+   "from": 2005,
+   "to": null,
+   "to_kind": null,
+   "kind": "worship",
+   "rank": 2,
+   "blurb": "In 1949 this is a bare field on the north side of Ford Road, houses behind it and the Rouge woods across the road. The plot is still open ground in 1961 and 1967, even as low buildings appear along the road on either side. The domed building with two minarets and a circular forecourt standing on it now is the Islamic Center of America, opened in May 2005 and generally described as the largest mosque in North America; the congregation's first purpose-built mosque, in 1963, was on Joy Road in Detroit.",
+   "sources": [
+    {
+     "label": "Detroit Historical Society",
+     "url": "https://www.detroithistorical.org/learn/online-research/encyclopedia-of-detroit/islamic-center-america"
+    },
+    {
+     "label": "Islamic Center of America",
+     "url": "https://icofa.com/our-history/"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "henry-ford-centennial-library",
+   "lat": 42.3132,
+   "lon": -83.2027,
+   "title": "Henry Ford Centennial Library",
+   "from": 1969,
+   "to": null,
+   "to_kind": null,
+   "kind": "civic",
+   "rank": 3,
+   "blurb": "A ploughed field with two trees in it in 1949, Michigan Avenue running along the top of the frame, and still empty ground in 1961. Ford Motor Company deeded the 15.3-acre site to the City of Dearborn on 30 July 1963, Henry Ford's hundredth birthday, and ground was broken on 14 December 1966: the rectangular building rising out of bare earth in the 1967 frame is the library under construction. It was dedicated on 25 November 1969 and is still Dearborn's main library.",
+   "sources": [
+    {
+     "label": "Dearborn Public Library",
+     "url": "https://dearbornlibrary.org/general-information/history-of-the-dearborn-public-library/"
+    },
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Henry_Ford_Centennial_Library"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "ford-airport-dearborn",
+   "lat": 42.3013,
+   "lon": -83.2276,
+   "title": "Ford Airport, Dearborn",
+   "from": 1924,
+   "to": 1961,
+   "to_kind": "rebuilt",
+   "kind": "transport",
+   "rank": 1,
+   "blurb": "The word FORD is laid out across the grass as a marker for pilots overhead: this is Ford Airport, opened in November 1924, with a paved runway still crossing the field and works buildings and hangars along its western edge. Aircraft left in 1947 for Detroit Metropolitan and Ford kept the ground for cars — a test track already rings the field in 1949. Wipe forward and the letters and the runway are gone by 1961, replaced by handling loops and a skid pad; today it is Ford's Dearborn Development Center.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Ford_Airport_(Dearborn)"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "ford-s-glass-house",
+   "lat": 42.3156,
+   "lon": -83.2106,
+   "title": "Ford's Glass House",
+   "from": 1956,
+   "to": null,
+   "to_kind": null,
+   "kind": "office",
+   "rank": 1,
+   "blurb": "In 1949 this is farmland: hedgerows, ploughed strips and a rail line along the bottom of the frame, with no building at all on the spot. Wipe to 1961 and a single twelve-storey slab stands alone in the fields with car parks laid out around it — Ford's world headquarters, the Glass House, opened on 26 September 1956 to a Skidmore, Owings &amp; Merrill design. Ford announced in 2025 that it was moving out, and the building is slated for demolition in 2027.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Henry_Ford_II_World_Center"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "the-detroit-industrial-expressway",
+   "lat": 42.2655,
+   "lon": -83.248,
+   "title": "The Detroit Industrial Expressway",
+   "from": 1943,
+   "to": null,
+   "to_kind": null,
+   "kind": "transport",
+   "rank": 2,
+   "blurb": "The dead-straight divided road crossing the frame is the Detroit Industrial Expressway, built with War Department money under the Defense Highway Act of 1941 to move workers out to Ford's Willow Run bomber plant; this stretch, Middle Belt Road to Southfield Road, opened on 2 February 1943. In 1949 there is farmland on both sides of it and almost nothing else — the road arrived years before the place did. Today it is I-94, and the fields on the south side are solid truck yards and distribution warehouses.",
+   "sources": [
+    {
+     "label": "Michigan Highways",
+     "url": "https://michiganhighways.org/indepth/early_I-94.html"
+    },
+    {
+     "label": "Ann Arbor District Library",
+     "url": "https://aadl.org/node/85084"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "the-orchard-on-the-rouge",
+   "lat": 42.3252,
+   "lon": -83.2404,
+   "title": "The orchard on the Rouge",
+   "from": null,
+   "to": "1960s",
+   "to_kind": "cleared",
+   "kind": "farm",
+   "rank": 3,
+   "blurb": "In 1949 this bank of the Rouge is an orchard: several hundred trees in dead-straight rows running from the road down to the water, and still in rows in the 1956 and 1961 negatives. The campus that now covers this ground is Henry Ford College, built on land Ford Motor Company gave in 1957 from the deer park of Henry Ford's Fair Lane estate — though no source I found names the orchard itself. Wipe 1961 against today and the rows disappear under buildings, parking and self-sown woodland, while the river's meander stays exactly where it was.",
+   "sources": [
+    {
+     "label": "Henry Ford College",
+     "url": "https://mirrornews.hfcc.edu/news/2010/10-01/hfcc-rich-history"
+    },
+    {
+     "label": "The Cultural Landscape Foundation",
+     "url": "https://www.tclf.org/landscapes/henry-and-clara-ford-estate"
+    },
+    {
+     "label": "Henry Ford College",
+     "url": "https://www.hfcc.edu/history"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "schoncheck-s-fields-now-heritage-park",
+   "lat": 42.2165,
+   "lon": -83.248,
+   "title": "Schoncheck's fields, now Heritage Park",
+   "from": null,
+   "to": null,
+   "to_kind": null,
+   "kind": "farm",
+   "rank": 3,
+   "blurb": "Everything in the 1949 frame here is farm: big rectangular fields with hedgerows between them, a woodlot at the edge, and farmsteads strung along the section roads. This ground was the Schoncheck Farm, and it is now Taylor's Heritage Park — ball diamonds where the crop rows were, and a three-acre lake dug in the autumn of 1988. Taylor Township did not become the City of Taylor until 1968; in 1949 it was still being worked.",
+   "sources": [
+    {
+     "label": "City of Taylor",
+     "url": "https://cityoftaylor.com/1161/Coan-Lake-Historical-Area"
+    },
+    {
+     "label": "City of Taylor",
+     "url": "https://www.cityoftaylor.com/388/Early-Taylor"
+    },
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Taylor,_Michigan"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "where-the-jeffries-took-the-block",
+   "lat": 42.3852,
+   "lon": -83.2555,
+   "title": "Where the Jeffries took the block",
+   "from": null,
+   "to": 1977,
+   "to_kind": "cleared",
+   "kind": "housing",
+   "rank": 2,
+   "blurb": "In 1949, 1956 and 1961 the crosshair sits in a block of houses and back lots on the south side of Schoolcraft, which was then a boulevard — two roadways with a planted median — with Rouge Park's woods just beyond. The Jeffries Freeway was driven along that corridor in the 1970s: it reached the Grand River and Schaefer area in 1973, and the final link west to I-275 opened on 21 November 1977. Wipe 1961 against today and those houses are the westbound lanes of I-96; the surface streets left on either side still carry the Schoolcraft name.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Interstate_96"
+    },
+    {
+     "label": "Interstate Guide",
+     "url": "https://www.interstate-guide.com/business/bs-096-detroit-mi/"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "eliza-howell-park-the-field-that-went-back-t",
+   "lat": 42.393,
+   "lon": -83.269,
+   "title": "Eliza Howell Park: the field that went back to wood",
+   "from": 1936,
+   "to": null,
+   "to_kind": null,
+   "kind": "park",
+   "rank": 3,
+   "blurb": "Eliza Howell's family gave the city 138 acres here in 1936, on a deed condition that it stay a public park; it now runs to about 250 acres and takes in the meeting of the upper and main branches of the Rouge. In 1949 the ground inside the park's loop drive is open — mown grass with tracks worn across it, trees only down in the river ravine — and the blocks east of the park are still half-empty. Wipe forward: the subdivisions fill in by 1956, the loop drive never moves, and the grass closes over, so that today most of what was open is canopy.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Eliza_Howell_Park"
+    },
+    {
+     "label": "City of Detroit",
+     "url": "https://detroitmi.gov/departments/detroit-parks-recreation/parks-and-greenways/regional-and-riverfront-parks/eliza-howell-park"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "ecorse-drive-in-taylor",
+   "lat": 42.2572,
+   "lon": -83.2464,
+   "title": "Ecorse Drive-In, Taylor",
+   "from": 1951,
+   "to": 1985,
+   "to_kind": "closed",
+   "kind": "leisure",
+   "rank": 2,
+   "blurb": "This raked fan of bare earth north of Ecorse Road is a drive-in half-built: the parking ramps have been cut but there is no screen tower, no projection booth and no entrance drive yet. It is the Ecorse Drive-In at 21366 Ecorse Road, which opened on 22 April 1951 for 1,000 cars - the 1961 layer shows it finished and working, screen tower at the south point, looping entry drives off the road. It closed in October 1985 and the site is now a strip mall and its car park. Note the tension: this block is filed as 1949 and the theatre opened in 1951, so either the frame is later than its label or the ramps sat graded for a season or two.",
+   "sources": [
+    {
+     "label": "Cinema Treasures",
+     "url": "https://cinematreasures.org/theaters/12554"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "the-tracks-at-southfield-road",
+   "lat": 42.3792,
+   "lon": -83.2178,
+   "title": "The tracks at Southfield Road",
+   "from": null,
+   "to": null,
+   "to_kind": null,
+   "kind": "transport",
+   "rank": 3,
+   "blurb": "Half a dozen parallel tracks loaded with freight cars, a long plant on the north side with its own spur curving in off the main line and a white material stockpile beside it, and streets of small houses running right up to the south side of the rails. The railway and the lineside works are still here and still working, bigger than they were. The houses are not: the I-96 Jeffries Freeway was driven through the west side in the early 1970s — its largest section opened in November 1976, and nearly 3,500 homes and businesses came down for it — and where it meets the Southfield Freeway here it swells to eighteen lanes.",
+   "sources": [
+    {
+     "label": "Midstory",
+     "url": "https://www.midstory.org/what-detroits-jeffries-freeway-took-away/"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "half-mile-oval-then-river-oaks",
+   "lat": 42.3345,
+   "lon": -83.2405,
+   "title": "Half-mile oval, then River Oaks",
+   "from": null,
+   "to": 1961,
+   "to_kind": "cleared",
+   "kind": "leisure",
+   "rank": 2,
+   "blurb": "A half-mile oval sits here in 1949 and again in 1956 — a pale graded track around a dark grass infield, with a smaller second ring beside it and open ground all round. By the 1961 negative it has gone and the curving streets of the River Oaks subdivision are laid across it; those houses are still there today, off Ann Arbor Trail. Dearborn Heights incorporated as a city on 20 June 1960, right in the middle of that change — but I could not find any source that names the track, so treat it as unidentified.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Dearborn_Heights,_Michigan"
+    }
+   ],
+   "group": "west"
+  },
+  {
+   "id": "hudsons",
+   "lat": 42.33376,
+   "lon": -83.04773,
+   "title": "J. L. Hudson's",
+   "from": 1911,
+   "to": 1998,
+   "to_kind": "demolished",
+   "kind": "retail",
+   "rank": 1,
+   "blurb": "The full block on the west side of Woodward between Grand River and Gratiot, roofed in a dozen setbacks and standing a clear head above everything near it. <b>J. L. Hudson's</b> grew by accretion from 1911 to 1946 into twenty-five storeys and some two million square feet &mdash; the tallest department store ever built, and second only to Macy's Herald Square by floor area. In the 1949 and 1956 negatives it is the anchor of downtown retail, with the Woodward streetcars running past its doors. The store closed in January 1983 and the building was imploded on 24 October 1998, the tallest building ever brought down by explosives. <b>Wipe 1949 against today:</b> the block stayed a hole and then a car park for nearly twenty years, and the tower standing on it now is the Hudson's Site development, begun in 2017.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Hudson%27s"
+    },
+    {
+     "label": "Historic Detroit",
+     "url": "https://historicdetroit.org/buildings/hudsons-department-store"
+    }
+   ],
+   "group": "downtown"
+  },
+  {
+   "id": "old-city-hall",
+   "lat": 42.3311,
+   "lon": -83.04745,
+   "title": "Old City Hall",
+   "from": 1871,
+   "to": 1961,
+   "to_kind": "demolished",
+   "kind": "civic",
+   "rank": 1,
+   "blurb": "The mansarded block with a clock tower on the island bounded by Woodward, Michigan, Griswold and Fort, facing Campus Martius across the avenue. Detroit's second <b>City Hall</b>, a Second Empire design by James Anderson, opened in 1871 and served the city for ninety years. It was demolished in 1961 after a long fight over whether to keep it &mdash; so depending on the month the negatives were flown, this may be a building the survey catches in its last year. A sunken plaza over a parking garage, Kennedy Square, took the site in the 1960s and was itself demolished in 2005. <b>Wipe 1956 against 1961</b> for the change, and against today for One Campus Martius on the ground beyond.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Detroit_City_Hall"
+    },
+    {
+     "label": "Historic Detroit",
+     "url": "https://historicdetroit.org/buildings/old-city-hall"
+    }
+   ],
+   "group": "downtown"
+  },
+  {
+   "id": "ford-auditorium",
+   "lat": 42.3278,
+   "lon": -83.043,
+   "title": "Ford Auditorium",
+   "from": 1956,
+   "to": 2011,
+   "to_kind": "demolished",
+   "kind": "civic",
+   "rank": 1,
+   "blurb": "Nothing at the crosshair in 1949 but the cleared ground of the Civic Center at the foot of Woodward. <b>Ford Auditorium</b> opened in 1956, paid for by the Ford Motor Company and the Ford dealers of the region: the flat-roofed hall with the curved front standing hard against the river in the 1961 and 1967 negatives. It was the home of the Detroit Symphony Orchestra until Orchestra Hall reopened in 1989, and it was demolished in 2011. <b>Wipe 1949 against 1961</b> and it appears; wipe 1961 against today and it is gone again &mdash; one of the few places on this map the survey catches both arriving and leaving.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Ford_Auditorium"
+    },
+    {
+     "label": "Historic Detroit",
+     "url": "https://historicdetroit.org/buildings/ford-auditorium"
+    }
+   ],
+   "group": "downtown"
+  },
+  {
+   "id": "black-bottom",
+   "lat": 42.33986,
+   "lon": -83.0348,
+   "title": "Black Bottom",
+   "from": null,
+   "to": "1950s",
+   "to_kind": "cleared",
+   "kind": "housing",
+   "rank": 1,
+   "blurb": "Dense small blocks of nineteenth-century frame houses, alleys and corner stores in the 1949 negative. This is <b>Black Bottom</b>, which with Paradise Valley above it held most of Black Detroit under segregation, along with the shops, theatres and clubs that came with it. It was condemned as a slum and cleared under the Gratiot Redevelopment Project from 1950. <b>Wipe 1949 against 1961</b> and almost nothing is left: bare ground, and the first of the low courthouses and glass towers going up on it. What replaced it is <b>Lafayette Park</b> &mdash; Mies van der Rohe with Ludwig Hilberseimer and Alfred Caldwell, an admired piece of urbanism standing on ground taken from the people who had been forced to live there.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Black_Bottom,_Detroit"
+    },
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Lafayette_Park,_Detroit"
+    }
+   ],
+   "group": "downtown"
+  },
+  {
+   "id": "hastings-street",
+   "lat": 42.34056,
+   "lon": -83.04083,
+   "title": "Hastings Street",
+   "from": null,
+   "to": 1961,
+   "to_kind": "cleared",
+   "kind": "street",
+   "rank": 1,
+   "blurb": "<b>Hastings Street</b> ran north from the river through Black Bottom and Paradise Valley, and it was the commercial and musical spine of Black Detroit: record shops, churches, barbecue, and the clubs where John Lee Hooker played. In the 1949 negative it is a continuous street wall of small shopfronts. It was taken for the <b>Chrysler Freeway</b> &mdash; clearance through the late 1950s, the freeway open in 1964 &mdash; and it no longer exists. <b>Wipe 1949 against 1961</b> to watch the corridor emptied, and against today for the trench that replaced it, which is now the subject of a long-running plan to bring it back to grade as a surface boulevard.",
+   "sources": [
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Hastings_Street_(Detroit)"
+    },
+    {
+     "label": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Black_Bottom,_Detroit"
+    }
+   ],
+   "group": "downtown"
+  }
+ ]
+}
