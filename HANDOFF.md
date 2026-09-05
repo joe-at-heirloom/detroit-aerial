@@ -499,7 +499,21 @@ for all four blocks, which exercises the Mercator conversion `serve.py` performs
 
 Downtown is a separate, weaker story. It had never been checked against anything
 and was 20-42 m out, not the 3-5 m claimed. It is now corrected (1961 20.7 -> 4.5,
-1949 37.4 -> 5.3) except 1956, which stays around 32 m. Downtown measurement is
+1949 37.4 -> 5.3, 1956 168.4 -> 2.2).
+
+**1956 was 168 m out, and read 32 m.** That is the project's own alias trap
+arriving a third time, in the one place nobody had pointed the whole-raster test
+at. The fine search is capped at +/-40 m and walks ~120 m over three re-centrings;
+the street lattice repeats every 97.5 m; so an epoch beyond that reach locks onto
+the wrong lattice member and reports a confident small number rather than
+failing. The tell was in the control all along and was read as ordinary
+difficulty: 23 of 39 stations sitting at the search limit. Solved on the whole
+raster with a 250 m search the peak is unambiguous (ratio 1.90) and every cell of
+a 4x4 grid agrees with it. `fixdowntown.global_prior` now runs that test first on
+every epoch and reports what it finds, so a scene out of reach says so.
+
+Lesson, again: *a measurement that cannot reach the answer will return a wrong one
+that looks fine.* Bound the search, then check the bound. Downtown measurement is
 unreliable: a large part of the frame is the Detroit River, which has nothing to
 correlate, and the core is high-rise, so relief displacement leans every building.
 
@@ -820,11 +834,87 @@ The manifest once served a failed 1949 placement because its label (`placedC3`)
 sorted "newer" than the verified one. Builds are now chosen explicitly, per
 block, and only after seams and absolute placement are verified:
 
-    ./.venv/bin/python scripts/manifest.py --serve 1961:placedC,1967:placedC,1949:placedC
+    ./.venv/bin/python scripts/manifest.py --serve 1961:placedC,1967:placedC,1956:placedC,1949:placedE
 
 Nothing is picked by label order. Failed 1949 placements (placedC2..C5) were
-deleted. `scripts/wipepic.py TAG LABEL` draws a build wiped against today at
+deleted.
+
+**Never regenerate the manifest without that flag.** A bare run is not a no-op and
+it is not merely "unpinned": in `best()`, every `placedC*`/`placed3` candidate is
+skipped unless the tag appears in the `--placed3` allow list, so with no arguments
+it falls through `PREF` to `final` -- the earlier per-frame builds whose seams
+were torn -- and silently swaps all four blocks for them. It changes the bboxes
+too, which is the visible tell: 1956 gets noticeably wider to the west.
+
+This happened on 2026-09-04. The manifest was regenerated bare for no reason
+except to bump `ver` for cache-busting after a downtown rebuild, and every West
+Detroit block was quietly downgraded off its verified COLMAP placement. A second
+session spotted the bbox change and it was restored by re-running with the full
+`--serve` list. Nothing downstream had been measured in between, so no numbers
+are contaminated -- but nothing would have said so if they had been.
+
+The lesson is the project's usual one wearing different clothes: *the safe default
+was the one that required remembering a flag.*
+
+**Closed the same evening** by the session adding the modern layers. `main()` now
+derives the served build per tag from the files it actually chose and writes it
+as `"serve": {"1949": "placedE", "1956": "placedC", ...}` on every run;
+`best(tag, recorded)` takes that recorded choice first, `--serve` overrides it,
+and `PREF` is consulted only when neither names a build that exists -- and then
+it says so. Verified independently: the key is on disk and a bare run reprints
+all four builds unchanged. A chosen or recorded build whose files are missing
+now **drops the block** with `chosen build X MISSING -- block left out`; the old
+walk down `PREF` to the torn `final` builds is reachable only with `--fallback`.
+A hole is honest, a torn block is not. The `serve` record survives a dropped
+block, so when the files return a bare run restores the right build. Pass
+`--serve` when you mean to *change* a build; for anything else, a bare run is
+now safe. `scripts/wipepic.py TAG LABEL` draws a build wiped against today at
 mile-road crossings, the quickest visual check that the arterials line up.
+
+## Downtown: what "warped" turned out to be (2026-09-04)
+
+Reported: line up Campus Martius exactly on downtown 1949, to scale, and Grand
+Circus (660 m away) is nowhere near. That reads as an internal warp, which no
+similarity handle can fix. It is not one. Measured:
+
+- **Ground.** 1949 vs 1961 at window sizes the metric can be trusted on downtown
+  (600-1000 m, ratio >= 1.3, 65-82 windows): median 2.0 m, p90 8.5, max 17.5.
+  Campus Martius +8.9 E, Grand Circus +4.6 E -- 4.5 m apart over 660 m. The
+  uncorrected `_src` raster was a uniform ~40 m east (a placement, not a warp)
+  and the fix removed it cleanly. City street-centreline vectors sit on the
+  streets in 1949, 1961 and Esri Today at both landmarks to a few metres.
+- **Roofs.** Image-to-image correlation in the high-rise core is not measuring
+  ground. 1961 vs Esri Today at Campus Martius: -24.7 E at ratio 2.2-3.8, the
+  strongest lock in the exercise -- and false, because the vectors say the ground
+  agrees. Esri vs NAIP there: +13 to +24 E; 1961 vs NAIP: 0-3 m. The
+  1949/1961/Esri triangle does not close (0.5, 7.9, -24.7), which is what pairs
+  locking on different leaning features look like. The lean is ~25-35 m at the
+  core and ~5 m by the river.
+- **The metric below ~500 m downtown is unreliable.** The same 400 m window at
+  Campus Martius returned +33 E on one run and -33 E on the next, ratio ~1.1; a
+  window-size sweep flipped between ~40 m and ~10 m. Irregular blocks plus
+  high-rise. Use >= 600 m and demand ratio >= 1.3, or use the vectors.
+
+The concrete case: Joe had lined 1949 up on the First National Bank Building
+(26 storeys, 104 m, 1921 -- the stepped "Z" footprint south-east of the park).
+Crop it at 0.42 m/px with the street vectors over 1949, 1961 and Esri: the
+streets sit on the vectors in all three, Esri's roof sits over the OSM footprint,
+and the *same roof* in 1949 and 1961 sits ~35-40 m west/north-west of it. Align
+that roof onto Esri's and the whole 1949 layer moves ~35-40 m -- which is what
+Grand Circus then showed.
+
+So: lining Campus Martius up "perfectly" by eye means matching building outlines,
+the dominant feature in a high-rise core, and those lean 25+ m in Esri and
+differently again in 1949. That puts the ground 25 m off, and the park at Grand
+Circus shows it. The hand-alignment handle is the wrong tool for the core; the
+right reference for aligning by eye downtown is street geometry, not buildings.
+
+Two dead ends, recorded so nobody repeats them: correlating with the same street
+mask on both sides returns exactly zero at ratio 1e9 (the mask correlates with
+itself); and correlating ridge-filtered imagery against a thin rasterised
+vector line read ~30 m east for every image including NAIP, while the overlay
+of that same raster visibly sat on the roads -- a bias of the method, not the
+map. The vector check that worked was the picture, not the number.
 
 ## 1949 against USGS NAIP (2026-09-02)
 
@@ -934,3 +1024,99 @@ from OSM first.
 
 Served builds are unchanged. `1949x` (84 frames) and `1949y` (92 frames) are kept
 as evidence and are not in the manifest.
+
+## More years: where they can come from (2026-09-04, evening)
+
+The DTE catalogue online holds Wayne County in exactly 1949 / 1956 / 1961 / 1967
+(547 / 432 / 533 / 389 frames). The physical collection also has 1952, 1981 and
+1997, but online those are Oakland 1952 (241 frames, rolls de-21..de-32), Monroe
+1981, St Clair 1985 and Oakland + Macomb 1997 -- none over Detroit.
+
+Public sources verified today over the West Detroit bbox (lat 42.19-42.49, lon
+-83.38 to -83.12), all already orthorectified, none yet measured by validate.py:
+
+| year | source | res | endpoint |
+|---|---|---|---|
+| 1951 | Michigan Tech tile layer of USGS EarthExplorer frames, spline-warped (seams visible) | z18 | tiles.arcgis.com/tiles/RPhrOu9XQzI31xTa/arcgis/rest/services/Aerial_Imagery_of_the_City_of_Detroit_1951/MapServer |
+| 1998 | City of Detroit DOQ | 1 m | egis.detroitmi.gov/image/rest/services/Imagery/1998_Aerial_Imagery/ImageServer |
+| 2005, 2010 | City of Detroit | 2 ft | egis.detroitmi.gov/image/rest/services/Imagery/{2005,2010}_Aerial_Imagery/ImageServer |
+| 2012, 2014 / 2016-2022 | NAIP via Planetary Computer STAC (34 tiles a year over the bbox) | 1 m / 0.6 m | planetarycomputer.microsoft.com/api/stac/v1, collection naip |
+| 2014-2026 | Esri World Imagery Wayback, 196 releases | 0.3 m | wayback.maptiles.arcgis.com |
+| 2020, 2024 | City of Detroit MiSAIL tile caches | 6 in | tiles.arcgis.com/tiles/qvkbeam7Wirps6zC/arcgis/rest/services/{MiSAIL_2020_6in_Clip_webMerc,2024Sp_Wayne_6in_MiSAIL_tileCache}/MapServer |
+
+The 1951 layer matters for what it proves, not what it is: USGS holds a 1951 flight
+over the city, and the raw frames are on EarthExplorer (login required) -- the
+right input for colmap_block, where the tile layer is a rubber-sheet.
+
+North of 8 Mile (the blocks reach lat 42.475-42.486, up to 4 km into Oakland)
+Oakland County serves public ImageServers for 1940 (1.4 m), 1949 (2 m), 1963,
+1974, 1980, 1990, 1997, 2000, 2002, 2005, 2006, 2008, 2010, 2012, 2014, 2015,
+2017, 2020 (0.25 m), 2023 and 2025 at
+gisservices.oakgov.com/arcgis/rest/services/ImageServices/EnterpriseOrtho{BW,TC}<year>ImageService/ImageServer;
+exportImage verified over Southfield for 1940-2000.
+
+Not online: SEMCOG's flights (1966, then every five years 1970-2020; request
+only), MSU RS&GIS archive (1930s-2000s statewide, $30 a frame, "roughly
+referenced"), U-M Clark Library prints (Wayne 1963/64/69/80/90/2000), Wayne
+County's own GIS servers (not publicly reachable). The IU "Historic Wayne County
+Images" set (1936-1994) is Wayne County, Indiana.
+
+Oakland 1952 negatives, fetched at 1000 px and run through locate.py against
+1956:placedC: 9 of 241 locked. Four are credible -- de-31-30/31 at lat 42.449/42.462 and
+de-31-105/106 at 42.454/42.443, consecutive numbers landing a frame apart -- so a
+few 1952 frames straddle 8 Mile at the 1956 block's north end; the other five sit
+deep inside Detroit at ratios of 1.27-1.45 and are the grid aliasing. Oakland
+County already serves 1949 and 1963 orthos over that strip, so 1952 raw film
+buys one year over ~2 frames' width. Not worth a solve on its own.
+
+## Modern layers in the viewer: 1998, 2005, 2010, NAIP 2012-2022 (2026-09-04, night)
+
+`scripts/fetchlayer.py` pulls an already-orthorectified layer onto the project
+grid as a 3-band GeoTIFF (`mosaics/layer_<name>.tif` + `data/layer_<name>_geo.json`);
+`manifest.py` slots every such layer between the film and Today in year order;
+`serve.py` reads three bands when a GeoTIFF has them. Sources, all public:
+
+| layer | source | native | how |
+|---|---|---|---|
+| 1998, 2005, 2010 | City of Detroit ImageServers (egis.detroitmi.gov, Imagery/<year>_Aerial_Imagery) | 1 m, 2 ft, 2 ft | exportImage in EPSG:4326 |
+| 2012, 2014, 2016, 2018, 2020 | State of Michigan NAIP ImageServers (imagery.michigan.gov/server/rest/services/Michigan_NAIP_<year>) | 1 m, 1 m, 0.6 m x3 | exportImage in EPSG:4326 |
+| 2022 | USGS NAIPPlus ImageServer (imagery.nationalmap.gov) with `--where Year=2022` | 0.6 m | exportImage in EPSG:4326 |
+
+Two things learned on the way. An ImageServer asked for EPSG:4326 output honours
+the bbox only if the requested pixel grid has the bbox's aspect in DEGREES, so
+chunks are requested at square-degree pixels and warped onto the square-metre
+grid afterwards; the returned extent is asserted against the request every time
+(ruled-out #7 again). And Microsoft Planetary Computer's anonymous NAIP access is
+throttled: 12 MB/s for the first half-gigabyte, then 0.2-1 MB/s for good, which
+put a 0.6 m year at 17 GB and most of a day. GDAL range reads through it were
+ten times slower per byte again. The State of Michigan serves the same NAIP at
+30 MB/s, so `--naip` remains in the script but is not the route.
+
+The city's 1998 ortho, measured by validate.py against the Esri reference exactly
+as our own builds are: **2.3 m** median at 3.6 km (p90 3.2, max 4.8, 23 of 23
+locked) and **3.0 m** at 1.8 km (p90 5.6, max 8.5). Every layer, measured the same way (median at 3.6 km / at 1.8 km, p90 at 1.8 km):
+
+| layer | 3.6 km | 1.8 km | p90 | note |
+|---|---|---|---|---|
+| 1998 | 2.3 | 3.0 | 5.6 | city only; 23 of 48 coarse cells have coverage |
+| 2005 | 3.7 | 3.6 | 4.7 | one 35 m cell at the layer's north edge is partial coverage, windows 1 km away lock at 2 m |
+| 2010 | 2.2 | 2.6 | 3.5 | city only |
+| 2012 | 3.7 | 3.9 | 4.9 | |
+| 2014 | 3.8 | 4.1 | 5.3 | |
+| 2016 | 1.5 | 1.6 | 2.5 | best of the set |
+| 2018 | 3.0 | 3.4 | 9.6 | 18 fine cells at 10-14 m, all in the eastern two columns, all +10 to +14 m east: a shifted quarter-quad column in the NAIP 2018 product |
+| 2020 | 3.6 | 3.7 | 6.6 | |
+| 2022 | 2.0 | 2.1 | 3.9 | |
+
+Nothing was corrected: these are served as published, and the table says which
+wipes will show a few metres of movement that belong to the source, not to the
+film. The 2018 column offset is the one a viewer will notice, east of Greenfield.
+
+One more guard, added the same night: manifest.py records the build it served
+per block (`serve` in data/manifest.json) and a run without `--serve` keeps
+that choice, carried across runs even when a block's files are missing. A
+missing build now leaves the block OUT of the viewer with a loud line rather
+than falling through PREF to the torn `final` build; `--fallback` restores the
+old order on purpose. A bare run at 20:19 had silently downgraded all four
+blocks to `final`; it was caught only because a layer fetch printed a
+different block extent.

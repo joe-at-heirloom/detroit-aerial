@@ -1,10 +1,14 @@
 # Detroit Air Survey
 
 Georeferenced historical aerial photography of Detroit, served locally at native
-resolution. Wipe between **1949, 1956, 1961, 1967** and today.
+resolution. Wipe between **1949, 1956, 1961, 1967**, the City of Detroit's
+**1998, 2005 and 2010** orthophotos, USDA NAIP for **2012 to 2022**, and today.
 
 Source imagery: Wayne State University, **DTE Aerial Photo Collection** —
-© DTE Energy, administered by the Walter P. Reuther Library. Modern imagery: Esri.
+© DTE Energy, administered by the Walter P. Reuther Library. 1998, 2005 and 2010
+orthophotos: City of Detroit (egis.detroitmi.gov). 2012-2020: USDA NAIP from the
+State of Michigan's image services (imagery.michigan.gov); 2022: USDA NAIP from
+the USGS National Map. Modern imagery: Esri.
 Street centrelines: City of Detroit open data (+ OpenStreetMap outside city limits).
 
 ---
@@ -42,7 +46,9 @@ negatives without pre-rendering anything.
 
 - **Downtown** — 1949 / 1956 / 1961 / Today, on one 0.60 m/px grid
 - **West Detroit** — the 1949 (50 frame), 1956 (70), 1961 (62) and 1967 (51)
-  blocks, plus modern
+  blocks; then the City of Detroit's 1998 (1 m), 2005 and 2010 (2 ft)
+  orthophotos and USDA NAIP for 2012, 2014 (1 m), 2016, 2018, 2020 and 2022
+  (0.6 m), fetched onto the same grid by `scripts/fetchlayer.py`; plus modern
 
 ---
 
@@ -153,6 +159,137 @@ bias under 3 m: the same picture, a good centre and uncertain edges.
 Downtown is a separate three-frame scene: 1961 and 1949 corrected to ~5 m, 1956
 still ~32 m; much of the frame is the river and the core is high-rise, so no 2D
 correction can do better there.
+
+Those were *absolute* figures -- each epoch measured against a modern reference on
+its own. The wipe shows a **pair**, and two epochs can each be 15 m out in
+opposite directions and be 30 m apart on screen. `scripts/dtcross.py` measures the
+pair directly, on a 6x6 grid at 1.25 m/px:
+
+| | before | after | p90 | max |
+|---|---|---|---|---|
+| 1949 vs 1956 | 49.8 m | **3.9 m** | 10.8 | 31.1 |
+| 1956 vs 1961 | 37.9 m | **3.2 m** | 14.1 | 30.7 |
+| 1956 vs today | 41.5 m | **15.2 m** | 64.6 | 86.2 |
+| 1949 vs 1961 | 3.9 m | 3.9 m | 31.8 | 56.0 |
+| 1949 vs today | 20.2 m | 20.2 m | 32.9 | 42.7 |
+| 1961 vs today | 23.1 m | 23.1 m | 52.1 | 56.3 |
+
+### Downtown 1956 was 168 m out, not 32
+
+Every measurement of it had been aliasing, and the alias is the one this project
+already documents for the west blocks: Detroit's street lattice repeats every
+~97.5 m, and the fine search is capped at +/-40 m, walking about 120 m over three
+re-centrings. An epoch further out than that cannot be reached -- and it does not
+fail loudly. It locks onto the wrong member of the lattice and reports a
+confident small number. 1956 read ~32 m for years for exactly that reason.
+
+Solved on the whole raster with a 250 m search it is 170 m out, at a coarse peak
+ratio of 1.90, and all sixteen cells of a 4x4 grid independently agree to within
++/-20 m. `fixdowntown.py` now solves that one rigid shift before the residual
+field (`global_prior`), and applies it only when the peak is convincing and the
+scene is beyond the fine search's reach -- on 1949 and 1961 it finds 14-15 m at
+ratios of 1.16-1.26 and correctly declines to use it.
+
+With the shift in front of it, the residual field's control goes from 39 stations
+(23 at the search limit, 15.1 m held-out) to 62 stations (none at the limit,
+**2.0 m** held-out), and the grid goes 168.4 -> 2.2 m median, no cell over 10 m.
+Rebuild it with:
+
+    ./.venv/bin/python scripts/fixdowntown.py 1956 --ref 1961 --src
+
+`--src` re-runs from the uncorrected raster; without it a second run reads the
+manifest, which by then points at the *corrected* mosaic, and stacks a second
+warp on the first.
+
+### What is left downtown
+
+The historical epochs now agree with each other at 3-4 m. What remains is the
+"versus today" column, and it is not a placement error. Against USGS NAIP -- an
+independent reference no downtown build is fitted to -- today's layer measures
+4.0 m and 1961 measures 6.2 m, so neither is 23 m out of place. 1949 and 1956
+measure 19-29 m against NAIP with only ~40% of cells locking at all, which is the
+difficulty of matching seventy-year-old imagery to modern downtown, where the
+whole core was rebuilt. The rest is relief displacement: a 560 m cell downtown is
+mostly high-rise roofs, and they lean differently in every negative. Separating
+that from the ground needs a DEM, not another 2D fit.
+
+## Hosting it (GitHub Pages, Vercel, anything static)
+
+The local viewer cuts tiles out of 54 GB of GeoTIFFs on demand. A static host
+serves files, so the tiles have to exist first:
+
+    ./.venv/bin/python scripts/build_static.py
+
+That renders every film layer (four blocks and downtown) to a WebP pyramid at
+its native z18, the road centrelines to z17, and lays out `dist/` -- the viewer,
+the manifest, the places -- with everything relative, so it works under a repo
+subpath. **Today** is Esri World Imagery fetched straight from Esri, so it costs
+nothing to host. Hand alignments in `data/adjust.json` are baked into the tiles.
+It is resumable: a killed run picks up where it stopped, and a rerun only renders
+what is missing.
+
+Measured, not estimated: **686 MB and 114,000 tiles** for the film at native
+resolution (WebP q80 is 4-12 KB a tile where PNG is 30-140). That is inside what
+a GitHub Pages repo will hold, and Vercel's 100 MB-per-file cap is nowhere near.
+It takes about **106 minutes** on nine workers -- nine processes reading the same
+GeoTIFFs at z18 contend on I/O, so more cores do not help much.
+
+The ten modern layers (1998-2022) are not built by default; `--layers all
+--zmax modern:17` adds ~2.7 GB, which wants object storage rather than a repo.
+`--tiles-base https://your-bucket` writes the tiles locally as usual but points
+`dist/index.html` at the bucket, so `dist/` on Pages stays a few hundred KB and
+the tiles live somewhere built for it (Cloudflare R2's free tier is 10 GB with
+no egress charge).
+
+Then either:
+
+- **GitHub Pages** -- commit `dist/`, set Settings -> Pages -> Source to "GitHub
+  Actions", and `.github/workflows/pages.yml` publishes it on every push that
+  touches `dist/`. The first push of 114k files is slow; after that only changed
+  tiles move.
+- **Vercel** -- `vercel.json` already points at `dist/` with no build step and
+  a year-long cache header on tiles. Import the repo and deploy.
+
+What the static build cannot do: no ALIGN handle (nothing to write to; it hides
+itself) and no "+ PLACE" -- both are local-server tools. Everything else --
+the wipe, the probe, the places, the filter -- is identical, and it was verified
+by serving `dist/` with `python3 -m http.server` and driving it, not by reading
+the code.
+
+## Aligning by hand
+
+Some things the correlation cannot be talked into, and some you just want to nudge.
+Tick **ALIGN** in the viewer: the layer you pick is drawn semi-transparent over
+whatever is on the other rail, and you move it.
+
+| | |
+|---|---|
+| drag | move |
+| shift-drag | rotate about the layer's centre |
+| alt-drag | scale about the same point |
+| arrows | nudge one pixel, ten with shift |
+| space-drag | pan the map instead |
+| hold **F** | blink the layer off to check the fit |
+
+**SAVE** writes four numbers to `data/adjust.json` and `scripts/serve.py` applies
+them from then on, so the alignment is what everything sees. Nothing is baked into
+the rasters: it stays reversible, and it stays readable as
+
+    "dt1956": { "dE": 28.8, "dN": -167.8, "deg": 0.0, "scale": 1.0 }
+
+Dragging cannot wait for a round trip, so the live picture is a CSS transform on a
+pane of its own and the server is asked only on save. Those two have to agree
+exactly or the map would jump the moment you saved, so the preview draws the
+*difference* between what your hands are doing and what the server already holds --
+save, the difference becomes the identity, and the transform falls away by itself.
+
+The measurement follows it. `scripts/dtcross.py` reads the same file through the
+same geometry (`pipeline/handadjust.py`, which the viewer, the tile server and the
+metric all come through, because two implementations of one transform is how this
+project has gone wrong before). So a hand alignment can be checked rather than
+trusted: plant 50 m by hand and the metric reports 49.3 m.
+
+    ./.venv/bin/python scripts/dtcross.py       # prints the hand offsets it found
 
 ### Known limits
 
