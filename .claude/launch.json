@@ -1,10 +1,9 @@
 {
   "version": "0.0.1",
   "configurations": [
-    {
-      "name": "viewer",
-      "url": "http://localhost:8770",
-      "port": 8770
-    }
+    { "name": "survey", "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": ["scripts/serve.py", "--port", "8771"], "port": 8771 },
+    { "name": "static", "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "-d", "dist", "8780"], "port": 8780 }
   ]
 }

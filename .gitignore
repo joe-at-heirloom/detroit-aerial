@@ -1,7 +1,8 @@
 # large rasters - regenerate with the pipeline
 mosaics/
-tiles/
+/tiles/
 *.raw
 __pycache__/
 .venv/
 scans/
+logs/
