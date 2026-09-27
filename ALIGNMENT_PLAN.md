@@ -45,7 +45,9 @@ Technical references: [COLMAP camera models](https://colmap.github.io/cameras.ht
 ## Status (2026-09-27)
 
 1. **Baseline: done** for what is served (checksums, manifest, both adjust.json versions in `runs/baseline_20260923/`). Reconstruction outputs are not all reproducible: of the lost scans only 1961's were re-fetched; 1956 and 1967 are absent, 1949 has 48 of 50.
-2. **Measurement system: built** (`scripts/crossmatrix.py`, `scripts/xmreport.py`), calibrated per pair by a planted field. Downtown measured; the west all-pairs matrix is running. The existing seam metric is whole-pixel (2 m at 2 m/px); use `distortion_pilot.py --subpixel` for seam acceptance.
+2. **Measurement system: built** (`scripts/crossmatrix.py`, `scripts/xmreport.py`), calibrated per pair by a planted field. Downtown and the west all-pairs matrix measured (HANDOFF, "The west pair matrix"): 2016 holds as the reference; film sits 3.4-7.2 m from it; the local viewer's west Today is 12 m out; 1956's north-west is unverifiable by correlation (changed ground). The existing seam metric is whole-pixel (2 m at 2 m/px); use `distortion_pilot.py --subpixel` for seam acceptance.
 3. **Distortion pilot on 1961: done.** A radial term of about 1 m at the frame edge exists but its estimate is unstable between subsets and it does not improve held-out seams (+0.013 m, CI spans zero) or the fit to NAIP (4.89 -> 4.87 m). Scan batches show nothing.
 4. **Camera corrections: not justified.** The fixed SIMPLE_RADIAL model is retained. Details in HANDOFF, "Alignment plan, steps 1-4".
-5-7. Next: the modern-reference choice and joint placement, driven by the pair matrix.
+5. **Joint placement: done for the film years** (`scripts/jointfit.py`, `scripts/jointapply.py`). NAIP 2016 held fixed, Esri hi and the other modern years independent. 1967 earns a quadratic (candidate `1967:placedJ`, 1-1.8 m better against every independent layer); 1949, 1956 and 1961 earn nothing that survives withheld validation. 2018's east column is still uncorrected.
+6. **Validation: done for 1967.** Pending: serving it (step 7) is Joe's call.
+7. Not started.

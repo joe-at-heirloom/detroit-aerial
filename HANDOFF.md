@@ -1211,3 +1211,68 @@ standstill; `colmap_block.py --threads 2` (added today) stays in RAM at ~40 s pe
 image per thread. zsh runs `cmd &` at nice 5, which starved COLMAP to half a core;
 launch with `setopt NO_BG_NICE` and check `ps -o ni`. Killing crossmatrix.py's
 parent leaves its pool workers running (`pgrep -fl multiprocessing`).
+
+## The west pair matrix (2026-09-27)
+
+`crossmatrix.py west`: 15 layers, 105 pairs, 1.3 km cells at 2 m/px, every
+pair's planted field tracked to 0.8 m (p90 1.1). Report `runs/crossmatrix_west.md`,
+arrow maps `runs/crossmatrix_west_vs_l2016.png` and `_vs_esrihi.png`. Medians
+against NAIP 2016 / Esri hi:
+
+    1961 3.4 / 2.8   1967 4.3 / 4.0   1949 5.5 / 4.4   1956 7.2 / 7.2
+    1998 3.8   2005 3.1   2010 2.0   2012 4.0   2014 3.7   2018 3.0 (p90 17)
+    2020 5.1   2022 2.1   Esri hi 1.9   Today (modern_west.png) 12.2
+
+Film against film, what a wipe shows: 1949/1956 4.6, 1956/1961 4.8,
+1961/1967 4.7, 1949/1961 6.0, 1949/1967 7.1, 1956/1967 8.4 m.
+
+- **The local viewer's west Today is 12 m out.** Every layer, film and modern,
+  sits 11-15 m north of `modern_west.png` with the same vector in every cell;
+  the same layers agree with Esri hi to 2-4 m with no bias. That PNG is the old
+  Web Mercator image (section 2 above) and serve.py still offers it as Today.
+  The static site is unaffected: its Today is live Esri tiles.
+- **2016 holds as the reference**: 1.9 m from Esri hi, 2.0 from 2010, 2.1 from
+  2022. 2018's eastern column is its documented +10-14 m E quarter-quad; the
+  rest of 2018 agrees.
+- **1956's north-west is unverified, not 100 m out.** Its cells at -95 to -125 m
+  E repeat identically against seven modern years and pass the planted field --
+  but at full resolution the ground is 1956 farmland under 2016 subdivisions,
+  and the one shared feature, the main east-west road, differs by ~20 m N-S.
+  A consistent false lock on changed ground passes every self-check this
+  instrument has; there, only roads that existed in both years can arbitrate.
+
+## Step 5: joint placement of the film years (2026-09-27)
+
+`jointfit.py` fits a correction field per film year to the pair matrix at once --
+film vs NAIP 2016 (held fixed) AND film vs film -- and scores each model order on
+cells withheld by 4 km block. Esri hi is never fitted and never used to choose.
+`jointapply.py` composes the chosen correction with the served placement and
+re-warps the COLMAP mosaic once (the saved placement reproduces the served raster:
+patch correlation 0.93-0.997), after checking the field's size, gradient and
+foldover; beyond the measured ground its coordinates are clamped, not extrapolated.
+
+What the evidence supports:
+
+- **1967: quadratic, a clear win.** Candidate `1967:placedJ` (NOT served), field
+  under 16 m, gradient 0.35%/km (seam change < 1 cm by construction; the frames
+  cannot be re-rendered, the solve and scans are gone). Cell-matched against
+  every layer it was never fitted to, served -> candidate median (p90): 1998
+  5.2 -> 3.9 (11.0 -> 8.7), 2005 5.7 -> 4.4, 2010 5.0 -> 4.0, 2012 6.3 -> 5.2,
+  2014 6.1 -> 4.3, 2020 5.2 -> 4.2, 2022 5.4 -> 3.6, Esri hi 4.0 -> 3.2 (8.7 ->
+  6.7). Wipes: vs 1961 4.7 -> 3.8, vs 1949 6.8 -> 6.4. wipepic.py shows no
+  artefact at the six crossings.
+- **1956: nothing earns it.** Unconstrained, a cubic scored 6.0 -> 3.7 on Esri
+  hi -- by swinging ~200 m through the north-west, where 47 cells were gated as
+  changed ground and nothing holds it. With a weak 'no change' prior on
+  unmeasured ground (`--damp`) every order does WORSE than none on the withheld
+  blocks (6.1 -> 6.4); the cubic also fails the gradient check (1.03%/km).
+  1956's error lives where the ground changed; a smooth field cannot reach it.
+- **1949 and 1961: no correction.** 1949's narrow block cannot carry more than a
+  shift and a shift buys nothing (4.38 -> 4.31 on Esri hi); 1961's cubic is 2.79
+  -> 2.61, inside the instrument's 0.8 m.
+- The joint fit is worth doing: film-to-film agreement in-sample is 4.2 m joint
+  against 4.8 m fitting each year to the reference alone.
+
+Also 2026-09-27: the local viewer's west Today is now `modern_west_hi.tif`
+(manifest.py prefers it); served Today vs 2016 at four spots 0.3-4.5 m in
+scattered directions, where the old PNG sat a uniform 12 m south.

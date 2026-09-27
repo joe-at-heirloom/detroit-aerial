@@ -287,10 +287,17 @@ def main():
     ap.add_argument('--no-adjust', action='store_true')
     ap.add_argument('--no-selfcheck', action='store_true')
     ap.add_argument('--out')
+    ap.add_argument('--candidate', action='append', default=[],
+                    help='TAG:LABEL, an unserved block build added as layer b<TAG>_<LABEL>')
+    ap.add_argument('--only-with', help='measure only the pairs that involve this layer id')
     a = ap.parse_args()
     from concurrent.futures import ProcessPoolExecutor
 
     L = load_layers(a.group, a.layers.split(',') if a.layers else None)
+    for c in a.candidate:
+        tag, lab = c.split(':')
+        L.append(dict(id=f'b{tag}_{lab}', label=f'{tag} {lab}', file=f'mosaics/detroit_{tag}_{lab}.tif',
+                      bbox=json.load(open(P('data', f'{tag}_{lab}_geo.json')))['bbox']))
     g = grid_for(L, a.mpp)
     ADJ = {} if a.no_adjust else handadjust.load(ROOT)
     tagadj = 'noadj' if a.no_adjust else 'adj'
@@ -313,6 +320,8 @@ def main():
     print(f"  ridge maps ready [{time.time()-t0:.0f}s]\n", flush=True)
 
     pairs = list(itertools.combinations(L, 2))
+    if a.only_with:
+        pairs = [(x, y) for x, y in pairs if a.only_with in (x['id'], y['id'])]
     out = dict(group=a.group, grid=g, cell_m=a.cell, min_valid=a.min_valid, min_ratio=a.min_ratio,
                plant=PLANT, adjust=tagadj, when=time.strftime('%Y-%m-%d %H:%M'),
                layers=[dict(id=l['id'], label=l['label'], file=l['file'], bbox=l['bbox'], adj=l['adj'])

@@ -114,9 +114,17 @@ def main():
                            ver=int(os.path.getmtime(P('mosaics', f'layer_{name}.tif')))))
         ids.append(lid)            # not in the union: these cover the blocks, never more
         print(f"  layer {name}: {g.get('source', {}).get('kind', '?')}")
-    mw = json.load(open(P('data', 'modern_west_geo.json')))
+    # Today: the 1.8 m Esri fetch on this project's linear-latitude grid when it is
+    # there. The original modern_west.png is Web Mercator with a lat/lon box stamped
+    # on it, and crossmatrix.py measured every layer 11-15 m north of it (2026-09-27)
+    # where the same layers sit 2-4 m from the hi fetch. validate.py prefers it too.
+    if os.path.exists(P('mosaics', 'modern_west_hi.tif')) and os.path.exists(P('data', 'modern_west_hi_geo.json')):
+        mw = json.load(open(P('data', 'modern_west_hi_geo.json'))); tf = 'modern_west_hi.tif'
+    else:
+        mw = json.load(open(P('data', 'modern_west_geo.json'))); tf = 'modern_west.png'
     layers.append(dict(id='modwest', group='west', label='Today',
-                       file='mosaics/modern_west.png', bbox=mw['bbox'], gray=True))
+                       file=f'mosaics/{tf}', bbox=mw['bbox'], gray=True,
+                       ver=int(os.path.getmtime(P('mosaics', tf)))))
     ids.append('modwest'); boxes.append(mw['bbox'])
     union = [min(b[0] for b in boxes), min(b[1] for b in boxes),
              max(b[2] for b in boxes), max(b[3] for b in boxes)]
