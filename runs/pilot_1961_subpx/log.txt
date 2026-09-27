@@ -1,0 +1,18 @@
+  self-align: scale 1867.6945, heading +132.56 deg, camera-vs-catalogue residual median 78 m (catalogue is approximate)
+  ground surface: quadratic fitted to 46662 points, residual 2.2 m, height range over the block +145 m at a corner
+1961: 62 frames rendered, camera SIMPLE_RADIAL [3602.0, 2544.0, 2397.0, -0.00027], flying height 2288 m (range 2261-2306) [19s]
+           ties: 5165 along-track windows on 56 pairs, 2191 cross-line windows on 145 pairs; 12 windows rejected as off the pair's consensus
+  seams along:  5165 windows  median   1.7  p90   4.0  max  14.3 m
+  seams cross:  2191 windows  median   2.1  p90   5.0  max  22.7 m
+  scan batches: {'5366x5100': 24, '5378x5100': 16, '5388x5100': 9, '5354x5100': 8, '5412x5100': 5}
+
+  SEAMS: held-out within-pair scatter (5-fold by pair; lower is better)
+    none (fixed camera as solved)    median  1.15  p90  3.30 m   
+    CONTROL: r^3 about wrong centres median  1.14  p90  3.31 m   null -1.19e-04
+    radial r^3                       median  1.06  p90  3.16 m   dk -1.80e-03
+    radial r^3 + r^5                 median  1.02  p90  3.17 m   dk -5.89e-03  dk2 +6.09e-03
+    scan affinity per batch          median  1.14  p90  3.29 m   
+    radial r^3 + scan affinity       median  1.07  p90  3.14 m   dk -1.80e-03
+    fitted dk would move a frame corner (2220 m out) by 3.77 m
+
+wrote runs/pilot_1961_subpx/report.json  [89s]

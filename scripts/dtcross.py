@@ -89,9 +89,9 @@ def main():
     ADJ = handadjust.load(ROOT)
     G = {t: onto(L[t], bb, W, H, handadjust.for_layer(ADJ, 'dt' + t)) for t in have}
     for t in have:
-        a = handadjust.for_layer(ADJ, 'dt' + t)
+        h = handadjust.for_layer(ADJ, 'dt' + t)
         note = ('   hand: %+.1f,%+.1f m  %+.2f deg  x%.4f'
-                % (a['dE'], a['dN'], a['deg'], a['scale'])) if a else ''
+                % (h['dE'], h['dN'], h['deg'], h['scale'])) if h else ''
         print(f"  {t:>4}  coverage {(G[t]>0).mean():.2f}{note}")
     print()
 

@@ -178,6 +178,9 @@ def main():
     json.dump(dict(E0=E0, N0=N0, focal_px=focal_px, w=w, h=h, margin=margin, recs=recs),
               open(f"{work}/meta.json", 'w'))
 
+    # CPU SIFT peaks at ~3.7 GB per thread on these negatives: 8 threads is ~30 GB,
+    # which pages a 32 GB machine to a standstill once anything else is running
+    threads = str(arg('--threads', 8))
     db = f"{work}/db.db"
     # option names as of COLMAP 4.1 (FeatureExtraction.* / FeatureMatching.*).
     # 2800 px on a 3.2 km negative is 1.15 m/px for the tie features -- the pilot
@@ -189,7 +192,7 @@ def main():
         '--ImageReader.single_camera', '1', '--ImageReader.camera_model', 'SIMPLE_RADIAL',
         '--ImageReader.camera_params', f"{focal_px:.1f},{w/2:.1f},{h/2:.1f},{k}",
         '--FeatureExtraction.max_image_size', '3600', '--SiftExtraction.max_num_features', '12000',
-        '--FeatureExtraction.use_gpu', '0', '--FeatureExtraction.num_threads', '8'], log)
+        '--FeatureExtraction.use_gpu', '0', '--FeatureExtraction.num_threads', threads], log)
     import sqlite3
     n_db = sqlite3.connect(db).execute('select count(*) from images').fetchone()[0]
     print(f"  {n_db}/{len(recs)} images in the database after extraction", flush=True)

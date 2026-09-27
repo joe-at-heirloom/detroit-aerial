@@ -1120,3 +1120,94 @@ than falling through PREF to the torn `final` build; `--fallback` restores the
 old order on purpose. A bare run at 20:19 had silently downgraded all four
 blocks to `final`; it was caught only because a layer fetch printed a
 different block extent.
+
+## Alignment plan, steps 1-4: baseline, the lens question, and the seam metric's floor (2026-09-27)
+
+Working from ALIGNMENT_PLAN.md. Nothing served has changed.
+
+**Baseline.** `runs/baseline_20260923/` holds sha256 of every served raster and
+the Esri reference, the manifest, and both versions of `data/adjust.json`. Every
+west GeoTIFF's own transform equals its manifest bbox exactly; the three downtown
+TIFFs differ by 1.2 m (south) and 0.75 m (east), which the viewer stretches away.
+
+**Downtown 1949's hand alignment makes it ten times worse.** `dtcross.py` had
+crashed on every run since hand alignment was added (the loop that prints the
+offsets rebound the argparse `a`), so neither saved alignment was ever measured.
+Fixed and measured (1.25 m/px, 5x5), 1949 against 1961 / 1956:
+
+    unadjusted                              3.2 / 4.0 m
+    committed  +41.2 E  +2.2 N  x0.95       35.2 / 43.3
+    worktree   +20.6 E +17.0 N  x0.95       44.0 / 38.7
+
+Roof lean again (see "Downtown: what 'warped' turned out to be"). Removed on
+Joe's say-so the same day: `data/adjust.json` is now empty, `dist/tiles/dt1949`
+was deleted and rebuilt (build_static skips tiles already on disk, so the old
+ones must go first; `--layers dt1949` would also rewrite dist's manifest with
+that one layer, so the default film build was run). 1077 tiles, against 1006
+before -- the x0.95 had left edge tiles empty. Measured on the SERVED z17 tiles
+against dt1961's: 1.6 m median (p90 5.9), where the old tiles read 89 m.
+
+**`scripts/crossmatrix.py`**: every layer of a manifest group against every
+other, on one lat/lon grid. Each layer is read once by windowed GDAL reads with
+area averaging, hand alignment applied through `handadjust`, ridge-filtered at
+gridval's two bands and cached in `runs/cache/` by source signature. Each pair
+gets gridval's 6 km coarse field as prior, then fine cells; each cell is
+re-measured with a planted field (30 m + 1.5 m/km scale + 1 mrad rotation) and a
+cell that misses it by more than 5 m is dropped. `scripts/xmreport.py` makes the
+table and an arrow map per layer. Smoke test: 1961 vs Esri 2.8 m median over 1.3
+km cells (HANDOFF's 2.6 at 3.6 km), planted field tracked to 0.8 m (p90 1.1).
+Downtown film-to-film: 1949/1956 3.7, 1949/1961 2.9, 1956/1961 2.4 m. Downtown
+against Today does NOT measure: most cells fail their planted field, and four
+roof locks at 30-160 m pass it -- a wrong lock can be self-consistent. Use the
+street vectors there.
+
+**The seam metric is whole-pixel.** `close2._pc` returns the integer peak, so at
+2 m/px every tie window reads 0, 2, 2.8, 4... m, and "2.0 m (p90 4.0)" has meant
+"within one pixel". With a parabolic peak (`distortion_pilot.py --subpixel`)
+1961's rebuilt solve is **along-track 1.7 m (p90 4.0), cross-line 2.1 m (p90
+5.0)**. Any acceptance test on seams below 2 m needs the sub-pixel correlator.
+
+**1961 rebuilt** in `runs/colmap/1961` (not /tmp): 62/62 frames, one model,
+seams identical to the served build's (integer metric 2.0/2.0, p90 4.0/4.5).
+The 1956, 1961 and 1967 scans had been lost with /tmp; 1961's were re-fetched
+(four of its frames are missing from dte_catalogue.json and were fetched by
+pointer). 1956 and 1967 scans are still absent; 1949 has 48 of 50.
+
+**Is there lens or scan distortion? Only a metre of it, and fixing it buys
+nothing.** `scripts/distortion_pilot.py` renders every frame through its solved
+camera and asks two questions:
+
+- seams, no reference: a radial error dk shows as disagreement that varies
+  across an overlap as dk(|ra|^2 ra - |rb|^2 rb)/H^2; per-pair translation is a
+  nuisance. 5-fold by pair, held-out within-pair scatter, sub-pixel ties:
+
+      fixed camera                        1.15 m (p90 3.30)
+      CONTROL: r^3 about wrong centres    1.14   (3.31)
+      radial r^3                          1.06   (3.16)   dk -1.8e-3
+      radial r^3 + r^5                    1.02   (3.17)   coefficients collinear
+      scan affinity per batch             1.14   (3.29)   nothing
+
+  It beats the control, but it is not stable: dk is -2.1e-3 north, -1.6e-3
+  south, -2.2e-3 from along-track ties and -0.3e-3 from cross-line ties, and
+  leave-one-pair-out the gain is +0.013 m per pair (95% CI -0.008..+0.033; 118
+  of 201 pairs improve).
+- absolute, against NAIP 2016, per-frame similarity removed, 4,201 windows
+  stacked in image coordinates: residual 4.89 m median (p90 11.96); with the
+  shared cubic 4.87 (11.92), dk -4.2e-3. The radial profile has the cubic's
+  shape (+0.4..+0.6 m inside 1 km, -1.3 m at 1.65 km), tangential under 0.15 m.
+
+So a real radial term of about a metre at the frame edge exists, but its
+estimate disagrees between tests by a factor of two and more, it is invisible
+in the held-out seams and against modern imagery, and the plan's targets are
+3 m median / 10 m p90. By the plan's rule the fixed SIMPLE_RADIAL camera stays;
+raw-frame recalibration is not justified, which also means 1956 and 1967 do not
+need re-fetching for it. What the 4.9 m within-frame scatter against NAIP IS
+remains open: fifty-five years of change, 520 m window noise, and the fitted
+ground surface are the candidates, and the pair matrix is the next evidence.
+
+Running long jobs on this machine. CPU SIFT peaks at ~3.7 GB per thread on these
+negatives, so the old fixed 8 threads is ~30 GB and pages a 32 GB machine to a
+standstill; `colmap_block.py --threads 2` (added today) stays in RAM at ~40 s per
+image per thread. zsh runs `cmd &` at nice 5, which starved COLMAP to half a core;
+launch with `setopt NO_BG_NICE` and check `ps -o ni`. Killing crossmatrix.py's
+parent leaves its pool workers running (`pgrep -fl multiprocessing`).

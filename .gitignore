@@ -6,3 +6,7 @@ __pycache__/
 .venv/
 scans/
 logs/
+
+# alignment plan: solves and ridge caches are rebuildable
+runs/colmap/
+runs/cache/

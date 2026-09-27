@@ -1,0 +1,305 @@
+{
+ "layers": [
+  {
+   "id": "dt1949",
+   "group": "downtown",
+   "label": "1949",
+   "file": "mosaics/downtown_1949_fix.tif",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": true,
+   "ver": 1788148029
+  },
+  {
+   "id": "dt1956",
+   "group": "downtown",
+   "label": "1956",
+   "file": "mosaics/downtown_1956_fix.tif",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": true,
+   "ver": 1788567572
+  },
+  {
+   "id": "dt1961",
+   "group": "downtown",
+   "label": "1961",
+   "file": "mosaics/downtown_1961_fix.tif",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": true,
+   "ver": 1788147794
+  },
+  {
+   "id": "dtnow",
+   "group": "downtown",
+   "label": "Today",
+   "file": "mosaics/downtown_now_hi.jpg",
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "gray": false,
+   "ver": 1788126938
+  },
+  {
+   "id": "b1949",
+   "group": "west",
+   "label": "1949",
+   "file": "mosaics/detroit_1949_placedE.tif",
+   "bbox": [
+    42.19034670176887,
+    -83.30714736448378,
+    42.475248242990006,
+    -83.18021655890128
+   ],
+   "gray": true,
+   "ver": 1788394633
+  },
+  {
+   "id": "b1956",
+   "group": "west",
+   "label": "1956",
+   "file": "mosaics/detroit_1956_placedC.tif",
+   "bbox": [
+    42.189299339339875,
+    -83.38204641171188,
+    42.48569154451726,
+    -83.22073994622545
+   ],
+   "gray": true,
+   "ver": 1788331788
+  },
+  {
+   "id": "b1961",
+   "group": "west",
+   "label": "1961",
+   "file": "mosaics/detroit_1961_placedC.tif",
+   "bbox": [
+    42.228977768351314,
+    -83.33733976788429,
+    42.46405429335547,
+    -83.18321878612251
+   ],
+   "gray": true,
+   "ver": 1788318877
+  },
+  {
+   "id": "b1967",
+   "group": "west",
+   "label": "1967",
+   "file": "mosaics/detroit_1967_placedC.tif",
+   "bbox": [
+    42.22979586910584,
+    -83.27341937589082,
+    42.46967056869389,
+    -83.1191149349701
+   ],
+   "gray": true,
+   "ver": 1788320994
+  },
+  {
+   "id": "l1998",
+   "group": "west",
+   "label": "1998",
+   "file": "mosaics/layer_1998.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788565252
+  },
+  {
+   "id": "l2005",
+   "group": "west",
+   "label": "2005",
+   "file": "mosaics/layer_2005.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788566162
+  },
+  {
+   "id": "l2010",
+   "group": "west",
+   "label": "2010",
+   "file": "mosaics/layer_2010.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788566673
+  },
+  {
+   "id": "l2012",
+   "group": "west",
+   "label": "2012",
+   "file": "mosaics/layer_2012.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788568030
+  },
+  {
+   "id": "l2014",
+   "group": "west",
+   "label": "2014",
+   "file": "mosaics/layer_2014.tif",
+   "bbox": [
+    42.18454139014705,
+    -83.3927502934717,
+    42.48932884971699,
+    -83.11469794076982
+   ],
+   "gray": false,
+   "ver": 1788568514
+  },
+  {
+   "id": "l2016",
+   "group": "west",
+   "label": "2016",
+   "file": "mosaics/layer_2016.tif",
+   "bbox": [
+    42.18454139014705,
+    -83.3927502934717,
+    42.48932884971699,
+    -83.11469794076982
+   ],
+   "gray": false,
+   "ver": 1788569828
+  },
+  {
+   "id": "l2018",
+   "group": "west",
+   "label": "2018",
+   "file": "mosaics/layer_2018.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788571128
+  },
+  {
+   "id": "l2020",
+   "group": "west",
+   "label": "2020",
+   "file": "mosaics/layer_2020.tif",
+   "bbox": [
+    42.18529933933988,
+    -83.38604641171189,
+    42.48969154451726,
+    -83.1151149349701
+   ],
+   "gray": false,
+   "ver": 1788572402
+  },
+  {
+   "id": "l2022",
+   "group": "west",
+   "label": "2022",
+   "file": "mosaics/layer_2022.tif",
+   "bbox": [
+    42.18454139014705,
+    -83.3927502934717,
+    42.48932884971699,
+    -83.11469794076982
+   ],
+   "gray": false,
+   "ver": 1788569250
+  },
+  {
+   "id": "modwest",
+   "group": "west",
+   "label": "Today",
+   "file": "mosaics/modern_west.png",
+   "bbox": [
+    42.2176093167972,
+    -83.3491931333485,
+    42.482699683556724,
+    -83.10653737443461
+   ],
+   "gray": true
+  }
+ ],
+ "groups": {
+  "downtown": {
+   "label": "Downtown",
+   "layers": [
+    "dt1949",
+    "dt1956",
+    "dt1961",
+    "dtnow"
+   ],
+   "bbox": [
+    42.31459886110686,
+    -83.06110255811492,
+    42.34339522932281,
+    -83.02027921892557
+   ],
+   "note": "1949 / 1956 / 1961 downtown negatives, each georeferenced independently and warped onto one 0.60 m/px grid."
+  },
+  "west": {
+   "label": "West Detroit",
+   "layers": [
+    "b1949",
+    "b1956",
+    "b1961",
+    "b1967",
+    "l1998",
+    "l2005",
+    "l2010",
+    "l2012",
+    "l2014",
+    "l2016",
+    "l2018",
+    "l2020",
+    "l2022",
+    "modwest"
+   ],
+   "bbox": [
+    42.189299339339875,
+    -83.38204641171188,
+    42.48569154451726,
+    -83.10653737443461
+   ],
+   "note": "1949, 1956, 1961 and 1967 blocks. Each block closed by a tie-point bundle adjustment -- a translation, scale and rotation per negative from thousands of phase-correlation windows, along-track and across flight lines -- then placed by one continuous low-order warp against modern imagery. 1998, 2005 and 2010 are the City of Detroit's orthophotos and 2012-2022 are USDA NAIP, served as published; their georeferencing is theirs."
+  }
+ },
+ "serve": {
+  "1949": "placedE",
+  "1956": "placedC",
+  "1961": "placedC",
+  "1967": "placedC"
+ }
+}
