@@ -116,7 +116,7 @@
     -83.1191149349701
    ],
    "gray": true,
-   "ver": "1788320994.2be88c",
+   "ver": "1790536524.2be88c",
    "maxNativeZoom": 18,
    "minNativeZoom": 8
   },
@@ -125,13 +125,13 @@
    "group": "west",
    "label": "Today",
    "bbox": [
-    42.2176093167972,
-    -83.3491931333485,
-    42.482699683556724,
-    -83.10653737443461
+    42.18453909290694,
+    -83.39366346881908,
+    42.488376338036815,
+    -83.1145373744346
    ],
    "gray": true,
-   "ver": "0.2be88c",
+   "ver": "1788140336.2be88c",
    "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
    "maxNativeZoom": 19
   }
@@ -163,10 +163,10 @@
     "modwest"
    ],
    "bbox": [
-    42.189299339339875,
-    -83.38204641171188,
-    42.48569154451726,
-    -83.10653737443461
+    42.18453909290694,
+    -83.39366346881908,
+    42.488376338036815,
+    -83.1145373744346
    ],
    "note": "1949, 1956, 1961 and 1967 blocks. Each block closed by a tie-point bundle adjustment -- a translation, scale and rotation per negative from thousands of phase-correlation windows, along-track and across flight lines -- then placed by one continuous low-order warp against modern imagery. 1998, 2005 and 2010 are the City of Detroit's orthophotos and 2012-2022 are USDA NAIP, served as published; their georeferencing is theirs."
   }
@@ -177,7 +177,7 @@
   "1949": "placedE",
   "1956": "placedC",
   "1961": "placedC",
-  "1967": "placedC"
+  "1967": "placedJ"
  },
- "built": "2026-09-27 14:46"
+ "built": "2026-09-27 17:21"
 }
