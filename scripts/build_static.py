@@ -148,10 +148,24 @@ def main():
     os.makedirs(tiles_dir, exist_ok=True)
 
     # ---- the manifest the static viewer will read
+    # Tile URLs carry ?v=<ver>, and the host marks tiles immutable for a year. `ver`
+    # is the mosaic's mtime, which a hand alignment does not touch -- so re-baking
+    # an alignment used to serve new tiles at the old URLs, and anyone who had seen
+    # the layer kept the old picture. The static version covers what the tile
+    # shows: the file AND its alignment (the identity included).
+    import hashlib, handadjust
+    adjust = handadjust.load(ROOT)
+
+    def static_ver(l):
+        a_ = handadjust.for_layer(adjust, l['id'])
+        h = hashlib.sha1(json.dumps(a_, sort_keys=True).encode()).hexdigest()[:6]
+        return '%s.%s' % (l.get('ver', 0), h)
+
     layers = []
     for l in man['layers']:
         lid = l['id']
         m = {k: v for k, v in l.items() if k not in ('file',)}
+        m['ver'] = static_ver(l)
         if lid in TODAY and a.today == 'remote':
             m['url'] = ESRI_IMAGERY
             m['maxNativeZoom'] = 19

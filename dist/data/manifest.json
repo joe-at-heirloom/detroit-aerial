@@ -11,7 +11,7 @@
     -83.02027921892557
    ],
    "gray": true,
-   "ver": 1788148029,
+   "ver": "1788148029.2be88c",
    "maxNativeZoom": 18,
    "minNativeZoom": 8
   },
@@ -26,7 +26,7 @@
     -83.02027921892557
    ],
    "gray": true,
-   "ver": 1788567572,
+   "ver": "1788567572.2be88c",
    "maxNativeZoom": 18,
    "minNativeZoom": 8
   },
@@ -41,7 +41,7 @@
     -83.02027921892557
    ],
    "gray": true,
-   "ver": 1788147794,
+   "ver": "1788147794.2be88c",
    "maxNativeZoom": 18,
    "minNativeZoom": 8
   },
@@ -56,7 +56,7 @@
     -83.02027921892557
    ],
    "gray": false,
-   "ver": 1788126938,
+   "ver": "1788126938.2be88c",
    "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
    "maxNativeZoom": 19
   },
@@ -71,7 +71,7 @@
     -83.18021655890128
    ],
    "gray": true,
-   "ver": 1788394633,
+   "ver": "1788394633.2be88c",
    "maxNativeZoom": 18,
    "minNativeZoom": 8
   },
@@ -86,7 +86,7 @@
     -83.22073994622545
    ],
    "gray": true,
-   "ver": 1788331788,
+   "ver": "1788331788.2be88c",
    "maxNativeZoom": 18,
    "minNativeZoom": 8
   },
@@ -101,7 +101,7 @@
     -83.18321878612251
    ],
    "gray": true,
-   "ver": 1788318877,
+   "ver": "1788318877.2be88c",
    "maxNativeZoom": 18,
    "minNativeZoom": 8
   },
@@ -116,7 +116,7 @@
     -83.1191149349701
    ],
    "gray": true,
-   "ver": 1788320994,
+   "ver": "1788320994.2be88c",
    "maxNativeZoom": 18,
    "minNativeZoom": 8
   },
@@ -131,6 +131,7 @@
     -83.10653737443461
    ],
    "gray": true,
+   "ver": "0.2be88c",
    "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
    "maxNativeZoom": 19
   }
@@ -178,5 +179,5 @@
   "1961": "placedC",
   "1967": "placedC"
  },
- "built": "2026-09-05 07:49"
+ "built": "2026-09-27 14:46"
 }
