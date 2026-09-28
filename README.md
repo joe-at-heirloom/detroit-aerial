@@ -1,3 +1,5 @@
+<img src="viewer/logo.svg" width="72" alt="">
+
 # Detroit Air Survey
 
 Georeferenced historical aerial photography of Detroit, served locally at native
@@ -49,6 +51,8 @@ negatives without pre-rendering anything.
   blocks; then the City of Detroit's 1998 (1 m), 2005 and 2010 (2 ft)
   orthophotos and USDA NAIP for 2012, 2014 (1 m), 2016, 2018, 2020 and 2022
   (0.6 m), fetched onto the same grid by `scripts/fetchlayer.py`; plus modern
+  imagery as **Today** -- locally a 1.8 m Esri fetch on the same grid
+  (`mosaics/modern_west_hi.tif`), on the static site live Esri World Imagery
 
 ---
 
@@ -93,86 +97,70 @@ a measurement lied before being trusted.
 
 ## Accuracy
 
-Every number below comes from a metric proved first: it must recover a shift
-planted on modern-vs-modern imagery (0.0 m), and a shift planted on the real mosaic
-must move every cell by exactly that much (0.0 m).
+Every number below comes from an instrument proved first: it must recover a shift
+planted on modern-vs-modern imagery, and each cell is re-measured with a known
+field (30 m + 1.5 m/km scale + 1 mrad rotation) planted on one side -- a cell that
+does not follow it by 5 m is dropped. Across every pair measured it tracks to
+0.8 m (p90 1.1), so differences under a metre are not evidence. Figures are
+medians over 1.3 km cells (p90 in brackets), measured 2026-09-27 by
+`scripts/crossmatrix.py`; the full pair table is `runs/crossmatrix_west.md`.
 
-**1961** (62 negatives, four flight lines) -- complete and in the viewer:
+**West Detroit, the film against modern imagery:**
 
-| | along-track seams | cross-line seams | absolute, 3.6 km cells | absolute, 1.8 km cells |
-|---|---|---|---|---|
-| COLMAP + surface | **2.0 m** (p90 4.0, max 16) | **2.0 m** (p90 4.5, max 20) | **2.6 m** (p90 5.8) | **3.0 m** (p90 8.0) |
+| | vs Esri (never fitted to) | vs NAIP 2016 | seams: along / across the flight lines |
+|---|---|---|---|
+| **1961** (62 negatives) | **2.8 m** (6.6) | 3.4 m (7.0) | 1.7 / 2.1 m (p90 4.0 / 5.0) |
+| **1967** (51) | **3.3 m** (7.1) | 3.0 m (6.1) | within a 2 m pixel |
+| **1949** (50) | **4.4 m** (10.0) | 5.5 m (11.7) | within a 2 m pixel |
+| **1956** (70) | **7.2 m** (41) | 7.2 m (47) | within a 2 m pixel along, 4 m across |
 
-Seams are identical before and after the placement warp. Independently, against
-USGS NAIP on 1.5 km windows, three registration implementations put it at
-**2.2 / 3.1 / 3.5 m** (scikit-image / OpenCV / ours).
+Seams are how far two overlapping negatives disagree about the same ground. The
+tie windows that measure them report whole pixels, 2 m at the resolution they run
+at, so "within a 2 m pixel" is the honest reading of the "2.0 m" this project
+quoted for months; 1961 re-measured with a sub-pixel peak
+(`distortion_pilot.py --subpixel`) gives the figures in its row.
 
-**1967** (51 negatives, four flight lines) -- complete and in the viewer:
+**What a wipe shows** is a pair, not two absolute numbers: 1961/1967 **3.8 m**
+(8.0), 1949/1956 4.6 m (13.7), 1956/1961 4.8 m (13.7), 1949/1961 6.0 m (11.1),
+1949/1967 6.6 m (14.2).
 
-| | along-track seams | cross-line seams | absolute, 3.6 km cells | absolute, 1.8 km cells |
-|---|---|---|---|---|
-| COLMAP + surface | **2.0 m** (p90 4.5) | **4.0 m** (p90 7.2) | **2.6 m** (p90 7.7) | **4.1 m** (p90 11.6) |
+**The modern layers** are served as published. Against NAIP 2016: 2022 2.1 m,
+2010 2.0, 2005 3.1, 2014 3.7, 1998 3.8, 2012 4.0, 2020 5.1, Esri 1.9. NAIP 2018 is
+3.0 m except for a strip east of Greenfield that sits 10-14 m east (a shifted
+quarter-quad column in the product; p90 17 m).
 
-**1949** (50 negatives, three flight lines) -- complete and in the viewer. Its
-catalogue positions were poor, so the block's heading was refined against 1961's
-verified build before placement. The placement itself is fitted directly against
-modern imagery with a cubic model:
+Notes by block:
 
-| | along-track seams | cross-line seams | absolute, 3.6 km cells | absolute, 1.8 km cells |
-|---|---|---|---|---|
-| COLMAP + surface | **2.0 m** (p90 4.0) | **2.0 m** (p90 4.0) | **4.2 m** (p90 7.1) | **4.1 m** (p90 8.4) |
+- **1961** is the reference build: the camera for every block was solved on a
+  six-frame 1961 pilot. A pilot on the rebuilt 1961 solve found about a metre of
+  radial distortion at the frame edges that the fixed camera does not model; fitting
+  it changed nothing measurable (HANDOFF, "Alignment plan, steps 1-4").
+- **1967** is placed by its original quadratic plus a second quadratic from the
+  joint placement (`jointfit.py`, `jointapply.py`): every film year fitted at once
+  to NAIP 2016 and to each other, the model chosen on 4 km blocks withheld. It is
+  1-1.8 m closer to every modern year it was never fitted to than the build before.
+- **1949**'s catalogue positions were poor, so its heading was refined against
+  1961 before placement, and the placement is fitted straight to modern imagery
+  with a cubic. Chaining it through 1961 first -- a 12-year gap should match more
+  easily than a 75-year one -- inherited 1961's own error; fitting direct halved the
+  error against USGS NAIP (8.0-8.4 m to 4.4-5.3 m on three independent
+  registration implementations). The farmland of 1949 is subdivisions now, and
+  that, not the block's shape, is what limits it.
+- **1956** runs 33 km and needed a cubic placement. Where 1961 covers the ground
+  it is good; its western column and northern edge were farmland that is suburbs
+  now, where image matching locks onto the wrong streets -- 100 m "errors" that
+  repeat identically against every modern year, while the one road present in both
+  years says about 20 m. Its p90 is that edge, and it is unverified rather than
+  measured. No smooth correction survives withheld validation there.
 
-It was first placed by chaining through 1961, on the reasoning that a 12-year gap
-matches far more easily than a 75-year one. That was wrong here: chaining
-inherits 1961's own 2.6 m, and once the heading refinement had removed the gross
-error there was enough signal to fit against modern imagery directly. Fitting
-direct, and with a cubic rather than a quadratic, halved the error against an
-independent reference -- USGS NAIP, which no build is fitted to -- from
-**8.0-8.4 m** to **4.4-5.3 m**, with the worst of twelve windows going from
-14.9 m to 7.5 m.
-
-Independently, against USGS NAIP on 1.5 km windows, the three implementations
-agree at **8.0 / 8.2 / 8.4 m** (scikit-image / OpenCV / ours) with no systematic
-shift (bias under 1 m in both axes). That is worse than our own figure against
-Esri imagery and worse than 1961's 2-3.5 m. Seventy-five years separate the
-negatives from either reference, the farmland of 1949 is subdivisions now, and
-the placement's own leave-one-out estimate was 6.8 m -- the remaining error is
-the difficulty of measuring 1949 against anything modern, not the block's shape.
-
-**1956** (70 negatives, four flight lines, 33 km long) -- complete and in the
-viewer. Its catalogue placement was 815 m off; the heading refinement against
-1961 now iterates with a wider search. The block is long enough that the
-placement needed a cubic model (chosen by leave-one-out, 7.8 m):
-
-| | along-track seams | cross-line seams | absolute, 3.6 km cells | absolute, 1.8 km cells |
-|---|---|---|---|---|
-| COLMAP + surface | **2.0 m** (p90 8.0) | **4.0 m** (p90 8.9) | **5.6 m** (p90 21.6) | **6.2 m** (p90 38.3) |
-
-Where 1961 covers the ground the placement residual is 5.6 m median; the
-western column and the northern 3 km lie outside every other epoch and were
-measured against modern imagery only, where 1956 is as hard to match as 1949,
-so the p90 there is the measurement as much as the map.
-Independently, against USGS NAIP on 1.5 km windows, the three implementations
-put it at **4.5 / 4.6 / 5.9 m** (scikit-image / OpenCV / ours), p90 21-31 m,
-bias under 3 m: the same picture, a good centre and uncertain edges.
-
-Downtown is a separate three-frame scene: 1961 and 1949 corrected to ~5 m, 1956
-still ~32 m; much of the frame is the river and the core is high-rise, so no 2D
-correction can do better there.
-
-Those were *absolute* figures -- each epoch measured against a modern reference on
-its own. The wipe shows a **pair**, and two epochs can each be 15 m out in
-opposite directions and be 30 m apart on screen. `scripts/dtcross.py` measures the
-pair directly, on a 6x6 grid at 1.25 m/px:
-
-| | before | after | p90 | max |
-|---|---|---|---|---|
-| 1949 vs 1956 | 49.8 m | **3.9 m** | 10.8 | 31.1 |
-| 1956 vs 1961 | 37.9 m | **3.2 m** | 14.1 | 30.7 |
-| 1956 vs today | 41.5 m | **15.2 m** | 64.6 | 86.2 |
-| 1949 vs 1961 | 3.9 m | 3.9 m | 31.8 | 56.0 |
-| 1949 vs today | 20.2 m | 20.2 m | 32.9 | 42.7 |
-| 1961 vs today | 23.1 m | 23.1 m | 52.1 | 56.3 |
+**Downtown** is a separate three-frame scene. On the ground the historical years
+agree to **2.4-3.7 m** (1956/1961 2.4, 1949/1961 2.9, 1949/1956 3.7). Against
+today image matching does not measure the ground at all: the core is high-rise,
+its roofs lean 25-35 m and differently in every photograph, and correlation locks
+onto the roofs. City street-centreline vectors sit on the streets in 1949, 1961
+and today to a few metres. A hand alignment made by lining up roofs put 1949
+35-89 m off the other years and was removed (2026-09-27). A true downtown ortho
+needs a surface model; no 2D fit will make the roofs line up.
 
 ### Downtown 1956 was 168 m out, not 32
 
@@ -188,30 +176,13 @@ ratio of 1.90, and all sixteen cells of a 4x4 grid independently agree to within
 +/-20 m. `fixdowntown.py` now solves that one rigid shift before the residual
 field (`global_prior`), and applies it only when the peak is convincing and the
 scene is beyond the fine search's reach -- on 1949 and 1961 it finds 14-15 m at
-ratios of 1.16-1.26 and correctly declines to use it.
-
-With the shift in front of it, the residual field's control goes from 39 stations
-(23 at the search limit, 15.1 m held-out) to 62 stations (none at the limit,
-**2.0 m** held-out), and the grid goes 168.4 -> 2.2 m median, no cell over 10 m.
-Rebuild it with:
+ratios of 1.16-1.26 and correctly declines to use it. Rebuild it with:
 
     ./.venv/bin/python scripts/fixdowntown.py 1956 --ref 1961 --src
 
 `--src` re-runs from the uncorrected raster; without it a second run reads the
 manifest, which by then points at the *corrected* mosaic, and stacks a second
 warp on the first.
-
-### What is left downtown
-
-The historical epochs now agree with each other at 3-4 m. What remains is the
-"versus today" column, and it is not a placement error. Against USGS NAIP -- an
-independent reference no downtown build is fitted to -- today's layer measures
-4.0 m and 1961 measures 6.2 m, so neither is 23 m out of place. 1949 and 1956
-measure 19-29 m against NAIP with only ~40% of cells locking at all, which is the
-difficulty of matching seventy-year-old imagery to modern downtown, where the
-whole core was rebuilt. The rest is relief displacement: a 560 m cell downtown is
-mostly high-rise roofs, and they lean differently in every negative. Separating
-that from the ground needs a DEM, not another 2D fit.
 
 ## Hosting it (GitHub Pages, Vercel, anything static)
 

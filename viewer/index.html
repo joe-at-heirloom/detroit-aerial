@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Detroit Air Survey</title>
+<!-- the mark and the tab icon are inline so the local server and the static build both carry them; sources: viewer/logo.svg, viewer/favicon.svg -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='6' fill='%230B0F12'/%3E%3Crect x='7' y='7' width='25' height='50' fill='%233A4852'/%3E%3Cg fill='none' stroke-linecap='square'%3E%3Cpath d='M54 54L10 10' stroke='%23DCE6EB' stroke-width='6'/%3E%3Crect x='7' y='7' width='50' height='50' stroke='%23DCE6EB' stroke-width='5'/%3E%3Cpath d='M32 3V61' stroke='%23E0A94A' stroke-width='7'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -20,8 +22,10 @@ html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);font-fa
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #app{display:flex;flex-direction:column;height:100%}
 .bar{display:flex;align-items:stretch;border-bottom:1px solid var(--rule);background:var(--panel);min-height:50px;flex:0 0 auto}
-.brand{display:flex;flex-direction:column;justify-content:center;padding:6px 16px;border-right:1px solid var(--rule);min-width:190px}
-.brand b{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 12px;border-right:1px solid var(--rule);min-width:230px;flex:0 0 auto}
+.brand .mark{width:30px;height:30px;flex:0 0 auto;display:block}
+.brand .bt{display:flex;flex-direction:column;justify-content:center}
+.brand b{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
 .brand span{font-family:var(--mono);font-size:10px;color:var(--ink-faint);margin-top:2px}
 .tabs{display:flex}
 .tab{padding:0 16px;display:flex;flex-direction:column;justify-content:center;gap:2px;border-right:1px solid var(--rule)}
@@ -141,7 +145,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 <body>
 <div id="app">
   <div class="bar">
-    <div class="brand"><b>Detroit Air Survey</b><span>DTE AERIAL &middot; LOCAL</span></div>
+    <div class="brand"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="3" y="3" width="58" height="58" fill="#0B0F12"/><rect x="5" y="5" width="27" height="54" fill="#3A4852"/><g fill="none" stroke-linecap="square"><path d="M5 21H59M5 43H59M18 5V59M46 5V59" stroke="#7C8F9B" stroke-width="2"/><path d="M57 57L7 7" stroke="#DCE6EB" stroke-width="3"/><rect x="5" y="5" width="54" height="54" stroke="#DCE6EB" stroke-width="3"/><path d="M5 32H11M59 32H53" stroke="#DCE6EB" stroke-width="3"/><path d="M32 3V61" stroke="#E0A94A" stroke-width="3"/></g><circle cx="32" cy="32" r="5.5" fill="#E0A94A" stroke="#0B0F12" stroke-width="2"/></svg><div class="bt"><b>Detroit Air Survey</b><span>DTE AERIAL &middot; LOCAL</span></div></div>
     <div class="tabs" id="tabs"></div>
     <div class="spacer"></div>
     <div class="tools">
@@ -273,10 +277,12 @@ function shownPlaces() {
 const NOTES = {
   downtown: ["Downtown &middot; 1949 / 1956 / 1961",
     "Three separate negatives, each georeferenced independently and warped onto one <b>0.60 m/px</b> grid &mdash; native resolution of the film.",
-    "Wipe 1949 against 1961 to watch the <b>Hastings Street</b> corridor emptied for the Chrysler Freeway."],
+    "Wipe 1949 against 1961 to watch the <b>Hastings Street</b> corridor emptied for the Chrysler Freeway.",
+    "The three years agree on the ground to <b>2.4&ndash;3.7 m</b>. Tall buildings lean differently in every photograph, so in the core the roofs will not line up where the streets do &mdash; follow the streets."],
   west: ["West Detroit &middot; 1949 / 1956 / 1961 / 1967",
     "Each block of negatives is solved as a photogrammetric block with <b>COLMAP</b> (a camera per negative, tied by thousands of matches along and across the flight lines), projected onto the block's own fitted ground surface, then placed on the map by one continuous warp.",
-    "Every build is judged by how far two overlapping negatives disagree about the same ground, then by how far the whole block sits from modern imagery. <b>1961:</b> 2.0 / 2.0 m seams, 2.6 m absolute. <b>1967:</b> 2.0 / 4.0 m, 2.6 m. <b>1949:</b> 2.0 / 2.0 m seams, 4.1 m absolute; its placement is fitted straight to modern imagery, and an independent check against USGS orthophotos puts it at 4.4 to 5.3 m. <b>1956:</b> 2.0 / 4.0 m, 5.6 m absolute where 1961 covers the ground; its western column and northern 3 km have no earlier epoch to check against and are less certain."]
+    "Every build is judged first by how far two overlapping negatives disagree about the same ground &mdash; within a 2 m pixel on every block (1961, measured finer: 1.7 m along the flight lines, 2.1 m across) &mdash; then against modern imagery it was never fitted to, on 1.3 km cells. Median: <b>1961</b> 2.8 m, <b>1967</b> 3.3 m, <b>1949</b> 4.4 m, <b>1956</b> 7.2 m. 1956's western column and northern edge were farmland that is suburbs now, and cannot be checked by matching images; treat it as uncertain there.",
+    "Wiping between film years moves the ground <b>3.8 to 6.6 m</b> (1961/1967 is closest). The 1998&ndash;2022 orthophotos are shown as published and sit 2&ndash;5 m from one another, except NAIP 2018, whose strip east of Greenfield is 10&ndash;14 m east."]
 };
 
 async function boot() {
