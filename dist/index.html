@@ -30,7 +30,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .tabs{display:flex}
 .tab{padding:0 16px;display:flex;flex-direction:column;justify-content:center;gap:2px;border-right:1px solid var(--rule)}
 .tab:hover{background:var(--panel-hi)}
-.tab em{font-style:normal;font-family:var(--mono);font-size:13px;font-weight:500}
+.tab em{font-style:normal;font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap}
 .tab i{font-style:normal;font-size:9.5px;color:var(--ink-faint);letter-spacing:.05em;text-transform:uppercase}
 .tab[aria-selected="true"]{background:var(--panel-hi);box-shadow:inset 0 -2px 0 var(--amber)}
 .spacer{flex:1}
@@ -139,6 +139,42 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .amsg{margin-top:7px;color:var(--ink-faint);font-size:10px;min-height:12px}
 .amsg.ok{color:var(--amber)}
 #mapwrap.aligning{cursor:move}
+/* the year view: one map, a slider over every year held, the newest picture at
+   or before that year on top and older ones wherever they reach further */
+.tl{display:flex;align-items:stretch;border-bottom:1px solid var(--rule);background:var(--panel);
+  flex:0 0 auto;min-height:60px;user-select:none}
+.tl[hidden],.rail[hidden]{display:none}
+.tly{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:4px 16px;
+  border-right:1px solid var(--rule);width:250px;flex:0 0 auto}
+.tly b{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--amber);line-height:1.05}
+.tly span{font-family:var(--mono);font-size:10px;color:var(--ink-faint);line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tly span em{font-style:normal;color:var(--ink-dim)}
+.tlb{width:36px;flex:0 0 auto;color:var(--ink-dim);border-right:1px solid var(--rule);font-size:12px}
+.tlb:last-child{border-right:0;border-left:1px solid var(--rule)}
+.tlb:hover{background:var(--panel-hi);color:var(--ink)}
+.tlt{position:relative;flex:1;margin:0 24px;cursor:pointer;touch-action:none;min-width:160px;outline:0}
+.tlt .ax{position:absolute;left:0;right:0;top:29px;height:1px;background:var(--ink-faint)}
+.tlt .dc{position:absolute;top:30px;width:1px;height:4px;background:var(--ink-faint)}
+.tlt .tk{position:absolute;top:23px;width:2px;height:13px;margin-left:-1px;background:var(--ink-dim)}
+.tlt .tk.film{background:var(--ink)}
+.tlt .tk.on{background:var(--amber)}
+.tlt .tx{position:absolute;font-family:var(--mono);font-size:10px;color:var(--ink-dim);
+  transform:translateX(-50%);white-space:nowrap;pointer-events:none;line-height:1}
+.tlt .tx.r0{top:40px}.tlt .tx.r1{top:8px}
+.tlt .tx.on{color:var(--amber);font-weight:500}
+.tlt .th{position:absolute;top:22px;width:15px;height:15px;margin-left:-7.5px;border-radius:50%;
+  background:var(--amber);border:2px solid var(--panel);box-shadow:0 0 0 1px var(--amber);
+  pointer-events:none;transition:left .12s ease-out}
+.tlt:focus-visible .th{box-shadow:0 0 0 3px var(--amber)}
+.yrl{font-family:var(--mono);font-size:10.5px;line-height:1;padding:2px 5px;white-space:nowrap;
+  background:rgba(11,15,18,.82);border:1px solid var(--ink-dim);color:var(--ink);
+  width:auto !important;height:auto !important;pointer-events:none}
+.yrl.top{border-color:var(--amber);color:var(--amber)}
+#tnote{left:50%;transform:translateX(-50%);top:12px;border-color:var(--amber);color:var(--ink);
+  cursor:pointer;white-space:nowrap}
+#tnote[hidden]{display:none}
+#tnote b{color:var(--amber);font-weight:500}
 .leaflet-align-pane{will-change:transform}
 </style>
 </head>
@@ -159,7 +195,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       <button id="fit">RESET</button>
     </div>
   </div>
-  <div class="rail">
+  <div class="tl" id="tl" hidden>
+    <div class="tly"><b id="tlYear">&mdash;</b><span id="tlSub"></span></div>
+    <button class="tlb" id="tlPrev" title="previous year (&larr;)">&#9664;</button>
+    <div class="tlt" id="tlTrack" tabindex="0" role="slider" aria-label="year"></div>
+    <button class="tlb" id="tlNext" title="next year (&rarr;)">&#9654;</button>
+  </div>
+  <div class="rail" id="rail">
     <div class="side L" id="railL"><span class="lbl">LEFT</span></div>
     <div class="side R" id="railR"><span class="lbl">RIGHT</span></div>
     <div class="hint">drag the divider to wipe &middot; <b style="color:var(--amber);font-weight:500">click the map to see that spot in every year</b> &middot; native 0.63 m/px</div>
@@ -169,6 +211,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <div id="swipe"></div>
     <div class="tag" id="tagL"></div>
     <div class="tag" id="tagR"></div>
+    <div class="tag" id="tnote" hidden></div>
     <div class="note" id="note"></div>
     <div id="probe" hidden></div>
     <div id="align" hidden>
@@ -212,6 +255,10 @@ const DAS = Object.assign({ tiles: '/t', ext: 'png', data: '/data', api: '/api',
 let MAN, map, left, right, roadsLayer, streetLayer, split = 0.5, cur = null, L_ = 0, R_ = 1;
 let curId = null, PLACES = [], placeLayer = null, probeMaps = [], probePt = null,
     probePlace = null, probeZoom = 17, probeToken = 0, pFilter = '';
+// the year view: data/timeline.json (scripts/footprints.py), the chosen step,
+// one tile layer per layer id kept across steps, and the outlines + captions
+let TL = null, tlIdx = 0, timeLayers = {}, outlineLayer = null;
+const timeMode = () => !!(cur && cur.mode === 'time');
 
 // ------------------------------------------------------------------- lifespans
 // A place's dates are what stood on the GROUND, not what an institution did:
@@ -240,6 +287,10 @@ function spanText(p) {
 // is no guessing which year the colours mean.
 function epochYear() {
   if (!cur || !MAN) return new Date().getFullYear();
+  if (timeMode()) {
+    const y = TL.years[tlIdx].year;
+    return y === TL.today ? new Date().getFullYear() : y;
+  }
   const l = MAN.layers.find(x => x.id === cur.layers[L_]);
   const n = l ? parseInt(l.label, 10) : NaN;
   return Number.isFinite(n) ? n : new Date().getFullYear();     // "Today"
@@ -268,14 +319,21 @@ function placeState(p, y) {
 // so the zoom decides how far down the list to go.
 const RANK_Z = { 1: 0, 2: 14, 3: 15.5 };
 
+// The year view spans both scenes, so it shows every scene's places.
+const mineP = p => timeMode() || (p.group || 'west') === curId;
+
 function shownPlaces() {
   const y = epochYear(), z = map ? map.getZoom() : 99;
-  return PLACES.filter(p => (p.group || 'west') === curId)
+  return PLACES.filter(mineP)
                .filter(p => z >= (RANK_Z[p.rank || 2] !== undefined ? RANK_Z[p.rank || 2] : 14))
                .filter(p => !pFilter || placeState(p, y) === pFilter);
 }
 
 const NOTES = {
+  years: ["Through the years",
+    "Pick a year. The newest picture taken <b>in or before</b> it is on top; wherever an older one reaches further, the older one shows there instead of nothing.",
+    "Each picture's ground is outlined thinly and captioned with its year &mdash; <b style=\"color:var(--amber)\">amber</b> is the year you picked, white is older ground filling in around it.",
+    "Click anywhere to see that spot in every year that covers it."],
   downtown: ["Downtown &middot; 1949 / 1956 / 1961",
     "Three separate negatives, each georeferenced independently and warped onto one <b>0.60 m/px</b> grid &mdash; native resolution of the film.",
     "Wipe 1949 against 1961 to watch the <b>Hastings Street</b> corridor emptied for the Chrysler Freeway.",
@@ -289,6 +347,7 @@ const NOTES = {
 async function boot() {
   const hash = location.hash;          // show() clears it; read it first
   MAN = await (await fetch(DAS.data + '/manifest.json?t=' + Date.now(), {cache: 'no-store'})).json();
+  await loadTimeline();
   await loadPlaces();
   await loadAdjust();
   const tabs = document.getElementById('tabs');
@@ -296,11 +355,15 @@ async function boot() {
     const b = document.createElement('button');
     b.className = 'tab'; b.dataset.g = id;
     b.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
-    b.innerHTML = '<em>' + g.label + '</em><i>' + g.layers.length + ' layers</i>';
+    b.innerHTML = '<em>' + g.label + '</em><i>' + (g.mode === 'time' ? TL.years.length + ' years'
+                                                                     : g.layers.length + ' layers') + '</i>';
     b.onclick = () => { [...tabs.children].forEach(t => t.setAttribute('aria-selected', String(t === b))); show(id); };
     tabs.appendChild(b);
   });
-  map = L.map('map', { zoomControl: true, attributionControl: false, maxZoom: 21,
+  // minZoom explicit: left undefined, Leaflet takes the smallest minZoom of the
+  // layers on the map, and a year whose only layer is a close-up Wayback year
+  // (minZoom 14) would snap the whole map to z14 and refuse to zoom out
+  map = L.map('map', { zoomControl: true, attributionControl: false, maxZoom: 21, minZoom: 0,
                        zoomSnap: 0.25, fadeAnimation: false });
   map.on('mousemove', e => {
     document.getElementById('mPos').textContent =
@@ -313,7 +376,12 @@ async function boot() {
   });
   document.getElementById('fit').onclick = () => fit();
   document.getElementById('roads').onchange = e => {
-    if (e.target.checked) { roadsLayer.addTo(map); } else { map.removeLayer(roadsLayer); }
+    // above whatever is drawn: the year view's layers sit at zIndex 11+, so a
+    // plain addTo would put the centrelines underneath until the slider moved
+    if (e.target.checked) {
+      roadsLayer.addTo(map); roadsLayer.bringToFront();
+      if (document.getElementById('streets').checked) streetLayer.bringToFront();
+    } else { map.removeLayer(roadsLayer); }
   };
   const ub = Object.values(MAN.groups).map(g => g.bbox).reduce((u, b) =>
     [Math.min(u[0], b[0]), Math.min(u[1], b[1]), Math.max(u[2], b[2]), Math.max(u[3], b[3])]);
@@ -343,12 +411,15 @@ async function boot() {
   };
   document.getElementById('places').onchange = () => { drawPlaces(); };
   map.on('zoomend', renderPins);
+  map.on('zoomend', () => { timeNotice(); placeCaptions(); });
+  map.on('moveend', () => placeCaptions());
   // Click anywhere to ask what was on that ground in every year we hold. This is
   // the question the wipe cannot answer: the wipe shows two years, and only along
   // the divider.
   map.on('click', e => openProbe(e.latlng, null));
   wireSwipe();
   wireAlign();
+  wireTimeline();
   show(Object.keys(MAN.groups)[0]);
   restoreFromHash(hash);
 }
@@ -438,7 +509,7 @@ const STATE_TAG = { pre: '  \u00b7 not yet', post: '  \u00b7 gone' };
 
 function fillPlaceList() {
   const sel = document.getElementById('placesel');
-  const mine = PLACES.filter(p => (p.group || 'west') === curId)
+  const mine = PLACES.filter(mineP)
                      .sort((a, b) => (a.rank || 2) - (b.rank || 2) ||
                                      a.title.localeCompare(b.title));
   const esc = t => String(t).replace(/</g, '&lt;');
@@ -476,6 +547,28 @@ function covers(lid, ll) {
   return ll.lat >= l.bbox[0] && ll.lat <= l.bbox[2] && ll.lng >= l.bbox[1] && ll.lng <= l.bbox[3];
 }
 
+// Even-odd ray cast against a GeoJSON Polygon / MultiPolygon (holes included).
+function inGeo(g, ll) {
+  if (!g) return false;
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+  let inside = false;
+  polys.forEach(rings => rings.forEach(r => {
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const xi = r[i][0], yi = r[i][1], xj = r[j][0], yj = r[j][1];
+      if ((yi > ll.lat) !== (yj > ll.lat) &&
+          ll.lng < (xj - xi) * (ll.lat - yi) / (yj - yi) + xi) inside = !inside;
+    }
+  }));
+  return inside;
+}
+
+// The probe's cells: the scene's layers, or in the year view every layer whose
+// outline holds the point, oldest first, whatever year the slider is on.
+function probeLayers(ll) {
+  if (!timeMode()) return cur.layers;
+  return cur.layers.filter(id => inGeo(TL.layers[id].footprint, ll));
+}
+
 // A block's bounding box is a rectangle; its actual film coverage is a ragged
 // shape inside it, and 1956 in particular is missing whole corners. Rather than
 // show a black square under a confident year label, read the alpha of the tile
@@ -509,14 +602,16 @@ function flown(lid, ll, z) {
 // A probe is worth linking to: #lat,lon,zoom reopens it on the same ground, so a
 // spot someone wants to ask about can be sent as a URL.
 function restoreFromHash(h) {
-  const m = /^#(-?\d+\.?\d*),(-?\d+\.?\d*)(?:,(\d+))?$/.exec(h || '');
+  const m = /^#(-?\d+\.?\d*),(-?\d+\.?\d*)(?:,(\d+))?(?:,(\w+))?$/.exec(h || '');
   if (!m) return;
   const lat = parseFloat(m[1]), lon = parseFloat(m[2]);
   if (m[3]) probeZoom = Math.max(13, Math.min(20, parseInt(m[3], 10)));
-  // the link may be for a scene other than the one that opens by default
-  const gid = Object.keys(MAN.groups).find(g => {
+  // The link names its tab (#lat,lon,z,tab). An older link without one was made
+  // in a scene's wipe, so find that scene by its box -- never the year view,
+  // whose box is the West scene's and would otherwise swallow every West link.
+  const gid = (m[4] && MAN.groups[m[4]]) ? m[4] : Object.keys(MAN.groups).find(g => {
     const b = MAN.groups[g].bbox;
-    return b && lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3];
+    return !MAN.groups[g].mode && b && lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3];
   });
   if (gid && gid !== curId) {
     [...document.getElementById('tabs').children].forEach(t =>
@@ -524,7 +619,7 @@ function restoreFromHash(h) {
     show(gid);
   }
   const ll = L.latLng(lat, lon);
-  const near = PLACES.filter(p => (p.group || 'west') === curId)
+  const near = PLACES.filter(mineP)
     .find(p => Math.abs(p.lat - lat) < 3e-4 && Math.abs(p.lon - lon) < 3e-4);
   map.setView(ll, Math.min(probeZoom, 18));
   openProbe(ll, near || null);
@@ -542,12 +637,17 @@ function openProbe(ll, place) {
   probeMaps.forEach(m => m.remove());
   probeMaps = [];
   probePt = ll; probePlace = place || null;
-  history.replaceState(null, '', '#' + ll.lat.toFixed(5) + ',' + ll.lng.toFixed(5) + ',' + probeZoom);
+  history.replaceState(null, '', '#' + ll.lat.toFixed(5) + ',' + ll.lng.toFixed(5) + ',' + probeZoom + ',' + curId);
   const box = document.getElementById('probe');
   const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const cells = cur.layers.map((lid, i) => {
+  const plist = probeLayers(ll);
+  const cells = plist.map((lid, i) => {
     const l = MAN.layers.find(x => x.id === lid);
-    return '<div class="pcell"><i>' + esc(l.label) + '</i><div class="pmap" id="pm' + i + '"></div></div>';
+    const cr = timeMode() && TL.layers[lid].credit ? TL.layers[lid].credit : '';
+    return '<div class="pcell"><i' + (cr ? ' title="' + esc(cr) + '"' : '') + '>' + esc(l.label) +
+           (cr ? ' <span style="color:var(--ink-faint);text-transform:none;letter-spacing:0">' +
+                 esc(cr.length > 18 ? cr.slice(0, 17) + '…' : cr) + '</span>' : '') +
+           '</i><div class="pmap" id="pm' + i + '"></div></div>';
   }).join('');
   let blurb = '';
   if (place) {
@@ -582,9 +682,13 @@ function openProbe(ll, place) {
     '<div class="prow">' + cells + '</div>' + life + blurb + addForm();
   box.hidden = false;
   const token = ++probeToken, cellMaps = [];
-  cur.layers.forEach((lid, i) => {
+  plist.forEach((lid, i) => {
     const el = document.getElementById('pm' + i);
     if (!covers(lid, ll)) { el.classList.add('nocov'); el.textContent = 'not flown'; return; }
+    const L2 = MAN.layers.find(x => x.id === lid);
+    if (L2 && L2.minZoom && probeZoom < L2.minZoom) {
+      el.classList.add('nocov'); el.textContent = 'close up only (z' + L2.minZoom + '+)'; return;
+    }
     flown(lid, ll, probeZoom).then(ok => {
       if (token !== probeToken || ok) return;
       const j = probeMaps.indexOf(cellMaps[i]);
@@ -648,7 +752,13 @@ function wireAdd(box) {
     ev.preventDefault();
     const msg = form.querySelector('.msg'), f = new FormData(form);
     const num = v => { v = String(v || '').trim(); return v === '' ? null : (/^\d+$/.test(v) ? Number(v) : v); };
-    const body = { lat: probePt.lat, lon: probePt.lng, group: curId,
+    // the year view is not a scene of its own: a pin belongs to the scene it is in
+    const gAt = timeMode() ? (Object.keys(MAN.groups).filter(g => !MAN.groups[g].mode)
+      .sort((a, b) => area(MAN.groups[a].bbox) - area(MAN.groups[b].bbox))
+      .find(g => { const b = MAN.groups[g].bbox;
+                   return probePt.lat >= b[0] && probePt.lat <= b[2] && probePt.lng >= b[1] && probePt.lng <= b[3]; })
+      || 'west') : curId;
+    const body = { lat: probePt.lat, lon: probePt.lng, group: gAt,
                    title: String(f.get('title') || '').trim(),
                    from: num(f.get('from')), to: num(f.get('to')),
                    to_kind: f.get('to_kind') || null, kind: f.get('kind'),
@@ -693,6 +803,12 @@ function tileOpts(lid, extra) {
   if (L2 && !L2.url && L2.bbox) {
     const b = L2.bbox; o.bounds = L.latLngBounds([b[0], b[1]], [b[2], b[3]]);
     o.errorTileUrl = BLANK_TILE;
+    if (L2.minNativeZoom) o.minNativeZoom = L2.minNativeZoom;
+  }
+  // a remote year (Esri Wayback) is only that year close up: Esri serves other
+  // dates below z16, so it draws z16 tiles from minZoom and nothing further out
+  if (L2 && L2.url) {
+    if (L2.minZoom) o.minZoom = L2.minZoom;
     if (L2.minNativeZoom) o.minNativeZoom = L2.minNativeZoom;
   }
   return Object.assign(o, extra || {});
@@ -931,6 +1047,21 @@ function wireAlign() {
 function show(gid) {
   cur = MAN.groups[gid]; curId = gid;
   closeProbe();
+  const tm = timeMode();
+  document.getElementById('tl').hidden = !tm;
+  document.getElementById('rail').hidden = tm;
+  ['swipe', 'tagL', 'tagR'].forEach(id => { document.getElementById(id).style.display = tm ? 'none' : ''; });
+  // a hand alignment is judged against one other year under a wipe; there is no wipe here
+  const al = document.getElementById('alignon');
+  if (!DAS.static && al && al.parentElement) al.parentElement.hidden = tm;
+  if (tm && alignOn) { al.checked = false; enterAlign(false); }
+  if (tm) {
+    if (left) { map.removeLayer(left); left = null; }
+    if (right) { map.removeLayer(right); right = null; }
+  } else {
+    clearTime();
+    timeNotice();
+  }
   L_ = 0; R_ = cur.layers.length - 1;
   const n = NOTES[gid] || ['', ''];
   document.getElementById('note').innerHTML =
@@ -952,6 +1083,7 @@ function chips(el, sel, cb) {
 }
 
 function paint() {
+  if (timeMode()) { paintTime(); return; }
   if (left) map.removeLayer(left);
   if (right) map.removeLayer(right);
   const lid = cur.layers[L_], rid = cur.layers[R_];
@@ -961,6 +1093,8 @@ function paint() {
   document.getElementById('tagL').textContent = name(lid);
   document.getElementById('tagR').textContent = name(rid);
   document.getElementById('mCmp').textContent = name(lid) + ' → ' + name(rid);
+  document.getElementById('mCmp').previousElementSibling.textContent = 'Comparing';
+  document.getElementById('mSrc').textContent = 'Wayne State University \u00b7 DTE Aerial Photo Collection';
   chips(document.getElementById('railL'), L_, i => { if (i === R_) R_ = L_; L_ = i; paint(); });
   chips(document.getElementById('railR'), R_, i => { if (i === L_) L_ = R_; R_ = i; paint(); });
   if (roadsLayer && document.getElementById('roads').checked) roadsLayer.bringToFront();
@@ -970,6 +1104,7 @@ function paint() {
 }
 
 function applyClip() {
+  if (timeMode()) return;
   const wrap = document.getElementById('mapwrap');
   const w = wrap.clientWidth;
   const x = w * split;
@@ -1010,6 +1145,251 @@ function wireSwipe() {
       ev => map.on(ev, applyClip));
   }
   new ResizeObserver(applyClip).observe(wrap);
+}
+
+// ------------------------------------------------------------------ the year view
+// One map instead of a wipe. For the year on the slider, every layer taken in or
+// before it is a candidate, newest on top; scripts/footprints.py has already
+// worked out, per year, which of them still has ground no newer one covers and
+// what that ground is. Those are the layers drawn here, each with its visible
+// ground outlined and captioned, so a 1961 corner showing past the edge of the
+// 1967 block says so on the map rather than passing for 1967.
+const area = b => (b[2] - b[0]) * (b[3] - b[1]);
+
+async function loadTimeline() {
+  try {
+    const r = await fetch(DAS.data + '/timeline.json?t=' + Date.now(), { cache: 'no-store' });
+    TL = r.ok ? await r.json() : null;
+  } catch (e) { TL = null; }
+  if (!TL) return;
+  // Only years whose every layer this manifest serves: each year's regions were
+  // cut assuming the whole stack is there, so a year missing one (a film-only
+  // static build has no NAIP) would show holes where the absent layer "covered".
+  const have = new Set(MAN.layers.map(l => l.id));
+  TL.years = TL.years.filter(s => s.stack.length && s.stack.every(x => have.has(x.id)));
+  const ids = Object.keys(TL.layers).filter(id => have.has(id));
+  if (!ids.length || !TL.years.length) { TL = null; return; }
+  const west = MAN.groups.west;
+  MAN.groups = Object.assign({ years: { label: 'Through the years', mode: 'time', layers: ids,
+                                        bbox: west ? west.bbox : MAN.groups[Object.keys(MAN.groups)[0]].bbox } },
+                             MAN.groups);
+  tlIdx = 0;
+}
+
+function geoBounds(g, pad) {
+  let s = 90, w = 180, n = -90, e = -180;
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+  polys.forEach(rings => rings[0].forEach(([x, y]) => {
+    if (y < s) s = y; if (y > n) n = y; if (x < w) w = x; if (x > e) e = x;
+  }));
+  pad = pad || 0;
+  return L.latLngBounds([s - pad, w - pad], [n + pad, e + pad]);
+}
+
+// Position on the track. Years are to scale -- the 31-year gap after the film
+// is part of the story -- and "Today" sits just past the newest dated year.
+function tlFrac(y) {
+  const nums = TL.years.map(s => s.year).filter(v => v !== TL.today);
+  const lo = Math.min(...nums) - 1;
+  const todayAt = Math.max(new Date().getFullYear(), Math.max(...nums) + 2);
+  const hi = todayAt + 1;
+  return ((y === TL.today ? todayAt : y) - lo) / (hi - lo);
+}
+
+function drawTrack() {
+  const tr = document.getElementById('tlTrack');
+  if (!tr || !TL) return;
+  const W = tr.clientWidth;
+  if (!W) return;
+  let html = '<div class="ax"></div>';
+  const nums = TL.years.map(s => s.year).filter(v => v !== TL.today);
+  for (let d = Math.ceil(Math.min(...nums) / 10) * 10; d <= new Date().getFullYear(); d += 10) {
+    html += '<div class="dc" style="left:' + (tlFrac(d) * 100) + '%" title="' + d + 's"></div>';
+  }
+  // labels go below the axis, or above it if that collides, or not at all
+  // (the readout always names the picked year); the picked year always gets one
+  const rows = [[], []], CH = 6.3;
+  const span = (i) => { const x = tlFrac(TL.years[i].year) * W, w = TL.years[i].label.length * CH + 6;
+                        return [x - w / 2, x + w / 2]; };
+  const free = (r, a) => rows[r].every(b => a[1] < b[0] || a[0] > b[1]);
+  const row = new Array(TL.years.length).fill(-1);
+  row[tlIdx] = 0; rows[0].push(span(tlIdx));
+  TL.years.forEach((s, i) => {
+    if (i === tlIdx) return;
+    const a = span(i);
+    for (let r = 0; r < 2; r++) if (free(r, a)) { rows[r].push(a); row[i] = r; break; }
+  });
+  const pick = TL.years[tlIdx];
+  const film = s => s.stack.some(x => TL.layers[x.id].year === s.year && /film/.test(TL.layers[x.id].credit || ''));
+  TL.years.forEach((s, i) => {
+    const f = tlFrac(s.year), on = i === tlIdx;
+    html += '<div class="tk' + (film(s) ? ' film' : '') + (on ? ' on' : '') + '" style="left:' + (f * 100) +
+            '%" title="' + s.label + '"></div>';
+    if (row[i] >= 0) html += '<div class="tx r' + row[i] + (on ? ' on' : '') + '" style="left:' + (f * 100) + '%">' + s.label + '</div>';
+  });
+  html += '<div class="th" style="left:' + (tlFrac(pick.year) * 100) + '%"></div>';
+  tr.innerHTML = html;
+  tr.setAttribute('aria-valuetext', pick.label);
+}
+
+function setYear(i) {
+  i = Math.max(0, Math.min(TL.years.length - 1, i));
+  if (i === tlIdx && timeLayers && Object.keys(timeLayers).length) { drawTrack(); return; }
+  tlIdx = i;
+  paintTime();
+  clearTimeout(setYear.t);
+  // the probe's life line names the year; refresh it once the slider settles
+  setYear.t = setTimeout(() => { if (probePt) openProbe(probePt, probePlace); }, 300);
+}
+
+function wireTimeline() {
+  const tr = document.getElementById('tlTrack');
+  const at = ev => {
+    const r = tr.getBoundingClientRect(), f = (ev.clientX - r.left) / r.width;
+    let best = 0, bd = 1e9;
+    TL.years.forEach((s, i) => { const d = Math.abs(tlFrac(s.year) - f); if (d < bd) { bd = d; best = i; } });
+    return best;
+  };
+  let drag = false;
+  tr.addEventListener('pointerdown', ev => {
+    if (!TL) return;
+    drag = true; tr.setPointerCapture(ev.pointerId); tr.focus(); setYear(at(ev));
+  });
+  tr.addEventListener('pointermove', ev => { if (drag) setYear(at(ev)); });
+  const stop = ev => { drag = false; try { tr.releasePointerCapture(ev.pointerId); } catch (_) {} };
+  tr.addEventListener('pointerup', stop); tr.addEventListener('pointercancel', stop);
+  tr.addEventListener('keydown', ev => {
+    const k = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[ev.key];
+    if (k) { ev.preventDefault(); setYear(tlIdx + k); }
+    if (ev.key === 'Home') { ev.preventDefault(); setYear(0); }
+    if (ev.key === 'End') { ev.preventDefault(); setYear(TL.years.length - 1); }
+  });
+  document.getElementById('tlPrev').onclick = () => setYear(tlIdx - 1);
+  document.getElementById('tlNext').onclick = () => setYear(tlIdx + 1);
+  new ResizeObserver(() => { if (timeMode()) drawTrack(); }).observe(tr);
+}
+
+function clearTime() {
+  Object.values(timeLayers).forEach(l => map.removeLayer(l));
+  timeLayers = {};
+  if (outlineLayer) { map.removeLayer(outlineLayer); outlineLayer = null; }
+  if (captionLayer) { map.removeLayer(captionLayer); captionLayer = null; }
+}
+
+function paintTime() {
+  const step = TL.years[tlIdx], want = step.stack.map(s => s.id), n = want.length;
+  Object.keys(timeLayers).forEach(id => {
+    if (!want.includes(id)) { map.removeLayer(timeLayers[id]); delete timeLayers[id]; }
+  });
+  step.stack.forEach((s, k) => {
+    // tiles only where this layer is still visible: a 3 km2 corner of 1956 must
+    // not fetch the whole 1956 block from under 2010
+    // a remote layer is cut to the tile edges its outline was snapped to, so it
+    // must not reach one tile further; a local raster's edge is transparent anyway
+    const remote = !!(MAN.layers.find(l => l.id === s.id) || {}).url;
+    const b = s.bounds, pad = remote ? -2e-5 : 0.002, z = 10 + (n - k);
+    const rb = b ? L.latLngBounds([b[0] - pad, b[1] - pad], [b[2] + pad, b[3] + pad]) : geoBounds(s.region, pad);
+    let lyr = timeLayers[s.id];
+    if (!lyr) {
+      timeLayers[s.id] = L.tileLayer(layerUrl(s.id), tileOpts(s.id, { bounds: rb, zIndex: z })).addTo(map);
+    } else {
+      lyr.options.bounds = rb;          // GridLayer reads this per tile
+      lyr.setZIndex(z);
+      if (lyr._map && typeof lyr._update === 'function') lyr._update();
+    }
+  });
+
+  if (!outlineLayer) outlineLayer = L.layerGroup().addTo(map);
+  outlineLayer.clearLayers();
+  // one outline per picture (a layer and its parts together), older first, so
+  // the picked year's line is drawn over a neighbour's
+  (step.outlines || step.stack).slice().reverse().forEach(s => {
+    const meta = TL.layers[s.id], top = meta.year === step.year;
+    L.geoJSON(s.region, { interactive: false,
+      style: { color: '#0B0F12', weight: top ? 3.6 : 3, opacity: .45, fill: false } }).addTo(outlineLayer);
+    L.geoJSON(s.region, { interactive: false,
+      style: { color: top ? '#E0A94A' : '#DCE6EB', weight: top ? 1.6 : 1, opacity: top ? .95 : .85,
+               fill: false } }).addTo(outlineLayer);
+  });
+  placeCaptions();
+
+  const tops = step.stack.filter(s => TL.layers[s.id].year === step.year);
+  const credits = [...new Set(tops.map(s => TL.layers[s.id].credit).filter(Boolean))];
+  const older = [...new Set(step.stack.filter(s => TL.layers[s.id].year !== step.year)
+                                     .map(s => TL.layers[s.id].label))];
+  document.getElementById('tlYear').textContent = step.label;
+  document.getElementById('tlSub').innerHTML = '<em>' + (credits.join(' + ') || '&nbsp;') + '</em>' +
+    (older.length ? ' &middot; beyond it ' + older.join(', ') : '');
+  const cmp = document.getElementById('mCmp');
+  cmp.textContent = step.label + (older.length ? ' + ' + older.join(' + ') : '');
+  cmp.previousElementSibling.textContent = 'Showing';
+  // every picture on screen is somebody's: name them all, the film's archive included
+  const all = [...new Set(step.stack.map(s => TL.layers[s.id].credit).filter(Boolean))]
+    .map(c => c === 'DTE film' ? 'Wayne State University \u00b7 DTE Aerial Photo Collection' : c);
+  document.getElementById('mSrc').textContent = all.join(' \u00b7 ');
+  drawTrack();
+  timeNotice();
+  if (roadsLayer && document.getElementById('roads').checked) roadsLayer.bringToFront();
+  if (streetLayer && document.getElementById('streets').checked) streetLayer.bringToFront();
+  fillFilter(); renderPins();
+}
+
+// Captions sit at each region's north-west corner, and corners are shared, so
+// they collide where several years meet. Place them in priority order -- the
+// picked year first, then newer before older -- nudging each down a line or two
+// when it would overlap one already placed, and dropping it if it still would.
+// Screen space changes with zoom, so this reruns on zoomend.
+let captionLayer = null;
+function placeCaptions() {
+  if (!timeMode() || !TL) return;
+  // show() paints before fit() has given the map a centre; Leaflet throws until then
+  try { map.latLngToContainerPoint([42.35, -83.22]); }
+  catch (e) { map.whenReady(placeCaptions); return; }
+  if (!captionLayer) captionLayer = L.layerGroup().addTo(map);
+  captionLayer.clearLayers();
+  const step = TL.years[tlIdx], boxes = [], H = 17;
+  const items = (step.outlines || step.stack).map((s, k) => {
+    const meta = TL.layers[s.id];
+    return { s, meta, top: meta.year === step.year, k };
+  }).sort((a, b) => (b.top - a.top) || (a.k - b.k));
+  const size = map.getSize();
+  items.forEach(({ s, meta, top }) => (s.labels || []).forEach(p => {
+    const c = map.latLngToContainerPoint(p);
+    if (c.x < -60 || c.y < -20 || c.x > size.x || c.y > size.y) return;
+    const w = meta.label.length * 6.6 + 12;
+    for (let dy = 0; dy <= 2 * H; dy += H) {
+      const b = [c.x, c.y + dy, c.x + w, c.y + dy + H];
+      if (boxes.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1])) continue;
+      boxes.push(b);
+      captionLayer.addLayer(L.marker(p, { interactive: false, keyboard: false,
+        icon: L.divIcon({ className: 'yrl' + (top ? ' top' : ''), html: meta.label,
+                          iconSize: null, iconAnchor: [0, -dy] }) }));
+      return;
+    }
+  }));
+}
+
+// A year whose picture exists only close up (a remote Wayback year) says so,
+// rather than leaving an empty outline captioned with its year.
+function timeNotice() {
+  const el = document.getElementById('tnote');
+  if (!el) return;
+  if (!timeMode()) { el.hidden = true; return; }
+  // Leaflet draws a layer once the ROUNDED zoom reaches its minZoom, so judge by that
+  const step = TL.years[tlIdx], z = Math.round(map.getZoom());
+  const far = step.stack.map(s => MAN.layers.find(l => l.id === s.id))
+    .filter(l => l && l.minZoom && z < l.minZoom);
+  if (!far.length) { el.hidden = true; return; }
+  const mz = Math.min(...far.map(l => l.minZoom));
+  const top = far.find(l => TL.layers[l.id].year === step.year);
+  // the picked year itself, or older ground showing at the edges (a Wayback
+  // strip beside a narrower NAIP): name the one that is blank
+  const who = top ? '<b>' + step.label + '</b> exists' :
+              '<b>' + TL.layers[far[0].id].label + '</b> (at the edges) exists';
+  el.innerHTML = who + ' only close up (' + (far[0].credit || 'remote tiles') +
+                 ') &mdash; zoom in to z' + mz + ' &rsaquo;';
+  el.hidden = false;
+  el.onclick = () => map.setZoom(mz);
 }
 
 function fit() {

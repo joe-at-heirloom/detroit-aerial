@@ -248,6 +248,13 @@ The ten modern layers (1998-2022) are not built by default; `--layers all
 the tiles live somewhere built for it (Cloudflare R2's free tier is 10 GB with
 no egress charge).
 
+The year view on the static site covers only the layers that build carries:
+`build_static.py` cuts its own `dist/data/timeline.json` from exactly those (a
+year's regions assume every layer in its stack is there). The default film build
+gets seven years -- 1949, 1956, 1961, 1967, and Esri Wayback 2019/2023 and Today
+as remote tiles. All 41 need `--layers all` and somewhere to put ~8 GB of tiles
+(z17), i.e. `--tiles-base`.
+
 Then either:
 
 - **GitHub Pages** -- commit `dist/`, set Settings -> Pages -> Source to "GitHub
