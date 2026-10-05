@@ -1,0 +1,1 @@
+{"bbox": [42.2283, -83.116, 42.4613, -83.02], "W": 12970, "H": 42428, "mpp": 0.61, "label": "2005", "source": {"kind": "arcgis", "url": "https://egis.detroitmi.gov/image/rest/services/Imagery/2005_Aerial_Imagery/ImageServer"}, "part_of": "l2005"}

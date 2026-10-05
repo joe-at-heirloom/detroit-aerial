@@ -36,7 +36,10 @@ negatives without pre-rendering anything.
 | Path | |
 |---|---|
 | `scripts/serve.py` | local XYZ tile server + static host |
-| `viewer/index.html` | Leaflet viewer: tabs, epoch rails, swipe divider |
+| `viewer/index.html` | Leaflet viewer: year slider; per-scene tabs with epoch rails and a swipe divider |
+| `scripts/fetchlayer.py` | pull a published ortho (ImageServer, tile cache, NAIP) onto the project grid |
+| `scripts/footprints.py` | each layer's real coverage outline, and what the year view shows per year |
+| `scripts/maskfill.py` | turn a layer's white out-of-coverage fill into nodata |
 | `mosaics/` | the actual rasters (gitignored) |
 | `data/` | solutions, calibrations, control stations, manifest |
 | `pipeline/` | the photogrammetry modules |
@@ -48,11 +51,44 @@ negatives without pre-rendering anything.
 
 - **Downtown** — 1949 / 1956 / 1961 / Today, on one 0.60 m/px grid
 - **West Detroit** — the 1949 (50 frame), 1956 (70), 1961 (62) and 1967 (51)
-  blocks; then the City of Detroit's 1998 (1 m), 2005 and 2010 (2 ft)
-  orthophotos and USDA NAIP for 2012, 2014 (1 m), 2016, 2018, 2020 and 2022
-  (0.6 m), fetched onto the same grid by `scripts/fetchlayer.py`; plus modern
-  imagery as **Today** -- locally a 1.8 m Esri fetch on the same grid
-  (`mosaics/modern_west_hi.tif`), on the static site live Esri World Imagery
+  blocks; then published orthophotos fetched onto the same grid by
+  `scripts/fetchlayer.py`: the City of Detroit's 1999 (published as 1998), 2005
+  and 2010, USGS 2002, NOAA 2008, State/USDA NAIP 2005-2022, NHAP 1983 and 1987,
+  Wayne County 2015, the State's 2024, Michigan Tech's 1951; Oakland County's 15
+  years north of 8 Mile (1940-2025), the City of Taylor's (1940-2021), Essex
+  County's 1931 Detroit River, NOAA 2025/2026 along the river, and Esri Wayback
+  2019/2023 as remote tiles. HANDOFF.md "Every year we could find" lists them
+  with their measured placement. Plus modern imagery as **Today** -- locally a
+  1.8 m Esri fetch on the same grid (`mosaics/modern_west_hi.tif`), on the
+  static site live Esri World Imagery
+
+### Through the years
+
+The first tab is one map with a year slider instead of a wipe. For the chosen
+year, the newest picture taken in or before it is on top, and wherever an older
+one reaches further -- past the edge of a film block, outside the City's
+orthophoto at the city limits, south of Oakland County's at 8 Mile -- the older
+one shows there instead of nothing. Each picture's visible ground is outlined
+thinly and captioned with its year: amber for the year picked, white for older
+ground filling in. Clicking the map opens the probe on every layer whose
+outline holds the point.
+
+The outlines are each raster's real coverage, not its bbox:
+`scripts/footprints.py` reads every layer at ~15 m cells (any band non-zero =
+ground, exactly what `serve.py` draws as opaque), cleans and vectorises it, and
+for every year works out which part of which layer no newer one covers. It
+writes `data/timeline.json`; run it after `manifest.py`, then restart
+`serve.py`:
+
+```bash
+./.venv/bin/python scripts/manifest.py && ./.venv/bin/python scripts/footprints.py
+```
+
+A source that fills outside its coverage with white instead of black (the
+City's 2005 and 2010 orthos did) hides every older year there; `scripts/maskfill.py
+<name>` turns large white regions of `mosaics/layer_<name>.tif` into nodata.
+Two layers of the same year are ordered by `prio` in their `layer_<name>_geo.json`
+(`fetchlayer.py --prio`), higher on top.
 
 ---
 

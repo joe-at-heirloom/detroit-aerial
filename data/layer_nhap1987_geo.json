@@ -1,0 +1,1 @@
+{"bbox": [42.1853, -83.386, 42.4897, -83.02], "W": 40219, "H": 45083, "mpp": 0.75, "label": "1987", "source": {"kind": "arcgis", "url": "https://apps.geo.fpac.usda.gov/nrcs-imagery/rest/services/ortho_imagery/nhap2_1985_to_1989_75cm_colorbalance/ImageServer"}, "credit": "USDA NHAP (colour infrared)"}

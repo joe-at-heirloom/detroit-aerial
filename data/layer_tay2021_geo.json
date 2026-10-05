@@ -1,0 +1,1 @@
+{"bbox": [42.18529933933988, -83.3222571412573, 42.277420628085636, -83.22101619456468], "W": 16687, "H": 20465, "mpp": 0.5, "label": "2021", "source": {"kind": "tiles", "url": "https://gis.cityoftaylor.com/server/rest/services/Aerial/Aerial_2021/MapServer/tile/{z}/{y}/{x}", "zoom": 18}, "credit": "City of Taylor"}

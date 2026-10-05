@@ -142,6 +142,10 @@ def main():
         want = [i for i in ids if not (i in TODAY and a.today == 'remote')]
     else:
         want = [i for i in a.layers.split(',') if i in ids]
+    # a remote layer (Esri Wayback years) is someone else's tiles: never rendered,
+    # always offered, exactly as the local viewer shows it
+    remote = {l['id'] for l in man['layers'] if l.get('url')}
+    want = [i for i in want if i not in remote]
 
     out = a.out
     tiles_dir = os.path.join(out, 'tiles')
@@ -166,7 +170,9 @@ def main():
         lid = l['id']
         m = {k: v for k, v in l.items() if k not in ('file',)}
         m['ver'] = static_ver(l)
-        if lid in TODAY and a.today == 'remote':
+        if lid in remote:
+            pass
+        elif lid in TODAY and a.today == 'remote':
             m['url'] = ESRI_IMAGERY
             m['maxNativeZoom'] = 19
         elif lid in want:
@@ -187,6 +193,14 @@ def main():
     os.makedirs(os.path.join(out, 'data'), exist_ok=True)
     json.dump(static_man, open(os.path.join(out, 'data', 'manifest.json'), 'w'), indent=1)
     shutil.copy(os.path.join(ROOT, 'data', 'places.json'), os.path.join(out, 'data', 'places.json'))
+    # The year view, cut against exactly the layers this build carries. Copying
+    # the local timeline would not do: each year's regions assume every layer in
+    # its stack is there, so the viewer drops a year missing one -- and the film
+    # build lacks the published orthos that sit in nearly every year's stack.
+    import footprints
+    tl = footprints.build(only=kept)
+    json.dump(tl, open(os.path.join(out, 'data', 'timeline.json'), 'w'), separators=(',', ':'))
+    print('  timeline: %d years (%s)' % (len(tl['years']), ' '.join(s['label'] for s in tl['years'])))
 
     # ---- the viewer, told where it is
     html = open(os.path.join(ROOT, 'viewer', 'index.html'), encoding='utf-8').read()

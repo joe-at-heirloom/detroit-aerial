@@ -1,0 +1,1 @@
+{"bbox": [42.2283, -83.116, 42.4613, -83.02], "W": 13186, "H": 43135, "mpp": 0.6, "label": "2018", "source": {"kind": "arcgis", "url": "https://imagery.michigan.gov/server/rest/services/Michigan_NAIP_2018/ImageServer"}, "part_of": "l2018"}

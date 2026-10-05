@@ -1,0 +1,1 @@
+{"bbox": [42.2283, -83.116, 42.4613, -83.02], "W": 7911, "H": 25881, "mpp": 1.0, "label": "2005 NAIP", "source": {"kind": "arcgis", "url": "https://imagery.michigan.gov/server/rest/services/Michigan_NAIP_2005/ImageServer"}, "credit": "USDA NAIP", "part_of": "lnaip2005"}

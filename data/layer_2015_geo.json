@@ -1,0 +1,1 @@
+{"bbox": [42.18529933933988, -83.38604641171189, 42.475424543354606, -83.1151149349701], "W": 37215, "H": 53711, "mpp": 0.6, "label": "2015", "source": {"kind": "tiles", "url": "https://tiles.arcgis.com/tiles/b6rkZNtCd6Mx2gvB/arcgis/rest/services/Wayne_2015/MapServer/tile/{z}/{y}/{x}", "zoom": 18}, "credit": "Wayne County (SEMCOG)"}

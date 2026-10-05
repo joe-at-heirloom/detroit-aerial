@@ -1,0 +1,1 @@
+{"bbox": [42.2283, -83.116, 42.4613, -83.02], "W": 7911, "H": 25881, "mpp": 1.0, "label": "1999 NAPP", "source": {"kind": "arcgis", "url": "https://imagery.michigan.gov/server/rest/services/Michigan_NAPP_1998/ImageServer"}, "credit": "USGS NAPP (colour infrared)", "part_of": "lnapp1998"}

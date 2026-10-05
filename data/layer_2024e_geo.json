@@ -1,0 +1,1 @@
+{"bbox": [42.2283, -83.116, 42.4613, -83.02], "W": 13186, "H": 43135, "mpp": 0.6, "label": "2024", "source": {"kind": "tiles", "url": "https://imagery.michigan.gov/server/rest/services/Michigan_imagery_public/MapServer/tile/{z}/{y}/{x}", "zoom": 18}, "credit": "State of Michigan (MiSAIL, spring 2024)", "part_of": "l2024"}

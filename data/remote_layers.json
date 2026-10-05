@@ -1,0 +1,43 @@
+{
+ "note": "Years shown straight from Esri World Imagery Wayback, never downloaded (Esri's terms). A release shows its named capture only from zoom 16: below that Esri serves other dates (verified 2026-10-03 against the Wayback metadata at six points), so these draw z16 tiles from zoom 14 and nothing further out. `cover` is one rectangle over the West block and downtown: Esri draws everywhere inside the tile bounds, so anything narrower would be outlined as an older year while showing this one.",
+ "layers": [
+  {
+   "name": "wb2019",
+   "label": "2019",
+   "url": "https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/16062/{z}/{y}/{x}",
+   "release": 16062,
+   "captured": "2019-08-29 GeoEye-1 (74% of the block), 2019-09-18 WorldView-3/2 (east, downtown)",
+   "credit": "Esri Wayback \u00b7 Maxar satellite",
+   "minZoom": 14,
+   "minNativeZoom": 16,
+   "maxNativeZoom": 19,
+   "cover": [
+    [
+     42.18454,
+     -83.39366,
+     42.48838,
+     -83.02028
+    ]
+   ]
+  },
+  {
+   "name": "wb2023",
+   "label": "2023",
+   "url": "https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/17632/{z}/{y}/{x}",
+   "release": 17632,
+   "captured": "2023-06-01 WorldView-2 (87%), 2023-05-25 GeoEye-1 (east edge), 2023-06-01 WorldView-3 (downtown)",
+   "credit": "Esri Wayback \u00b7 Maxar satellite",
+   "minZoom": 14,
+   "minNativeZoom": 16,
+   "maxNativeZoom": 19,
+   "cover": [
+    [
+     42.18454,
+     -83.39366,
+     42.48838,
+     -83.02028
+    ]
+   ]
+  }
+ ]
+}

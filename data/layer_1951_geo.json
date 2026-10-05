@@ -1,0 +1,1 @@
+{"bbox": [42.2283, -83.3455, 42.4613, -83.02], "W": 44710, "H": 43135, "mpp": 0.6, "label": "1951", "source": {"kind": "tiles", "url": "https://tiles.arcgis.com/tiles/RPhrOu9XQzI31xTa/arcgis/rest/services/Aerial_Imagery_of_the_City_of_Detroit_1951/MapServer/tile/{z}/{y}/{x}", "zoom": 18}, "credit": "USGS film via Michigan Tech"}

@@ -1,0 +1,1 @@
+{"bbox": [42.4090634623886, -83.38604641171189, 42.48969154451726, -83.1151149349701], "W": 44658, "H": 17912, "mpp": 0.5, "label": "2015 Oakland", "source": {"kind": "arcgis", "url": "https://gisservices.oakgov.com/arcgis/rest/services/ImageServices/EnterpriseOrthoTC2015ImageService/ImageServer"}, "prio": -1.0, "credit": "Oakland County"}

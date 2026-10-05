@@ -107,13 +107,36 @@ def main():
         m = P('mosaics', f'layer_{name}.tif')
         if os.path.exists(m):
             extra.append((name, json.load(open(g))))
+    # Remote layers: years that exist only as someone else's tile service and are
+    # shown from it rather than copied -- Esri World Imagery Wayback releases, whose
+    # terms do not allow bulk download. data/remote_layers.json lists them with the
+    # boxes they are known to cover (`cover`), which footprints.py uses as outline.
+    rp = P('data', 'remote_layers.json')
+    for r in (json.load(open(rp))['layers'] if os.path.exists(rp) else []):
+        extra.append((r['name'], dict(r, remote=True)))
     for name, g in sorted(extra, key=lambda x: str(x[1].get('label', x[0]))):
         lid = f'l{name}'
-        layers.append(dict(id=lid, group='west', label=str(g.get('label', name)),
-                           file=f'mosaics/layer_{name}.tif', bbox=g['bbox'], gray=False,
-                           ver=int(os.path.getmtime(P('mosaics', f'layer_{name}.tif')))))
+        if g.get('remote'):
+            cov = g['cover']
+            layers.append(dict(id=lid, group='west', label=str(g['label']), url=g['url'],
+                               bbox=[min(c[0] for c in cov), min(c[1] for c in cov),
+                                     max(c[2] for c in cov), max(c[3] for c in cov)],
+                               cover=cov, gray=False, maxNativeZoom=g.get('maxNativeZoom', 19),
+                               credit=g.get('credit', ''), prio=g.get('prio', 0),
+                               **{k: g[k] for k in ('minZoom', 'minNativeZoom') if k in g}))
+            print(f"  remote {name}: {g['label']}")
+        else:
+            layers.append(dict(id=lid, group='west', label=str(g.get('label', name)),
+                               file=f'mosaics/layer_{name}.tif', bbox=g['bbox'], gray=False,
+                               ver=int(os.path.getmtime(P('mosaics', f'layer_{name}.tif'))),
+                               **({'part_of': g['part_of']} if g.get('part_of') else {})))
+            print(f"  layer {name}: {g.get('source', {}).get('kind', '?')}")
+        if g.get('part_of') or g.get('remote'):
+            # served and in the year view, but not a chip of its own: a part is
+            # its parent's ground, and a remote Wayback year draws nothing at the
+            # zoom a wipe opens at
+            continue
         ids.append(lid)            # not in the union: these cover the blocks, never more
-        print(f"  layer {name}: {g.get('source', {}).get('kind', '?')}")
     # Today: the 1.8 m Esri fetch on this project's linear-latitude grid when it is
     # there. The original modern_west.png is Web Mercator with a lat/lon box stamped
     # on it, and crossmatrix.py measured every layer 11-15 m north of it (2026-09-27)
@@ -136,9 +159,10 @@ def main():
                                 'phase-correlation windows, along-track and across '
                                 'flight lines -- then placed by one continuous '
                                 'low-order warp against modern imagery. '
-                                + ('1998, 2005 and 2010 are the City of Detroit\'s '
-                                   'orthophotos and 2012-2022 are USDA NAIP, served '
-                                   'as published; their georeferencing is theirs.'
+                                + ('The other years (' + ', '.join(sorted({str(g.get('label', n))[:4] for n, g in extra}))
+                                   + ') are third-party orthophotos -- the City of Detroit, '
+                                   'USDA NAIP and others -- served as published; their '
+                                   'georeferencing is theirs.'
                                    if extra else ''))}
     # keep a record for a block that was left out this run too, so the next bare
     # run still knows which build it is supposed to serve

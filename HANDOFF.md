@@ -1276,3 +1276,150 @@ What the evidence supports:
 Also 2026-09-27: the local viewer's west Today is now `modern_west_hi.tif`
 (manifest.py prefers it); served Today vs 2016 at four spots 0.3-4.5 m in
 scattered directions, where the old PNG sat a uniform 12 m south.
+
+## Every year we could find, and a view that stacks them (2026-10-03)
+
+Joe asked for more years and for a view with a year slider: the newest picture
+taken in or before the chosen year on top, older ones wherever they reach
+further, each outlined thinly with its year. Both are done. The viewer's first
+tab, **Through the years**, now has 41 steps from 1931 to Today.
+
+### The view
+
+`scripts/footprints.py` reads every layer at ~15 m cells (any band non-zero, which
+is exactly what serve.py draws as opaque), cleans and vectorises the coverage, and
+for each year computes newest-first which part of which layer no newer layer
+covers. It writes `data/timeline.json` (per layer: year, label, credit,
+footprint; per year: the stack with tile bounds, and one outline + caption per
+picture). Run it after manifest.py; restart serve.py after both. The viewer loads
+only tiles inside each visible region, merges a layer with its `part_of` strips
+into one outline, places captions so they do not collide, and names every
+picture's publisher in the Source cell. Clicking the map opens the probe on
+every layer whose outline holds the point.
+
+### What was added, and how well it sits
+
+validate.py against the Esri reference, exactly as every other layer: median
+error on 3.6 km cells / on 1.8 km cells (p90), metres. The small partial layers
+(Taylor, Oakland) get the same cell counts over a much smaller box, so their
+"1.8 km" cells are a few hundred metres and noisier; read the first number.
+
+| year | layer | source | coverage | 3.6 km | 1.8 km (p90) |
+|---|---|---|---|---|---|
+| 1931 | erca1931 | Essex Region Conservation Authority, Detroit River 1:10,000, rubber-sheeted | river corridor, downtown to Grosse Ile, both banks | not measurable: the reference stops short of the river (1 cell) | |
+| 1940 | oak1940, tay1940 | Oakland County; City of Taylor | north of 8 Mile; Taylor | 8.0 (Taylor) | |
+| 1949 | oak1949 | Oakland County (DTE prints, EDCA rubber-sheet) | north of 8 Mile, under our film | | |
+| 1951 | 1951 | Michigan Tech tile layer of USGS frames (4-20-'51), spline | City of Detroit + downtown | 3.0 | 3.5 (7.9) |
+| 1957 | tay1957 | City of Taylor, published as **1964**: frame stamps read 5-16-57 (USDA XU) | Taylor | 6.1 | |
+| 1963-1997 | oak1963/74/80/90/97 | Oakland County | north of 8 Mile | 4.4 / 3.8 / - / - / 3.7 | |
+| 1972, 1985 | tay1972, tay1985 | City of Taylor | Taylor | 5.7 (1972) | |
+| 1983 | nhap1983 | USDA FPAC orthorectified NHAP CIR, 5/10 May 1983 | whole block + downtown | 4.2 | 4.9 (8.0) |
+| 1987 | nhap1987 | USDA FPAC orthorectified NHAP2 CIR, 14/17 Jun 1987 | whole block + downtown | 2.8 | 3.1 (6.4) |
+| 1999 | 1998 (relabelled), napp1998 | City + State NAPP, **published as 1998**: Hudson's is a cleared lot (imploded Oct 1998), EE dates the DOQs 1999-03-28 | city; whole block (CIR) | 3.1 (NAPP) | 3.6 (6.3) |
+| 2000 | oak2000, tay2000 | Oakland County; Taylor (frame label MAR 26, 2000) | strips | | |
+| 2002 | 2002 | USGS HRO 1 ft, 10 Apr-4 May 2002, served by Oakland County | whole block | 2.6 | 2.6 (6.6) |
+| 2004 | tay2004 | City of Taylor (needs `--native`: blank when asked for EPSG:4326) | Taylor | 3.4 | |
+| 2005 | naip2005 | NAIP (State mirror), summer; under the City's spring 2005 | whole block | 4.7 | 4.8 (6.5) |
+| 2006 | naip2006, oak2006 | NAIP 2 m, gappy; Oakland B&W | ~40 %; strip | 6.1 | 6.6 (9.3) |
+| 2008 | 2008, oak2008 | NOAA Great Lakes border ortho 0.3 m (31 Jul-1 Aug 2008); Oakland (16-bit, server stretch) | whole block + downtown; strip | 3.5; 4.8 | 3.6 (5.0) |
+| 2009 | 2009 | NAIP (State mirror) | whole block | 2.8 | 3.1 (5.2) |
+| 2010 | naip2010 | NAIP, summer; under the City's spring 2010 | whole block | 2.7 | 3.0 (5.0) |
+| 2015 | 2015, oak2015 | Wayne County / SEMCOG spring 2015 tiles (white outside Wayne, masked); Oakland | Wayne; strip | 3.9 | 4.1 (5.7) |
+| 2017 | oak2017 | Oakland County | strip | 2.6 | |
+| 2019, 2023 | wb2019, wb2023 | Esri Wayback (Maxar satellite), **remote tiles, never downloaded** | everywhere, but only from z14 | | |
+| 2021 | tay2021 | City of Taylor | Taylor | 1.4 | |
+| 2023, 2025 | oak2023, oak2025 | Oakland County (white nodata, masked) | strip | -; 1.6 | |
+| 2024 | 2024 | State MiSAIL spring 2024 (11 Mar Wayne), public tile cache, identical to the 6 in ImageServer | whole block | 2.4 | 2.7 (4.2) |
+| 2025, 2026 | noaa2025, noaa2026 | NOAA NGS DSS 0.25 m (10 May 2025; 28-30 May 2026) | SE corner + downtown; river strip | 3.0 (2025) | 3.0 (3.8) |
+
+A dash is a layer not run through validate.py (Oakland 1949/1980/1990/2000/2006/
+2015/2023, Taylor 1985/2000, NOAA 2026); the rest of each family measured
+1.4-8 m, and Taylor's film years (1940, 1957, 1972: 5.7-8.0 m with outliers) are
+the weakest -- municipal rubber-sheets of single frames, a few metres worse than
+our own solves. NAIP 2005 and 2009 were measured before their band order was
+corrected; validate.py works on the mean of the three bands, which for 2009 is
+the same and for 2005 nearly so.
+
+Plus `<name>e` strips (`--part-of`) for every full-coverage year from 1999 to 2024:
+the West block's layers stop at lon -83.115, so without them the year view showed
+1951 film between Woodward and downtown in every year up to 2006.
+
+Fixes made on the way, each one a thing the year view exposed:
+- The City's 2005 and 2010 orthos fill outside coverage with **white**, which
+  hid every older year (17 % of 2010 was white, all of Dearborn). `maskfill.py`
+  turns large white regions into nodata; 2015, Taylor 2004/2021, the City east
+  strips and Oakland 2023/2025 needed it too.
+- Taylor's "1964" is 1957 and the City's "1998" is 1999 (above). Labels now say
+  what the ground says; `published_as` in the geo JSON keeps the publisher's year.
+- Wayback releases show their named capture only from zoom 16; below that Esri
+  serves other dates. The remote layers draw z16 tiles from z14 and nothing
+  further out, and the year view says "exists only close up" instead of showing
+  an empty outline.
+- Oakland 2008 is 16-bit; pixelType=U8 saturates it white. fetchlayer.py asks the
+  server for a 0.5 % percent-clip stretch on any non-U8 service.
+- Taylor's small server rate-limits tiles (403 after ~1000); get_tile backs off.
+- The State's NAIP services do not share a band order: 2005 is NIR,R,G,B and
+  2009 is B,G,R,NIR (2010-2020 and USGS 2022 are R,G,B,NIR). Reading bands 1-3
+  blind made 2005 false-colour and swapped 2009's red and blue; the yearsheet
+  showed it. fetchlayer.py now correlates a raw export against the service's own
+  PNG rendering at the extent's centre and requests the matching bandIds
+  (`--bands` overrides). Every other layer was checked the same way and is right.
+
+A pre-commit review (four reviewers, each finding then attacked by an independent
+skeptic; 13 of 18 held) found, and this commit fixes:
+- maskfill's first version left the white fill's JPEG noise as a speckled sheet
+  (2010 over Dearborn) and white slivers at its edges; it now takes near-white
+  and neutral (>= 235, bands within 10), counts nodata as fill so it can be
+  rerun, opens away anything under 5 px inside the fill, and never touches a
+  white region that does not reach nodata or the raster edge (a big roof). Rerun
+  on every layer that had fill, plus NAPP 1999 and Oakland 2015.
+- The 16-bit stretch mapped the darkest picture to 0 = nodata (holes in Oakland
+  2008); it now outputs 1..255. Oakland 2008 refetched.
+- Wayback layers draw everywhere inside their tile bounds, but the timeline only
+  counted two cover boxes, so the gap between them showed 2019 under a 2008
+  caption. `cover` is now one rectangle, snapped to the z16 tile edges they draw
+  from, and the viewer stops their tiles at that edge. They are no longer wipe
+  chips (black at block zoom); the probe marks them "close up only" below z14.
+- Probe links now carry their tab (#lat,lon,z,tab); a link without one opens the
+  scene whose box holds it, never the year view, so old West links still open West.
+- Smaller: centrelines ticked in the year view drew under its layers; the
+  close-up notice judged the unrounded zoom; yearsheet crashed downtown (the
+  Today JPEG has no georeferencing).
+
+`scripts/yearsheet.py LAT LON` is the quick look: one spot, every year in the
+timeline, composited exactly as the year view draws it, captioned with year and
+publisher (logs/yearsheet_northland.jpg: 8 Mile & Greenfield, farmland in 1940,
+Northland Center from 1954, cleared by 2023).
+
+fetchlayer.py grew three source kinds: `--tiles` (any Web Mercator cache),
+`--cogs` (a NOAA tile index or URL list, read at the overview nearest --mpp), and
+MapServer `/export` (with `--native` for services that cannot reproject), plus
+`--clip`, `--label`, `--prio`, `--credit` and `--part-of`.
+
+### Found, not fetched
+
+- **Duplicates of years already served** (skipped): SEMCOG 2005 regional (same
+  flight as the City's 2005), SEMCOG 2010 Wayne (pixel-identical to the City's
+  2010), Wayne County 2020 6 in and 2024 LERC, Detroit MiSAIL 2020/2024 caches,
+  NAIP 2024 (FPAC), Ontario SWOOP 2015/2020/2025 (US bank only), Livonia/Ferndale/
+  Allen Park/Taylor clips of county flights, Wayback 2012/2015/2020/2022. Wayne
+  2020 6 in (leaf-off) would be a sharper 2020 than NAIP if wanted.
+- **Licensed, not ours to republish**: Dearborn Nearmap Apr 2026, DTW airport
+  Nearmap Jul 2025.
+- **Too small or not usable**: ERCA 1947 (1.4 km2 of US bank), ERCA 1988 (0.7 km2),
+  SEMCOG "Then & Now 1950" frames (stamped Apr-May **1949**, collars on), a 1981
+  Woodbridge clip (no provenance), NARA 1937/1940 USDA photo-index sheets (index
+  mosaics, 2-8 m, would need hand georeferencing), The Henry Ford's 1925 Ford
+  Airport photomosaic (uncontrolled, Dearborn only).
+- **Needs Joe** (login, request or purchase, all raw frames for colmap_block):
+  EarthExplorer single frames 1951, 1956, 1966-68, 1973, 1978, 1980, NHAP 1983/87
+  frames, NAPP 1993/94/99, HRO 2004/2008/2010/2011 (login); USAF/USAAF film at NARA
+  RG 373 for 1942, 1944 (whole block), 1952 (whole block), 1953 (whole block),
+  1957, 1960, 1962 (request, not digitised); Abrams 1935 SE Michigan survey
+  (Archives of Michigan, on site); USDA FSA 1957/1964/1972 and NRCS 1976 film
+  (purchase); SEMCOG 1966-1995 (request); MiSAIL secured 2010/2012/2014/2015/2020
+  (partner request); CORONA/HEXAGON 1964-84 (EE, some paid); Canadian NAPL rolls
+  1931-1995 over the riverfront ($25/scan, account).
+
+Disk: the new layers are ~60 GB of mosaics (115 GB total, gitignored). The NOAA
+tile indexes used are in `data/sources/`.
