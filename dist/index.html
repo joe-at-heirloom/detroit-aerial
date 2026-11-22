@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Detroit Air Survey</title>
+<link rel="canonical" href="https://joelint.com/apps/detroit-aerial/">
 <!-- the mark and the tab icon are inline so the local server and the static build both carry them; sources: viewer/logo.svg, viewer/favicon.svg -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='6' fill='%230B0F12'/%3E%3Crect x='7' y='7' width='25' height='50' fill='%233A4852'/%3E%3Cg fill='none' stroke-linecap='square'%3E%3Cpath d='M54 54L10 10' stroke='%23DCE6EB' stroke-width='6'/%3E%3Crect x='7' y='7' width='50' height='50' stroke='%23DCE6EB' stroke-width='5'/%3E%3Cpath d='M32 3V61' stroke='%23E0A94A' stroke-width='7'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -684,6 +685,7 @@ function flown(lid, ll, z) {
     const px = Math.min(255, Math.max(0, Math.floor((fx - x) * 256)));
     const py = Math.min(255, Math.max(0, Math.floor((fy - y) * 256)));
     const img = new Image();
+    img.crossOrigin = 'anonymous';       // tiles may be on another host; pixels must stay readable
     img.onload = () => {
       try {
         const c = document.createElement('canvas'); c.width = 256; c.height = 256;

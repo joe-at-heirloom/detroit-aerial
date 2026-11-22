@@ -683,6 +683,7 @@ function flown(lid, ll, z) {
     const px = Math.min(255, Math.max(0, Math.floor((fx - x) * 256)));
     const py = Math.min(255, Math.max(0, Math.floor((fy - y) * 256)));
     const img = new Image();
+    img.crossOrigin = 'anonymous';       // tiles may be on another host; pixels must stay readable
     img.onload = () => {
       try {
         const c = document.createElement('canvas'); c.width = 256; c.height = 256;
