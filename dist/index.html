@@ -31,13 +31,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .brand{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 12px;border-right:1px solid var(--rule);min-width:230px;flex:0 0 auto}
 .brand .mark{width:30px;height:30px;flex:0 0 auto;display:block}
 .brand .bt{display:flex;flex-direction:column;justify-content:center}
-.brand b{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.brand b{font-size:13px;font-weight:600;white-space:nowrap}
 .brand span{font-family:var(--mono);font-size:10px;color:var(--ink-faint);margin-top:2px}
 .tabs{display:flex}
 .tab{padding:0 16px;display:flex;flex-direction:column;justify-content:center;gap:2px;border-right:1px solid var(--rule)}
 .tab:hover{background:var(--panel-hi)}
 .tab em{font-style:normal;font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap}
-.tab i{font-style:normal;font-size:9.5px;color:var(--ink-faint);letter-spacing:.05em;text-transform:uppercase}
+.tab i{font-style:normal;font-size:10.5px;color:var(--ink-faint)}
 .tab[aria-selected="true"]{background:var(--panel-hi);box-shadow:inset 0 -2px 0 var(--amber)}
 .spacer{flex:1}
 .tools{display:flex;flex:1 1 auto;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 14px;
@@ -59,7 +59,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .side.more{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 48px),transparent);
   mask-image:linear-gradient(to right,#000 calc(100% - 48px),transparent)}
 .lbl{position:sticky;left:0;z-index:1;align-self:stretch;display:flex;align-items:center;flex:0 0 auto;
-  background:var(--panel);padding:0 11px;color:var(--ink-faint);font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.13em}
+  background:var(--panel);padding:0 11px;color:var(--ink-faint);font-family:var(--sans);font-weight:600;font-size:10.5px}
 .chip{padding:6px 13px;color:var(--ink-dim);white-space:nowrap;flex:0 0 auto}
 .chip:hover{background:var(--panel-hi);color:var(--ink)}
 .chip[aria-pressed="true"]{color:var(--ground);font-weight:500}
@@ -85,7 +85,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   z-index:602;background:rgba(11,15,18,.93);
   border:1px solid var(--rule);padding:12px 14px;font-size:12px;line-height:1.5;color:var(--ink-dim)}
 #mapwrap.wipe .note{top:44px;max-height:calc(100% - 58px)}   /* under the year tags, which ride the divider */
-.note h3{margin:0;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);font-weight:600}
+.note h3{margin:0;font-size:12px;color:var(--amber);font-weight:600}
 .note h3 button{display:flex;align-items:baseline;gap:12px;width:100%;text-align:left;
   font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit}
 .note h3 button span{flex:1}
@@ -109,7 +109,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 @keyframes pulse{from{opacity:.25}to{opacity:1}}
 .marg{display:flex;border-top:1px solid var(--rule);background:var(--panel);font-family:var(--mono);font-size:11px;flex:0 0 auto}
 .cell{padding:7px 15px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:2px;min-width:0}
-.cell .k{font-size:9px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;font-family:var(--sans)}
+.cell .k{font-size:10px;color:var(--ink-faint);font-family:var(--sans)}
 /* one line each; the full text is in the title */
 .cell .v{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cell.grow{flex:1;border-right:0}
@@ -136,7 +136,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .pmiss{margin-top:8px;color:var(--ink-faint);font-size:10.5px;line-height:1.5}
 .pmiss[hidden]{display:none}
 .pmiss i{font-style:normal;color:var(--ink-dim);font-family:var(--sans);font-size:9.5px;
-  letter-spacing:.1em;text-transform:uppercase;margin-right:6px}
+  margin-right:6px}
 .phead{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--ink-dim);flex:0 0 auto}
 .phead b{color:var(--amber);font-weight:600;font-family:var(--sans);font-size:12.5px}
 .pspacer{flex:1}
@@ -145,7 +145,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .pzl{color:var(--ink-faint);min-width:22px;text-align:center}
 .prow{display:flex;gap:6px;flex-wrap:wrap}
 .pcell{display:flex;flex-direction:column;gap:4px}
-.pcell i{font-style:normal;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+.pcell i{font-style:normal;font-size:10.5px;
   color:var(--ink-faint);font-family:var(--sans)}
 .pmap{width:148px;height:148px;background:var(--ground);border:1px solid var(--rule)}
 .pmap.nocov{display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:10px}
@@ -174,11 +174,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   border:1px solid var(--amber);padding:10px 12px 11px;font-family:var(--mono);font-size:11px;
   width:320px;max-width:calc(100% - 28px)}
 #align[hidden]{display:none}
-#align h4{margin:0 0 8px;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+#align h4{margin:0 0 8px;font-size:11.5px;
   color:var(--amber);font-weight:600;font-family:var(--sans);display:flex;align-items:center;gap:8px}
 #align h4 span{flex:1}
 .arow{display:flex;align-items:center;gap:6px;margin-top:6px}
-.arow label{width:52px;color:var(--ink-faint);font-size:10px;letter-spacing:.08em}
+.arow label{width:52px;color:var(--ink-faint);font-size:10.5px}
 .arow input[type=number]{width:74px;background:var(--panel-hi);color:var(--ink);
   border:1px solid var(--rule);font-family:var(--mono);font-size:11px;padding:3px 5px}
 .arow input[type=range]{flex:1;accent-color:var(--amber)}
@@ -189,7 +189,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .ahint b{color:var(--ink-dim);font-weight:500}
 .abtns{display:flex;gap:6px;margin-top:9px}
 .abtns button{flex:1;border:1px solid var(--rule);color:var(--ink-dim);padding:4px 0;
-  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em}
+  font-family:var(--mono);font-size:10.5px}
 .abtns button:hover{background:var(--panel-hi);color:var(--ink)}
 .abtns button.pri{border-color:var(--amber);color:var(--amber)}
 .abtns button.pri:hover{background:var(--amber);color:var(--ground)}
@@ -256,18 +256,18 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 <body>
 <div id="app">
   <div class="bar">
-    <div class="brand"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="3" y="3" width="58" height="58" fill="#0B0F12"/><rect x="5" y="5" width="27" height="54" fill="#3A4852"/><g fill="none" stroke-linecap="square"><path d="M5 21H59M5 43H59M18 5V59M46 5V59" stroke="#7C8F9B" stroke-width="2"/><path d="M57 57L7 7" stroke="#DCE6EB" stroke-width="3"/><rect x="5" y="5" width="54" height="54" stroke="#DCE6EB" stroke-width="3"/><path d="M5 32H11M59 32H53" stroke="#DCE6EB" stroke-width="3"/><path d="M32 3V61" stroke="#E0A94A" stroke-width="3"/></g><circle cx="32" cy="32" r="5.5" fill="#E0A94A" stroke="#0B0F12" stroke-width="2"/></svg><div class="bt"><b>Detroit Air Survey</b><span>DTE AERIAL &middot; 1949&ndash;TODAY</span></div></div>
+    <div class="brand"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="3" y="3" width="58" height="58" fill="#0B0F12"/><rect x="5" y="5" width="27" height="54" fill="#3A4852"/><g fill="none" stroke-linecap="square"><path d="M5 21H59M5 43H59M18 5V59M46 5V59" stroke="#7C8F9B" stroke-width="2"/><path d="M57 57L7 7" stroke="#DCE6EB" stroke-width="3"/><rect x="5" y="5" width="54" height="54" stroke="#DCE6EB" stroke-width="3"/><path d="M5 32H11M59 32H53" stroke="#DCE6EB" stroke-width="3"/><path d="M32 3V61" stroke="#E0A94A" stroke-width="3"/></g><circle cx="32" cy="32" r="5.5" fill="#E0A94A" stroke="#0B0F12" stroke-width="2"/></svg><div class="bt"><b>Detroit Air Survey</b><span>DTE aerial &middot; 1949&ndash;today</span></div></div>
     <div class="tabs" id="tabs"></div>
     <div class="spacer"></div>
     <div class="tools">
-      <label title="modern roads and names (Esri), over the photographs"><input type="checkbox" id="streets"> STREET MAP</label>
-      <label title="street centrelines, drawn from zoom 14 in"><input type="checkbox" id="roads"> CENTRELINES <i>z14+</i></label>
-      <label><input type="checkbox" id="places" checked> <span id="placesN">PLACES</span></label>
-      <select id="placesel" title="go to a researched place"><option value="">PLACES…</option></select>
+      <label title="modern roads and names (Esri), over the photographs"><input type="checkbox" id="streets"> Street map</label>
+      <label title="street centrelines, drawn from zoom 14 in"><input type="checkbox" id="roads"> Centrelines <i>z14+</i></label>
+      <label><input type="checkbox" id="places" checked> <span id="placesN">Places</span></label>
+      <select id="placesel" title="go to a researched place"><option value="">Places…</option></select>
       <select id="pfilter" title="filter places by what they were in the left-hand year"></select>
-      <label><input type="checkbox" id="alignon"> ALIGN</label>
-      <label class="op off" title="opacity of the street map and centrelines">OPACITY <input type="range" id="opa" min="20" max="100" value="75" disabled></label>
-      <button id="fit" title="fit the map to what is shown">RESET</button>
+      <label><input type="checkbox" id="alignon"> Align</label>
+      <label class="op off" title="opacity of the street map and centrelines">Opacity <input type="range" id="opa" min="20" max="100" value="75" disabled></label>
+      <button id="fit" title="fit the map to what is shown">Reset</button>
     </div>
   </div>
   <div class="tl" id="tl" hidden>
@@ -277,8 +277,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <button class="tlb" id="tlNext" title="next year (&rarr;)">&#9654;</button>
   </div>
   <div class="rail" id="rail">
-    <div class="side L" id="railL"><span class="lbl">LEFT</span></div>
-    <div class="side R" id="railR"><span class="lbl">RIGHT</span></div>
+    <div class="side L" id="railL"><span class="lbl">Left</span></div>
+    <div class="side R" id="railR"><span class="lbl">Right</span></div>
     <div class="hint"><span>drag the divider to wipe &middot; <b>click the map to see that spot in every year</b><span id="hintRes"></span></span></div>
   </div>
   <div id="mapwrap">
@@ -292,21 +292,21 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <div id="probe" hidden></div>
     <div id="align" hidden>
       <h4><span>Hand alignment</span></h4>
-      <div class="arow"><label>LAYER</label><select id="aLayer"></select></div>
-      <div class="arow"><label>EAST</label><input type="number" id="aE" step="1"><span class="u">m</span></div>
-      <div class="arow"><label>NORTH</label><input type="number" id="aN" step="1"><span class="u">m</span></div>
-      <div class="arow"><label>ROTATE</label><input type="number" id="aR" step="0.05"><span class="u">&deg;</span></div>
-      <div class="arow"><label>SCALE</label><input type="number" id="aS" step="0.001"><span class="u"></span></div>
-      <div class="arow"><label>FADE</label><input type="range" id="aO" min="0" max="100" value="55"></div>
+      <div class="arow"><label>Layer</label><select id="aLayer"></select></div>
+      <div class="arow"><label>East</label><input type="number" id="aE" step="1"><span class="u">m</span></div>
+      <div class="arow"><label>North</label><input type="number" id="aN" step="1"><span class="u">m</span></div>
+      <div class="arow"><label>Rotate</label><input type="number" id="aR" step="0.05"><span class="u">&deg;</span></div>
+      <div class="arow"><label>Scale</label><input type="number" id="aS" step="0.001"><span class="u"></span></div>
+      <div class="arow"><label>Fade</label><input type="range" id="aO" min="0" max="100" value="55"></div>
       <div class="ahint">
         <b>drag</b> move &middot; <b>shift-drag</b> rotate &middot; <b>alt-drag</b> scale<br>
         <b>arrows</b> nudge 1 px, with shift 10 &middot; <b>space-drag</b> pan the map<br>
         <b>hold F</b> to blink the layer off and check the fit
       </div>
       <div class="abtns">
-        <button id="aSave" class="pri">SAVE</button>
-        <button id="aRevert">REVERT</button>
-        <button id="aZero">ZERO</button>
+        <button id="aSave" class="pri">Save</button>
+        <button id="aRevert">Revert</button>
+        <button id="aZero">Zero</button>
       </div>
       <div class="amsg" id="aMsg"></div>
     </div>
@@ -619,11 +619,11 @@ function fillPlaceList() {
                      .sort((a, b) => (a.rank || 2) - (b.rank || 2) ||
                                      a.title.localeCompare(b.title));
   const esc = t => String(t).replace(/</g, '&lt;');
-  sel.innerHTML = '<option value="">PLACES\u2026</option>' +
+  sel.innerHTML = '<option value="">Places\u2026</option>' +
     mine.map(p => '<option value="' + p.id + '">' + esc(p.title) +
              (spanText(p) ? '  ' + spanText(p) : '') + '</option>').join('');
   sel.style.display = mine.length ? '' : 'none';
-  document.getElementById('placesN').textContent = mine.length ? 'PLACES (' + mine.length + ')' : 'PLACES';
+  document.getElementById('placesN').textContent = mine.length ? 'Places (' + mine.length + ')' : 'Places';
   sel.onchange = () => {
     const p = mine.find(x => x.id === sel.value);
     sel.value = '';
@@ -638,7 +638,7 @@ function fillPlaceList() {
 // two rails the pin colours are answering.
 function fillFilter() {
   const sel = document.getElementById('pfilter'), W = stateWords();
-  const opts = [['', 'ALL PLACES'], ['live', W.live], ['post', W.post], ['pre', W.pre]];
+  const opts = [['', 'All places'], ['live', W.live], ['post', W.post], ['pre', W.pre]];
   sel.innerHTML = opts.map(([v, t]) =>
     '<option value="' + v + '"' + (v === pFilter ? ' selected' : '') + '>' + t + '</option>').join('');
   sel.onchange = () => { pFilter = sel.value; renderPins(); };
@@ -777,7 +777,7 @@ function openProbe(ll, place) {
       '<span>' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5) + '</span>' +
       (place ? '<b>' + esc(place.title) + '</b>' : '') +
       '<span class="pspacer"></span>' +
-      (DAS.static ? '' : '<button class="pnew" title="pin this ground as a place">+ PLACE</button>') +
+      (DAS.static ? '' : '<button class="pnew" title="pin this ground as a place">+ Place</button>') +
       '<button class="pz" data-d="-1" title="zoom out">&minus;</button>' +
       '<span class="pzl">z' + probeZoom + '</span>' +
       '<button class="pz" data-d="1" title="zoom in">+</button>' +
@@ -857,7 +857,7 @@ function addForm() {
     '<select name="rank">' + [[1, 'rank 1 \u00b7 landmark'], [2, 'rank 2 \u00b7 local'],
       [3, 'rank 3 \u00b7 minor']].map(([v, t]) => opt(v, t)).join('') + '</select>' +
     '<input name="note" class="wide" placeholder="one-line note (optional)">' +
-    '<button type="submit">SAVE HERE</button><span class="msg"></span></form>';
+    '<button type="submit">Save here</button><span class="msg"></span></form>';
 }
 
 function wireAdd(box) {
