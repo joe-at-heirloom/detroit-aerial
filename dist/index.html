@@ -21,7 +21,12 @@
 html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);font-family:var(--sans);overflow:hidden}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #app{display:flex;flex-direction:column;height:100%}
-.bar{display:flex;align-items:stretch;border-bottom:1px solid var(--rule);background:var(--panel);min-height:50px;flex:0 0 auto}
+/* the bar wraps rather than running off the right edge: tabs on the first row,
+   the tools on a second when they do not fit. The 1px row gap over a --rule
+   background is the line between the rows, wherever the wrap falls. */
+.bar{display:flex;flex-wrap:wrap;row-gap:1px;align-items:stretch;border-bottom:1px solid var(--rule);
+  background:var(--rule);min-height:50px;flex:0 0 auto}
+.bar>*{background:var(--panel)}
 .brand{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 12px;border-right:1px solid var(--rule);min-width:230px;flex:0 0 auto}
 .brand .mark{width:30px;height:30px;flex:0 0 auto;display:block}
 .brand .bt{display:flex;flex-direction:column;justify-content:center}
@@ -34,18 +39,37 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .tab i{font-style:normal;font-size:9.5px;color:var(--ink-faint);letter-spacing:.05em;text-transform:uppercase}
 .tab[aria-selected="true"]{background:var(--panel-hi);box-shadow:inset 0 -2px 0 var(--amber)}
 .spacer{flex:1}
-.tools{display:flex;align-items:center;gap:14px;padding:0 16px;font-family:var(--mono);font-size:11px}
-.rail{display:flex;border-bottom:1px solid var(--rule);background:var(--panel);font-family:var(--mono);font-size:11px;flex:0 0 auto;overflow-x:auto}
-.side{display:flex;align-items:center;border-right:1px solid var(--rule)}
-.lbl{padding:0 11px;color:var(--ink-faint);font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.13em}
-.chip{padding:6px 13px;color:var(--ink-dim)}
+.tools{display:flex;flex:1 1 auto;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 14px;
+  padding:7px 16px;font-family:var(--mono);font-size:11px}
+.tools label{display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer}
+.tools label[hidden]{display:none}
+.tools label i{font-style:normal;color:var(--ink-faint)}
+.tools input[type=checkbox]{accent-color:var(--amber);margin:0}
+.tools button:hover{color:var(--amber)}
+.op.off{opacity:.35}
+/* a scene can hold fifty layers: each side is its own row when it has to be,
+   scrolling sideways with its label pinned, rather than pushing RIGHT off-screen.
+   No scrollbar: on a Mac the overlay one takes clicks on the lower half of the
+   chips for a second or two after every scroll. A fade says there is more. */
+.rail{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--rule);background:var(--panel);font-family:var(--mono);font-size:11px;flex:0 0 auto}
+.side{position:relative;display:flex;align-items:center;border-right:1px solid var(--rule);max-width:100%;
+  overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--rule);margin-bottom:-1px}
+.side::-webkit-scrollbar{display:none}
+.side.more{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 48px),transparent);
+  mask-image:linear-gradient(to right,#000 calc(100% - 48px),transparent)}
+.lbl{position:sticky;left:0;z-index:1;align-self:stretch;display:flex;align-items:center;flex:0 0 auto;
+  background:var(--panel);padding:0 11px;color:var(--ink-faint);font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.13em}
+.chip{padding:6px 13px;color:var(--ink-dim);white-space:nowrap;flex:0 0 auto}
 .chip:hover{background:var(--panel-hi);color:var(--ink)}
 .chip[aria-pressed="true"]{color:var(--ground);font-weight:500}
 .side.L .chip[aria-pressed="true"]{background:var(--amber)}
 .side.R .chip[aria-pressed="true"]{background:var(--cyan)}
 .op{display:flex;align-items:center;gap:6px}
 .op input[type=range]{width:74px;accent-color:var(--cyan)}
-.hint{padding:0 14px;color:var(--ink-faint);display:flex;align-items:center;white-space:nowrap}
+.hint{padding:6px 14px;color:var(--ink-faint);display:flex;align-items:center;white-space:nowrap;
+  min-width:0;overflow:hidden}
+.hint>span{overflow:hidden;text-overflow:ellipsis}
+.hint b{color:var(--amber);font-weight:500}
 #mapwrap{position:relative;flex:1;min-height:0}
 #map{position:absolute;inset:0;background:var(--ground)}
 .leaflet-container{background:var(--ground)}
@@ -56,17 +80,41 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--amber)}
 .tag{position:absolute;top:10px;z-index:601;font-family:var(--mono);font-size:12px;padding:3px 9px;
   background:rgba(11,15,18,.85);border:1px solid var(--rule)}
-.note{position:absolute;left:14px;top:52px;max-width:330px;z-index:602;background:rgba(11,15,18,.93);
+.note{position:absolute;left:14px;top:12px;max-width:330px;max-height:calc(100% - 24px);overflow-y:auto;
+  z-index:602;background:rgba(11,15,18,.93);
   border:1px solid var(--rule);padding:12px 14px;font-size:12px;line-height:1.5;color:var(--ink-dim)}
-.note h3{margin:0 0 7px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);font-weight:600}
+#mapwrap.wipe .note{top:44px;max-height:calc(100% - 58px)}   /* under the year tags, which ride the divider */
+.note h3{margin:0;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);font-weight:600}
+.note h3 button{display:flex;align-items:baseline;gap:12px;width:100%;text-align:left;
+  font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit}
+.note h3 button span{flex:1}
+.note h3 button::after{content:"\2212";color:var(--ink-faint);font-size:13px;letter-spacing:0}
+.note h3 button:hover::after{color:var(--amber)}
+.note.min{padding:8px 12px}
+.note.min h3 button::after{content:"+"}
+.note.min p{display:none}
 .note b{color:var(--ink);font-weight:600}
+/* Leaflet's zoom buttons, in this page's colours */
+#map .leaflet-bar{border:1px solid var(--rule);border-radius:0;box-shadow:none}
+#map .leaflet-bar a{background:rgba(11,15,18,.93);color:var(--ink);border-bottom-color:var(--rule);border-radius:0}
+#map .leaflet-bar a:hover,#map .leaflet-bar a:focus{background:var(--panel-hi);color:var(--amber)}
+#map .leaflet-bar a.leaflet-disabled{color:var(--ink-faint);background:rgba(11,15,18,.93)}
+#busy{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:601;pointer-events:none;
+  font-family:var(--mono);font-size:11px;color:var(--ink-dim);background:rgba(11,15,18,.9);
+  border:1px solid var(--rule);padding:3px 10px 3px 8px;display:flex;align-items:center;gap:7px}
+#busy[hidden]{display:none}
+#busy::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--amber);
+  animation:pulse 1s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:.25}to{opacity:1}}
 .marg{display:flex;border-top:1px solid var(--rule);background:var(--panel);font-family:var(--mono);font-size:11px;flex:0 0 auto}
-.cell{padding:7px 15px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:2px}
+.cell{padding:7px 15px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:2px;min-width:0}
 .cell .k{font-size:9px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;font-family:var(--sans)}
-.cell .v{color:var(--ink)}
+/* one line each; the full text is in the title */
+.cell .v{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cell.grow{flex:1;border-right:0}
+.cell.grow .v{white-space:normal}       /* the credits: every name, however many lines */
 .tools select{background:var(--panel-hi);color:var(--ink);border:1px solid var(--rule);
-  font-family:var(--mono);font-size:11px;padding:3px 6px;max-width:210px}
+  font-family:var(--mono);font-size:11px;padding:3px 6px;max-width:180px}
 .tools select:hover{border-color:var(--amber)}
 .pmark{cursor:pointer}
 .pclus{background:var(--amber);color:var(--ground);border-radius:50%;font-family:var(--mono);
@@ -76,11 +124,19 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .ptip{background:var(--panel);border:1px solid var(--rule);color:var(--ink);font-family:var(--mono);
   font-size:11px;box-shadow:none;padding:3px 7px}
 .ptip::before{border-top-color:var(--rule)}
+/* never taller than the map: fifty layers once grew it over the tabs and its
+   own close button. The header stays put and the pictures scroll under it. */
 #probe{position:absolute;right:14px;bottom:14px;z-index:603;background:rgba(11,15,18,.96);
   border:1px solid var(--rule);padding:9px 10px 10px;max-width:calc(100% - 28px);
+  max-height:calc(100% - 28px);display:flex;flex-direction:column;
   font-family:var(--mono);font-size:11px}
 #probe[hidden]{display:none}
-.phead{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--ink-dim)}
+.pbody{overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
+.pmiss{margin-top:8px;color:var(--ink-faint);font-size:10.5px;line-height:1.5}
+.pmiss[hidden]{display:none}
+.pmiss i{font-style:normal;color:var(--ink-dim);font-family:var(--sans);font-size:9.5px;
+  letter-spacing:.1em;text-transform:uppercase;margin-right:6px}
+.phead{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--ink-dim);flex:0 0 auto}
 .phead b{color:var(--amber);font-weight:600;font-family:var(--sans);font-size:12.5px}
 .pspacer{flex:1}
 .pz,.pclose{border:1px solid var(--rule);width:21px;height:21px;line-height:1;color:var(--ink-dim);flex:0 0 auto}
@@ -115,7 +171,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .pnew:hover{background:var(--panel-hi);color:var(--amber)}
 #align{position:absolute;left:14px;bottom:14px;z-index:604;background:rgba(11,15,18,.96);
   border:1px solid var(--amber);padding:10px 12px 11px;font-family:var(--mono);font-size:11px;
-  width:290px}
+  width:320px;max-width:calc(100% - 28px)}
 #align[hidden]{display:none}
 #align h4{margin:0 0 8px;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
   color:var(--amber);font-weight:600;font-family:var(--sans);display:flex;align-items:center;gap:8px}
@@ -176,6 +232,24 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #tnote[hidden]{display:none}
 #tnote b{color:var(--amber);font-weight:500}
 .leaflet-align-pane{will-change:transform}
+/* a phone: brand, tabs and tools each get a row, the tools scroll sideways
+   instead of stacking four deep, and the margin keeps only what a finger needs */
+@media (max-width:700px){
+  .brand{min-width:0;flex:1 1 auto;border-right:0}
+  .brand span{display:none}
+  .tabs{flex:1 1 100%;overflow-x:auto;scrollbar-width:none}
+  .tab{flex:1 0 auto;padding:7px 12px}
+  .tools{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scrollbar-width:none}
+  .tly{width:112px;padding:4px 10px}
+  .tly b{font-size:18px}
+  .tlb{width:30px}
+  .tlt{margin:0 14px;min-width:0}
+  .cell.c-pos,.cell.c-zoom{display:none}
+  .cell.grow .v{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .note{max-width:calc(100% - 70px)}
+  #probe{max-height:65%;right:8px;bottom:8px;max-width:calc(100% - 16px)}
+  .pmap{width:132px;height:132px}
+}
 </style>
 </head>
 <body>
@@ -185,14 +259,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
     <div class="tabs" id="tabs"></div>
     <div class="spacer"></div>
     <div class="tools">
-      <label><input type="checkbox" id="streets"> STREET MAP</label>
-      <label><input type="checkbox" id="roads"> CENTRELINES <span style="color:var(--ink-faint)">(z14+)</span></label>
-      <label><input type="checkbox" id="places" checked> PLACES</label>
-      <select id="placesel" title="researched places"><option value="">PLACES…</option></select>
+      <label title="modern roads and names (Esri), over the photographs"><input type="checkbox" id="streets"> STREET MAP</label>
+      <label title="street centrelines, drawn from zoom 14 in"><input type="checkbox" id="roads"> CENTRELINES <i>z14+</i></label>
+      <label><input type="checkbox" id="places" checked> <span id="placesN">PLACES</span></label>
+      <select id="placesel" title="go to a researched place"><option value="">PLACES…</option></select>
       <select id="pfilter" title="filter places by what they were in the left-hand year"></select>
       <label><input type="checkbox" id="alignon"> ALIGN</label>
-      <label class="op">OPACITY <input type="range" id="opa" min="20" max="100" value="75"></label>
-      <button id="fit">RESET</button>
+      <label class="op off" title="opacity of the street map and centrelines">OPACITY <input type="range" id="opa" min="20" max="100" value="75" disabled></label>
+      <button id="fit" title="fit the map to what is shown">RESET</button>
     </div>
   </div>
   <div class="tl" id="tl" hidden>
@@ -204,10 +278,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   <div class="rail" id="rail">
     <div class="side L" id="railL"><span class="lbl">LEFT</span></div>
     <div class="side R" id="railR"><span class="lbl">RIGHT</span></div>
-    <div class="hint">drag the divider to wipe &middot; <b style="color:var(--amber);font-weight:500">click the map to see that spot in every year</b> &middot; native 0.63 m/px</div>
+    <div class="hint"><span>drag the divider to wipe &middot; <b>click the map to see that spot in every year</b><span id="hintRes"></span></span></div>
   </div>
   <div id="mapwrap">
     <div id="map"></div>
+    <div id="busy" hidden>loading tiles</div>
     <div id="swipe"></div>
     <div class="tag" id="tagL"></div>
     <div class="tag" id="tagR"></div>
@@ -237,8 +312,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   </div>
   <div class="marg">
     <div class="cell"><span class="k">Comparing</span><span class="v" id="mCmp">&mdash;</span></div>
-    <div class="cell"><span class="k">Cursor</span><span class="v" id="mPos">&mdash;</span></div>
-    <div class="cell"><span class="k">Zoom</span><span class="v" id="mZoom">&mdash;</span></div>
+    <div class="cell c-pos"><span class="k">Cursor</span><span class="v" id="mPos">&mdash;</span></div>
+    <div class="cell c-zoom"><span class="k">Zoom</span><span class="v" id="mZoom">&mdash;</span></div>
     <div class="cell grow"><span class="k">Source</span><span class="v" id="mSrc">Wayne State University &middot; DTE Aerial Photo Collection</span></div>
   </div>
 </div>
@@ -343,6 +418,13 @@ const NOTES = {
     "Every build is judged first by how far two overlapping negatives disagree about the same ground &mdash; within a 2 m pixel on every block (1961, measured finer: 1.7 m along the flight lines, 2.1 m across) &mdash; then against modern imagery it was never fitted to, on 1.3 km cells. Median: <b>1961</b> 2.8 m, <b>1967</b> 3.3 m, <b>1949</b> 4.4 m, <b>1956</b> 7.2 m. 1956's western column and northern edge were farmland that is suburbs now, and cannot be checked by matching images; treat it as uncertain there.",
     "Wiping between film years moves the ground <b>3.8 to 6.6 m</b> (1961/1967 is closest). The 1998&ndash;2022 orthophotos are shown as published and sit 2&ndash;5 m from one another, except NAIP 2018, whose strip east of Greenfield is 10&ndash;14 m east."]
 };
+// the film's native ground resolution per scene, for the rail's hint
+const HINT_RES = { downtown: '0.60', west: '0.63' };
+
+// The note covers a third of a laptop's map and most of a phone's, so it folds
+// to its heading; the choice is remembered, and a phone starts folded.
+let noteMin = innerWidth < 700;
+try { const v = localStorage.getItem('das.noteMin'); if (v !== null) noteMin = v === '1'; } catch (e) {}
 
 async function boot() {
   const hash = location.hash;          // show() clears it; read it first
@@ -363,8 +445,10 @@ async function boot() {
   // minZoom explicit: left undefined, Leaflet takes the smallest minZoom of the
   // layers on the map, and a year whose only layer is a close-up Wayback year
   // (minZoom 14) would snap the whole map to z14 and refuse to zoom out
-  map = L.map('map', { zoomControl: true, attributionControl: false, maxZoom: 21, minZoom: 0,
+  map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 21, minZoom: 0,
                        zoomSnap: 0.25, fadeAnimation: false });
+  // top right: the top left belongs to the scene's note
+  L.control.zoom({ position: 'topright' }).addTo(map);
   map.on('mousemove', e => {
     document.getElementById('mPos').textContent =
       e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
@@ -405,10 +489,18 @@ async function boot() {
     streetLayer.setOpacity(v);
     roadsLayer.setOpacity(Math.min(1, v + .15));
   };
+  // the slider fades the overlays, not the photographs: live only while one is on
+  const syncOpa = () => {
+    const on = document.getElementById('streets').checked || document.getElementById('roads').checked;
+    opa.disabled = !on; opa.parentElement.classList.toggle('off', !on);
+  };
   document.getElementById('streets').onchange = e => {
     if (e.target.checked) { streetLayer.addTo(map); streetLayer.bringToFront(); }
     else map.removeLayer(streetLayer);
+    syncOpa();
   };
+  document.getElementById('roads').addEventListener('change', syncOpa);
+  syncOpa();
   document.getElementById('places').onchange = () => { drawPlaces(); };
   map.on('zoomend', renderPins);
   map.on('zoomend', () => { timeNotice(); placeCaptions(); });
@@ -417,6 +509,19 @@ async function boot() {
   // the question the wipe cannot answer: the wipe shows two years, and only along
   // the divider.
   map.on('click', e => openProbe(e.latlng, null));
+  window.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && probePt && !(ev.target.matches && ev.target.matches('input, select, textarea'))) closeProbe();
+  });
+  // a rail of fifty chips scrolls sideways; let an ordinary mouse wheel do it
+  ['railL', 'railR'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('wheel', ev => {
+      if (Math.abs(ev.deltaY) <= Math.abs(ev.deltaX) || el.scrollWidth <= el.clientWidth) return;
+      el.scrollLeft += ev.deltaY; ev.preventDefault();
+    }, { passive: false });
+    el.addEventListener('scroll', () => railEdge(el), { passive: true });
+  });
+  window.addEventListener('resize', () => ['railL', 'railR'].forEach(id => railEdge(document.getElementById(id))));
   wireSwipe();
   wireAlign();
   wireTimeline();
@@ -517,10 +622,7 @@ function fillPlaceList() {
     mine.map(p => '<option value="' + p.id + '">' + esc(p.title) +
              (spanText(p) ? '  ' + spanText(p) : '') + '</option>').join('');
   sel.style.display = mine.length ? '' : 'none';
-  const lab = document.querySelector('label[for-places], #places');
-  if (lab && lab.parentElement) {
-    lab.parentElement.lastChild.textContent = mine.length ? ' PLACES (' + mine.length + ')' : ' PLACES';
-  }
+  document.getElementById('placesN').textContent = mine.length ? 'PLACES (' + mine.length + ')' : 'PLACES';
   sel.onchange = () => {
     const p = mine.find(x => x.id === sel.value);
     sel.value = '';
@@ -677,24 +779,40 @@ function openProbe(ll, place) {
       '<button class="pz" data-d="-1" title="zoom out">&minus;</button>' +
       '<span class="pzl">z' + probeZoom + '</span>' +
       '<button class="pz" data-d="1" title="zoom in">+</button>' +
-      '<button class="pclose" title="close">&times;</button>' +
+      '<button class="pclose" title="close (Esc)">&times;</button>' +
     '</div>' +
-    '<div class="prow">' + cells + '</div>' + life + blurb + addForm();
+    '<div class="pbody"><div class="prow">' + cells + '</div><div class="pmiss" hidden></div>' +
+    life + blurb + addForm() + '</div>';
   box.hidden = false;
   const token = ++probeToken, cellMaps = [];
+  // A year that never photographed this spot gets a name in one line, not a
+  // 148 px black square: on the West scene that was half of fifty cells.
+  const miss = [], near = [];
+  const drop = (i, list, text) => {
+    document.getElementById('pm' + i).parentElement.style.display = 'none';
+    list[i] = text;
+    const say = a => esc(a.filter(Boolean).join(' · '));
+    const none = plist.every((_, k) => miss[k] || near[k]);
+    const el = box.querySelector('.pmiss');
+    el.innerHTML = (none ? 'Nothing here was photographed in any year held.<br>' : '') +
+      (miss.some(Boolean) ? '<i>not flown here</i>' + say(miss) : '') +
+      (near.some(Boolean) ? (miss.some(Boolean) ? '<br>' : '') +
+        '<i>close up only</i>' + say(near) + ' &mdash; zoom the probe in' : '');
+    el.hidden = false;
+  };
   plist.forEach((lid, i) => {
     const el = document.getElementById('pm' + i);
-    if (!covers(lid, ll)) { el.classList.add('nocov'); el.textContent = 'not flown'; return; }
     const L2 = MAN.layers.find(x => x.id === lid);
+    if (!covers(lid, ll)) { drop(i, miss, L2.label); return; }
     if (L2 && L2.minZoom && probeZoom < L2.minZoom) {
-      el.classList.add('nocov'); el.textContent = 'close up only (z' + L2.minZoom + '+)'; return;
+      drop(i, near, L2.label + ' (z' + L2.minZoom + '+)'); return;
     }
     flown(lid, ll, probeZoom).then(ok => {
       if (token !== probeToken || ok) return;
       const j = probeMaps.indexOf(cellMaps[i]);
       if (j >= 0) probeMaps.splice(j, 1);
       if (cellMaps[i]) cellMaps[i].remove();
-      el.classList.add('nocov'); el.textContent = 'not flown';
+      drop(i, miss, L2.label);
     });
     const m = L.map(el, {
       zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false,
@@ -784,6 +902,18 @@ function layerUrl(lid) {
   // a saved alignment changes what the same tile URL returns, so the nonce is
   // what makes the browser ask for it again (meaningless on a static build)
   return DAS.tiles + '/' + lid + '/{z}/{x}/{y}.' + DAS.ext + v + (DAS.static ? '' : '&a=' + ADJ_NONCE);
+}
+
+// The local server cuts tiles on demand, and a wide view of a big mosaic takes
+// seconds: until then a year's outline sits over black and reads as missing
+// film. Say it is loading instead. Counted per tile, not by the layer's own
+// loading/load pair: a zoom that aborts every tile in flight never fires `load`.
+const inflight = new Set();
+function track(lyr) {
+  const busy = () => { document.getElementById('busy').hidden = !inflight.size; };
+  lyr.on('tileloadstart', e => { inflight.add(e.tile); busy(); });
+  lyr.on('tileload tileerror tileabort tileunload', e => { inflight.delete(e.tile); busy(); });
+  return lyr;
 }
 
 // A pre-rendered pyramid stops at the film's native resolution; past that
@@ -919,7 +1049,7 @@ function alignChoices() {
 function mountAlignLayer() {
   if (alignLayer) { map.removeLayer(alignLayer); alignLayer = null; }
   if (!alignOn || !alignTarget) return;
-  alignLayer = L.tileLayer(layerUrl(alignTarget), tileOpts(alignTarget, { pane: 'align' })).addTo(map);
+  alignLayer = track(L.tileLayer(layerUrl(alignTarget), tileOpts(alignTarget, { pane: 'align' }))).addTo(map);
   paintAlign();
 }
 
@@ -927,6 +1057,10 @@ function enterAlign(on) {
   alignOn = on;
   document.getElementById('align').hidden = !on;
   document.getElementById('mapwrap').classList.toggle('aligning', on);
+  // no wipe while aligning: the divider would sit half off the left edge and the
+  // tags pile into the corner; the panel's heading names the reference instead.
+  // The note goes too: on a short screen it runs under the panel.
+  ['swipe', 'tagL', 'tagR', 'note'].forEach(id => { document.getElementById(id).style.display = on ? 'none' : ''; });
   const pane = map.getPane('align');
   if (on) {
     alignSplit = split;
@@ -1050,11 +1184,12 @@ function show(gid) {
   const tm = timeMode();
   document.getElementById('tl').hidden = !tm;
   document.getElementById('rail').hidden = tm;
-  ['swipe', 'tagL', 'tagR'].forEach(id => { document.getElementById(id).style.display = tm ? 'none' : ''; });
+  document.getElementById('mapwrap').classList.toggle('wipe', !tm);
   // a hand alignment is judged against one other year under a wipe; there is no wipe here
   const al = document.getElementById('alignon');
   if (!DAS.static && al && al.parentElement) al.parentElement.hidden = tm;
   if (tm && alignOn) { al.checked = false; enterAlign(false); }
+  ['swipe', 'tagL', 'tagR'].forEach(id => { document.getElementById(id).style.display = (tm || alignOn) ? 'none' : ''; });
   if (tm) {
     if (left) { map.removeLayer(left); left = null; }
     if (right) { map.removeLayer(right); right = null; }
@@ -1063,15 +1198,24 @@ function show(gid) {
     timeNotice();
   }
   L_ = 0; R_ = cur.layers.length - 1;
-  const n = NOTES[gid] || ['', ''];
-  document.getElementById('note').innerHTML =
-    '<h3>' + n[0] + '</h3>' + n.slice(1).map(p => '<p style="margin:6px 0 0">' + p + '</p>').join('');
+  const n = NOTES[gid] || ['', ''], note = document.getElementById('note');
+  note.innerHTML = '<h3><button title="show or hide this note"><span>' + n[0] + '</span></button></h3>' +
+    n.slice(1).map(p => '<p style="margin:6px 0 0">' + p + '</p>').join('');
+  note.hidden = !n[0];
+  note.classList.toggle('min', noteMin);
+  note.querySelector('button').onclick = () => {
+    noteMin = !noteMin; note.classList.toggle('min', noteMin);
+    try { localStorage.setItem('das.noteMin', noteMin ? '1' : '0'); } catch (e) {}
+  };
+  document.getElementById('hintRes').textContent = HINT_RES[gid] ? ' · native ' + HINT_RES[gid] + ' m/px' : '';
   paint(); fit(); drawPlaces(); fillPlaceList(); fillFilter();
   if (alignOn) { alignChoices(); fillAlignFields(); mountAlignLayer(); }
 }
 
 function chips(el, sel, cb) {
+  const keep = el.scrollLeft;
   [...el.querySelectorAll('.chip')].forEach(c => c.remove());
+  let on = null;
   cur.layers.forEach((lid, i) => {
     const l = MAN.layers.find(x => x.id === lid);
     const b = document.createElement('button');
@@ -1079,22 +1223,36 @@ function chips(el, sel, cb) {
     b.setAttribute('aria-pressed', String(i === sel));
     b.onclick = () => cb(i);
     el.appendChild(b);
+    if (i === sel) on = b;
   });
+  // rebuilt on every pick: stay where the row was, unless the picked chip is
+  // out of sight (Today is the fiftieth on the right-hand rail)
+  el.scrollLeft = keep;
+  const lbl = el.querySelector('.lbl'), lw = lbl ? lbl.offsetWidth : 0;
+  if (on && (on.offsetLeft < keep + lw || on.offsetLeft + on.offsetWidth > keep + el.clientWidth)) {
+    el.scrollLeft = on.offsetLeft - lw - (el.clientWidth - lw - on.offsetWidth) / 2;
+  }
+  railEdge(el);
 }
+
+// fade the right edge while there are chips past it
+const railEdge = el => el.classList.toggle('more', el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
 
 function paint() {
   if (timeMode()) { paintTime(); return; }
   if (left) map.removeLayer(left);
   if (right) map.removeLayer(right);
   const lid = cur.layers[L_], rid = cur.layers[R_];
-  left = L.tileLayer(layerUrl(lid), tileOpts(lid)).addTo(map);
-  right = L.tileLayer(layerUrl(rid), tileOpts(rid)).addTo(map);
+  left = track(L.tileLayer(layerUrl(lid), tileOpts(lid))).addTo(map);
+  right = track(L.tileLayer(layerUrl(rid), tileOpts(rid))).addTo(map);
   const name = id => MAN.layers.find(x => x.id === id).label;
   document.getElementById('tagL').textContent = name(lid);
   document.getElementById('tagR').textContent = name(rid);
+  document.querySelector('#align h4 span').textContent = 'Hand alignment \u00b7 over ' + name(rid);
   document.getElementById('mCmp').textContent = name(lid) + ' → ' + name(rid);
   document.getElementById('mCmp').previousElementSibling.textContent = 'Comparing';
   document.getElementById('mSrc').textContent = 'Wayne State University \u00b7 DTE Aerial Photo Collection';
+  document.getElementById('mCmp').title = document.getElementById('mCmp').textContent;
   chips(document.getElementById('railL'), L_, i => { if (i === R_) R_ = L_; L_ = i; paint(); });
   chips(document.getElementById('railR'), R_, i => { if (i === L_) L_ = R_; R_ = i; paint(); });
   if (roadsLayer && document.getElementById('roads').checked) roadsLayer.bringToFront();
@@ -1144,7 +1302,9 @@ function wireSwipe() {
     ['move', 'zoom', 'zoomanim', 'moveend', 'zoomend', 'viewreset', 'load'].forEach(
       ev => map.on(ev, applyClip));
   }
-  new ResizeObserver(applyClip).observe(wrap);
+  // Leaflet only notices a window resize; the bar above can wrap to another row
+  // and the map's height change under it without one
+  new ResizeObserver(() => { map.invalidateSize({ animate: false }); applyClip(); }).observe(wrap);
 }
 
 // ------------------------------------------------------------------ the year view
@@ -1173,7 +1333,10 @@ async function loadTimeline() {
   MAN.groups = Object.assign({ years: { label: 'Through the years', mode: 'time', layers: ids,
                                         bbox: west ? west.bbox : MAN.groups[Object.keys(MAN.groups)[0]].bbox } },
                              MAN.groups);
-  tlIdx = 0;
+  // open on the first year of the survey's own film, not 1931: that is a thin
+  // strip of riverfront in a corner of an otherwise black map
+  tlIdx = Math.max(0, TL.years.findIndex(s =>
+    s.stack.some(x => TL.layers[x.id] && TL.layers[x.id].year === s.year && TL.layers[x.id].credit === 'DTE film')));
 }
 
 function geoBounds(g, pad) {
@@ -1291,7 +1454,7 @@ function paintTime() {
     const rb = b ? L.latLngBounds([b[0] - pad, b[1] - pad], [b[2] + pad, b[3] + pad]) : geoBounds(s.region, pad);
     let lyr = timeLayers[s.id];
     if (!lyr) {
-      timeLayers[s.id] = L.tileLayer(layerUrl(s.id), tileOpts(s.id, { bounds: rb, zIndex: z })).addTo(map);
+      timeLayers[s.id] = track(L.tileLayer(layerUrl(s.id), tileOpts(s.id, { bounds: rb, zIndex: z }))).addTo(map);
     } else {
       lyr.options.bounds = rb;          // GridLayer reads this per tile
       lyr.setZIndex(z);
@@ -1327,6 +1490,7 @@ function paintTime() {
   const all = [...new Set(step.stack.map(s => TL.layers[s.id].credit).filter(Boolean))]
     .map(c => c === 'DTE film' ? 'Wayne State University \u00b7 DTE Aerial Photo Collection' : c);
   document.getElementById('mSrc').textContent = all.join(' \u00b7 ');
+  cmp.title = cmp.textContent;
   drawTrack();
   timeNotice();
   if (roadsLayer && document.getElementById('roads').checked) roadsLayer.bringToFront();
@@ -1396,7 +1560,16 @@ function fit() {
   const wrap = document.getElementById('mapwrap');
   if (!wrap.clientWidth || !wrap.clientHeight) { requestAnimationFrame(fit); return; }
   map.invalidateSize({ animate: false });
-  const b = cur.bbox;
+  // A wipe frames the ground its two years share. The scene's own box is the
+  // union of fifty layers, county orthos included, and framed the West film
+  // small and off to one side of the divider, 1949 a sliver left of it.
+  let b = cur.bbox;
+  if (!timeMode()) {
+    const box = id => (MAN.layers.find(x => x.id === id) || {}).bbox;
+    const l = box(cur.layers[L_]), r = box(cur.layers[R_]);
+    const i = l && r && [Math.max(l[0], r[0]), Math.max(l[1], r[1]), Math.min(l[2], r[2]), Math.min(l[3], r[3])];
+    if (i && i[0] < i[2] && i[1] < i[3]) b = i;
+  }
   map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: [12, 12], animate: false });
   setTimeout(applyClip, 60);
 }
