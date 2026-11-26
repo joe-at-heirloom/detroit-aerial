@@ -52,6 +52,27 @@ def tile_range(bbox, z):
     return range(tx(W), tx(E) + 1), range(ty(N), ty(S) + 1)
 
 
+def static_index(tiles_base=''):
+    """The viewer as the public site serves it: told where its tiles and data are,
+    with viewer/site-head.html (analytics, title, canonical, share tags) in place
+    of its plain <title>. Needs no tiles, so the page can be rebuilt on its own:
+        python3 -c "import sys; sys.path.insert(0,'scripts'); import build_static as b;
+                    open('dist/index.html','w').write(b.static_index())"
+    """
+    html = open(os.path.join(ROOT, 'viewer', 'index.html'), encoding='utf-8').read()
+    cfg = dict(tiles=(tiles_base.rstrip('/') or 'tiles'), ext='webp',
+               data='data', api=None, static=True)
+    inject = '<script>window.DAS = %s;</script>\n' % json.dumps(cfg)
+    marker = '<script src="https://unpkg.com/leaflet'
+    title = '<title>Detroit Air Survey</title>\n'
+    local = 'DTE aerial &middot; local'                  # the header's subtitle
+    if marker not in html or title not in html or local not in html:
+        raise SystemExit('viewer/index.html: cannot find where to inject config, site head or subtitle')
+    head = open(os.path.join(ROOT, 'viewer', 'site-head.html'), encoding='utf-8').read()
+    return (html.replace(marker, inject + marker, 1).replace(title, head, 1)
+                .replace(local, 'DTE aerial &middot; 1949&ndash;today', 1))
+
+
 # ------------------------------------------------------------------ workers
 _serve = None
 
@@ -202,16 +223,7 @@ def main():
     json.dump(tl, open(os.path.join(out, 'data', 'timeline.json'), 'w'), separators=(',', ':'))
     print('  timeline: %d years (%s)' % (len(tl['years']), ' '.join(s['label'] for s in tl['years'])))
 
-    # ---- the viewer, told where it is
-    html = open(os.path.join(ROOT, 'viewer', 'index.html'), encoding='utf-8').read()
-    cfg = dict(tiles=(a.tiles_base.rstrip('/') or 'tiles'), ext='webp',
-               data='data', api=None, static=True)
-    inject = '<script>window.DAS = %s;</script>\n' % json.dumps(cfg)
-    marker = '<script src="https://unpkg.com/leaflet'
-    if marker not in html:
-        raise SystemExit('viewer/index.html: cannot find where to inject config')
-    html = html.replace(marker, inject + marker, 1)
-    open(os.path.join(out, 'index.html'), 'w', encoding='utf-8').write(html)
+    open(os.path.join(out, 'index.html'), 'w', encoding='utf-8').write(static_index(a.tiles_base))
     open(os.path.join(out, '.nojekyll'), 'w').close()      # Pages: serve dotfiles/underscores as-is
     # Cloudflare Workers (wrangler.jsonc): tiles are over its 100,000-file limit,
     # so they go to R2 and worker/index.js serves them; data/ is cached 5 minutes

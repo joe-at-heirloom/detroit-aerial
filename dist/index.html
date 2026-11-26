@@ -1,10 +1,31 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Detroit Air Survey</title>
-<link rel="canonical" href="https://joelint.com/apps/detroit-aerial/">
+<!-- the public site only (detroit.joelint.com): build_static.py puts this in place of the
+     viewer's plain title, so the local viewer sends no analytics -->
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8RKE8VQ4W6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-8RKE8VQ4W6');
+</script>
+<title>Detroit Then and Now Map: Old Aerial Photos, 1949 to Today</title>
+<meta name="description" content="Old aerial photos of Detroit from 1949 to 1967, laid over the city today. Wipe between the years to see Black Bottom, Hastings Street and the freeways go in.">
+<link rel="canonical" href="https://detroit.joelint.com/">
+<meta property="og:title" content="Detroit Then and Now Map: Old Aerial Photos, 1949 to Today">
+<meta property="og:description" content="Old aerial photos of Detroit from 1949, 1956, 1961 and 1967, laid over the city today. Wipe between the years to see Black Bottom, Hastings Street and the freeways go in. Free, in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://detroit.joelint.com/">
+<meta property="og:image" content="https://joelint.com/apps/detroit-air-survey/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Detroit Then and Now Map: Old Aerial Photos, 1949 to Today">
+<meta name="twitter:description" content="Old aerial photos of Detroit from 1949, 1956, 1961 and 1967, laid over the city today. Wipe between the years to see Black Bottom, Hastings Street and the freeways go in. Free, in your browser.">
+<meta name="twitter:image" content="https://joelint.com/apps/detroit-air-survey/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Detroit Air Survey","url":"https://detroit.joelint.com/","description":"Historical aerial photographs of Detroit from 1949, 1956, 1961 and 1967 from the DTE Aerial Photo Collection at Wayne State University, placed over modern imagery so you can compare Detroit then and now.","applicationCategory":"ReferenceApplication","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Joe Lint","url":"https://joelint.com/"},"spatialCoverage":{"@type":"Place","name":"Detroit, Michigan"},"temporalCoverage":"1949/..","sameAs":"https://joelint.com/apps/detroit-air-survey/"}</script>
 <!-- the mark and the tab icon are inline so the local server and the static build both carry them; sources: viewer/logo.svg, viewer/favicon.svg -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='6' fill='%230B0F12'/%3E%3Crect x='7' y='7' width='25' height='50' fill='%233A4852'/%3E%3Cg fill='none' stroke-linecap='square'%3E%3Cpath d='M54 54L10 10' stroke='%23DCE6EB' stroke-width='6'/%3E%3Crect x='7' y='7' width='50' height='50' stroke='%23DCE6EB' stroke-width='5'/%3E%3Cpath d='M32 3V61' stroke='%23E0A94A' stroke-width='7'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -254,6 +275,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 </style>
 </head>
 <body>
+<noscript><div style="padding:24px;max-width:640px;line-height:1.55"><h1>Detroit then and now: old aerial photos, 1949 to today</h1><p>Historical aerial photographs of Detroit from 1949, 1956, 1961 and 1967, from the DTE Aerial Photo Collection at Wayne State University, laid over the city today across West Detroit, Dearborn and downtown. Wipe between any two years to watch Black Bottom and Hastings Street cleared for the Chrysler Freeway, farmland turn into suburbs, and the Southfield and Jeffries freeways go in.</p><p>The map needs JavaScript. <a href="https://joelint.com/apps/detroit-air-survey/" style="color:#E0A94A">Read about the survey</a>.</p></div></noscript>
 <div id="app">
   <div class="bar">
     <div class="brand"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="3" y="3" width="58" height="58" fill="#0B0F12"/><rect x="5" y="5" width="27" height="54" fill="#3A4852"/><g fill="none" stroke-linecap="square"><path d="M5 21H59M5 43H59M18 5V59M46 5V59" stroke="#7C8F9B" stroke-width="2"/><path d="M57 57L7 7" stroke="#DCE6EB" stroke-width="3"/><rect x="5" y="5" width="54" height="54" stroke="#DCE6EB" stroke-width="3"/><path d="M5 32H11M59 32H53" stroke="#DCE6EB" stroke-width="3"/><path d="M32 3V61" stroke="#E0A94A" stroke-width="3"/></g><circle cx="32" cy="32" r="5.5" fill="#E0A94A" stroke="#0B0F12" stroke-width="2"/></svg><div class="bt"><b>Detroit Air Survey</b><span>DTE aerial &middot; 1949&ndash;today</span></div></div>
