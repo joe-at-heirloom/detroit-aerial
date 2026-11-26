@@ -1,4 +1,5 @@
-// The static site (dist/) on Cloudflare, in place of Vercel. Deploy: wrangler deploy
+// The static site (dist/) on Cloudflare at detroit.joelint.com, in place of Vercel.
+// Deploy: wrangler deploy
 // Tiles are not uploaded with it (dist/.assetsignore); they are in R2, and
 // worker/index.js serves /tiles/* from there. After a rebuild that changes
 // tiles, copy them to the bucket first (README, "Hosting it").
@@ -9,6 +10,9 @@
   "compatibility_date": "2026-11-01",
   "workers_dev": true,
   "preview_urls": false,
+  "routes": [
+    { "pattern": "detroit.joelint.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "dist",
     "binding": "ASSETS",

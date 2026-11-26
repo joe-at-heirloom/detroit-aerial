@@ -261,8 +261,8 @@ Then either:
   Actions", and `.github/workflows/pages.yml` publishes it on every push that
   touches `dist/`. The first push of 114k files is slow; after that only changed
   tiles move.
-- **Cloudflare Workers** -- what serves the repo's own copy now
-  (`detroit-aerial.thepenco.workers.dev`). 114k tiles are over the 100,000 files
+- **Cloudflare Workers** -- what serves the repo's own copy now, at
+  https://detroit.joelint.com (also `detroit-aerial.thepenco.workers.dev`). 114k tiles are over the 100,000 files
   a Worker version may carry, so `dist/.assetsignore` leaves them out of the
   upload: they live in the R2 bucket `detroit-aerial-tiles` (the one
   `tiles.joelint.com` serves) and `worker/index.js` answers `/tiles/*` from it
