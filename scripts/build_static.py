@@ -213,6 +213,13 @@ def main():
     html = html.replace(marker, inject + marker, 1)
     open(os.path.join(out, 'index.html'), 'w', encoding='utf-8').write(html)
     open(os.path.join(out, '.nojekyll'), 'w').close()      # Pages: serve dotfiles/underscores as-is
+    # Cloudflare Workers (wrangler.jsonc): tiles are over its 100,000-file limit,
+    # so they go to R2 and worker/index.js serves them; data/ is cached 5 minutes
+    open(os.path.join(out, '.assetsignore'), 'w').write(
+        '# Cloudflare Workers: not uploaded as static assets. The tiles are over the\n'
+        '# 100,000-file limit and are served from R2 by worker/index.js instead.\n'
+        'tiles/\n.nojekyll\n')
+    open(os.path.join(out, '_headers'), 'w').write('/data/*\n  Cache-Control: public, max-age=300\n')
 
     if a.no_tiles:
         print('laid out %s without tiles' % out)

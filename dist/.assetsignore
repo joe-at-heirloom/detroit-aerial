@@ -1,0 +1,4 @@
+# Cloudflare Workers: not uploaded as static assets. The tiles are over the
+# 100,000-file limit and are served from R2 by worker/index.js instead.
+tiles/
+.nojekyll

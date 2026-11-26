@@ -1,0 +1,20 @@
+// The static site (dist/) on Cloudflare, in place of Vercel. Deploy: wrangler deploy
+// Tiles are not uploaded with it (dist/.assetsignore); they are in R2, and
+// worker/index.js serves /tiles/* from there. After a rebuild that changes
+// tiles, copy them to the bucket first (README, "Hosting it").
+{
+  "$schema": "https://unpkg.com/wrangler@4.152.0/config-schema.json",
+  "name": "detroit-aerial",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/tiles/*"]
+  },
+  "r2_buckets": [
+    { "binding": "TILES", "bucket_name": "detroit-aerial-tiles" }
+  ]
+}

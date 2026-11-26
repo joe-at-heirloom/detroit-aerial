@@ -261,8 +261,16 @@ Then either:
   Actions", and `.github/workflows/pages.yml` publishes it on every push that
   touches `dist/`. The first push of 114k files is slow; after that only changed
   tiles move.
-- **Vercel** -- `vercel.json` already points at `dist/` with no build step and
-  a year-long cache header on tiles. Import the repo and deploy.
+- **Cloudflare Workers** -- what serves the repo's own copy now
+  (`detroit-aerial.thepenco.workers.dev`). 114k tiles are over the 100,000 files
+  a Worker version may carry, so `dist/.assetsignore` leaves them out of the
+  upload: they live in the R2 bucket `detroit-aerial-tiles` (the one
+  `tiles.joelint.com` serves) and `worker/index.js` answers `/tiles/*` from it
+  with the year-long header; `dist/_headers` gives `data/` five minutes. After a
+  rebuild, copy new tiles to the bucket (rclone with an R2 remote), then
+  `wrangler deploy` for the page and data. Nothing deploys on push.
+- **Vercel** -- `vercel.json` points at `dist/` with no build step and a
+  year-long cache header on tiles. Retired for Cloudflare in November 2026.
 
 What the static build cannot do: no ALIGN handle (nothing to write to; it hides
 itself) and no "+ PLACE" -- both are local-server tools. Everything else --
